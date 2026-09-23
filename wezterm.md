@@ -1,0 +1,56 @@
+# WezTerm 設定
+
+## 快速鍵設定
+
+- `Alt+Z`：切換 pane zoom
+- `Alt+]` / `Alt+[`：維持 zoom，切換下一個／上一個 pane
+- `Alt+1`～`Alt+9`：維持 zoom，切換至指定 pane
+- `Alt+方向鍵`：維持 zoom，切換至該方向的 pane
+- `Alt+Shift+方向鍵`：調整 pane 大小
+- `Ctrl+PageUp` / `Ctrl+PageDown`：上一個／下一個 tab
+
+Prefix 為 `Ctrl+B`：
+
+- `Prefix, \`：左右分割 pane
+- `Prefix, -`：上下分割 pane
+- `Prefix, X`：直接關閉 pane
+- `Prefix, C`：建立 tab
+- `Prefix, W`：關閉目前 tab（會先確認）
+- `Prefix, N` / `Prefix, P`：下一個／上一個 tab
+- `Prefix, 1`～`Prefix, 9`：切換至指定 tab
+- `Prefix, Shift+1`～`Prefix, Shift+9`：把目前 pane 移到 tab 1～9；該 tab 不存在則開新 tab
+- `Prefix, ,`：命名 tab；清空可恢復自動標題
+- `Prefix, Q`：在各 pane 上顯示編號；再按數字可切換，`Esc` 取消
+- `Prefix, L`：開啟啟動選單
+- `Prefix, S`：選 pane 並與目前 pane 對調位置；對調後 focus 跟著移到目標位置
+
+Ubuntu Prefix 為 `Ctrl+U`：
+
+- `Ctrl+U, C`：建立 Ubuntu tab
+- `Ctrl+U, \`：建立左右分割的 Ubuntu pane
+- `Ctrl+U, -`：建立上下分割的 Ubuntu pane
+
+其他：
+
+- `Ctrl+Shift+P`：命令面板
+  - 搜 `sync`：把目前 pane 的輸入列送到同 tab 其他 pane
+  - 搜 `close`：關閉目前 tab
+  - 搜 `equal`：平均分配欄寬（僅同列／Tab）、欄高（僅同欄／Tab）、或欄寬高（Tab）
+- `Ctrl+Shift+U` / `Ctrl+Shift+D`：向上／向下翻頁
+- `Ctrl+Shift+F`：搜尋終端內容
+- `Ctrl+滑鼠左鍵`：開啟連結
+- 選取文字即複製；滑鼠右鍵貼上
+
+
+## 其他設定
+
+- 預設 shell：PowerShell 7
+- 啟動選單：PowerShell 7、Ubuntu 24.04、Command Prompt、SSH `nb`
+- 配色：Catppuccin Mocha
+- 字型：Sarasa Term TC Nerd Font 11 pt
+- 啟動時最大化；永遠顯示 tab bar
+- 降低非作用中 pane 的亮度與飽和度
+- Tab 自動顯示編號、程序、資料夾與 pane 位置 `(目前/總數)`；zoom 時為 `(目前/總數Z)`
+- Claude session 有名稱時，tab 顯示該名稱而非程序名
+- 保留 10,000 行捲動歷史，啟用 IME 與系統提示音
+- 關閉 pane 不確認；關閉 tab 或視窗需確認
