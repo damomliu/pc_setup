@@ -1,7 +1,8 @@
 # PC Setup
 
 ## 應用程式
-- 無蝦米 (輸入法: 只留嘸蝦米、預設英打)
+- 嘸蝦米 (輸入法: 只留嘸蝦米、預設英打)
+    - Boshiahk2
 - GCC - 軀動程式
 - SSH, Tailscale, AnyDesk
 - `C:\Notes\`
@@ -14,14 +15,16 @@
     - 右鍵選單
 - Snipaste (開機啟動 + 快速鍵設定)
 
-## 開發環境、設定
+## 開發相關
 - font: Fira Code、MesloLGS NF
 - Cursor
     - vscode settings: settings.json, keybindings.json
     - cursor settings: state.vscdb (sqlite), cli-config.json, mcp.json
     - terminal profile: None (不要 zsh)
 - Claude - Desktop, CLI
-    - settings: 
+    - settings.json, keybindings.json
+- Skills
+    - asana-ai-skill
 - 程式語言 (版本參考 `ssh nb`)
     - python
     - .net
@@ -47,6 +50,7 @@
     - 要安裝已修復 IME 的版本
 
 ## 個人化
+- RGB（OpenRGB）：`rgb/Set-RgbMode.ps1`（off、on、dim、idle、cycle、wave）；桌面捷徑「RGB 模式」
 - AutoHotkey
 - Office 停用 OneDrive 鎖定 (onedrive - gloabl.ini)
     - HoldEnabledUserSetting/CoAuthEnabledUserSetting

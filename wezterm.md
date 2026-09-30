@@ -9,7 +9,7 @@
 - `Alt+Shift+方向鍵`：調整 pane 大小
 - `Ctrl+PageUp` / `Ctrl+PageDown`：上一個／下一個 tab
 
-Prefix 為 `Ctrl+B`：
+Prefix 為 `Ctrl+B`（按下後有 2 秒可接下一鍵）：
 
 - `Prefix, \`：左右分割 pane
 - `Prefix, -`：上下分割 pane
@@ -20,7 +20,7 @@ Prefix 為 `Ctrl+B`：
 - `Prefix, 1`～`Prefix, 9`：切換至指定 tab
 - `Prefix, Shift+1`～`Prefix, Shift+9`：把目前 pane 移到 tab 1～9；該 tab 不存在則開新 tab
 - `Prefix, ,`：命名 tab；清空可恢復自動標題
-- `Prefix, Q`：在各 pane 上顯示編號；再按數字可切換，`Esc` 取消
+- `Prefix, Q`：在各 pane 上顯示編號；若有 pane 被擠成 0 寬／高會先救回來再顯示
 - `Prefix, L`：開啟啟動選單
 - `Prefix, S`：選 pane 並與目前 pane 對調位置；對調後 focus 跟著移到目標位置
 
@@ -35,7 +35,7 @@ Ubuntu Prefix 為 `Ctrl+U`：
 - `Ctrl+Shift+P`：命令面板
   - 搜 `sync`：把目前 pane 的輸入列送到同 tab 其他 pane
   - 搜 `close`：關閉目前 tab
-  - 搜 `equal`：平均分配欄寬（僅同列／Tab）、欄高（僅同欄／Tab）、或欄寬高（Tab）
+  - 搜 `equal`：平均分配欄寬（僅同列／Tab）、欄高（僅同欄／Tab）、或欄寬高（Tab）；寬依每一列、高依每一欄；若該 tab 的 mux 尺寸沒跟著視窗縮放，會改依視窗實際寬高均分
 - `Ctrl+Shift+U` / `Ctrl+Shift+D`：向上／向下翻頁
 - `Ctrl+Shift+F`：搜尋終端內容
 - `Ctrl+滑鼠左鍵`：開啟連結
@@ -45,12 +45,12 @@ Ubuntu Prefix 為 `Ctrl+U`：
 ## 其他設定
 
 - 預設 shell：PowerShell 7
-- 啟動選單：PowerShell 7、Ubuntu 24.04、Command Prompt、SSH `nb`
+- 啟動選單：PowerShell 7、Ubuntu 24.04、Git Bash、Command Prompt、SSH `nb`
 - 配色：Catppuccin Mocha
 - 字型：Sarasa Term TC Nerd Font 11 pt
 - 啟動時最大化；永遠顯示 tab bar
 - 降低非作用中 pane 的亮度與飽和度
 - Tab 自動顯示編號、程序、資料夾與 pane 位置 `(目前/總數)`；zoom 時為 `(目前/總數Z)`
-- Claude session 有名稱時，tab 顯示該名稱而非程序名
+- Claude session 有名稱時，tab 與視窗標題顯示該名稱（含 `/rename`）；停在 sub-agent 時改顯示該 agent 標題；手動 tab 名稱優先
 - 保留 10,000 行捲動歷史，啟用 IME 與系統提示音
 - 關閉 pane 不確認；關閉 tab 或視窗需確認
