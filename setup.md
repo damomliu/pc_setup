@@ -26,7 +26,7 @@
 - Skills
     - asana-ai-skill
 - 程式語言 (版本參考 `ssh nb`)
-    - python
+    - python (uv)
     - .net
     - npx(npm)
 - WSL
@@ -58,17 +58,28 @@
     - 檔案總管不顯示"圖庫"
     - 時鐘顯示"秒"
 - 雙螢幕、雙電腦
-    - 安裝與操作：[dual-pc/README.md](dual-pc/README.md)
-    - 設計共識：[dual-pc/design.md](dual-pc/design.md)
-    - IP 變更：修改 `dual-pc/config.psd1` 的 `PC.IP` 或 `NB.IP`，再重新執行部署腳本
     - PowerToys - 無框線滑鼠
     - Spacedesk (Driver: PC / Viewer: NB)
     - LG34: HDMI1=NB、HDMI2=PC（無法軟體切 Input，請用搖桿）
     - 熱鍵半自動：Windows / Spacedesk 自動切，LG 用手撥 HDMI；PC 為唯一 coordinator，每次都重新套用目標 profile
-    - mix↔PC 共用 HDMI2，不提示切 LG；進／出 NB 才提示撥搖桿與鍵鼠
-    - profile-PC(Ctrl+Alt+F9): PC 延伸至兩個螢幕（LG→HDMI2 且為主螢幕；NB Viewer 自動連 PC 並全螢幕；關閉無框線滑鼠；提示鍵盤滑鼠切到 PC）
-    - profile-mix(Ctrl+Alt+F10): LG34 顯示 PC, NB 顯示於自己螢幕（LG→HDMI2；NB 僅內建；開啟無框線滑鼠）
-    - profile-NB(Ctrl+Alt+F12): NB 延伸至兩個螢幕（LG→HDMI1 且為主螢幕；NB 內建為延伸；關閉無框線滑鼠；鎖定 PC；提示鍵盤滑鼠切到 NB）
+    - script `dual_display.ps1`（桌面捷徑「Display」）
+        - 首次：`pwsh .\dual_display.ps1 -Install`（跳一次 UAC）；`spacedeskService` 改 Manual，並註冊 elevated 排程工作 `DualDisplay-StartDriver` / `DualDisplay-StopDriver`；`-Uninstall` 還原
+        - 非互動：`-Mode Single|Dual`；`-WhatIf` 只印動作
+        - 顯示: PC Driver 狀態 & NB Viewer 狀態
+        - 選單:
+            - (R) 更新狀態
+            - (1) 單螢幕模式
+                - NB 停止 viewer、PC 停止 driver（Tray 一併關閉）；虛擬螢幕沒消失時警告並詢問是否強制卸載
+            - (2) 雙螢幕模式
+                - PC 啟動 driver、NB 啟動 viewer；以 PC 螢幕數 +1 判定成功
+            - (F) 強制卸載虛擬顯示器（`Disable-PnpDevice`，跳 UAC）
+            - (Q) 退出
+        - NB 端（`ssh nb`）
+            - Viewer 是 Store 版，無 CLI 參數；需設定為開啟後自動連 PC
+            - SSH 在 session 0，故啟動 Viewer 靠 NB 上的互動排程工作 `DualDisplay-StartViewer`（每次自動重建）
 
 ## 其他
-- review 開機啟動項目
+- ~~review 開機啟動項目~~（已完成）
+    - 停用 Logitech Download Assistant ×2（HKLM StartupApproved）、AMD `StartCN` 排程工作
+    - `spacedeskService` 改手動（由 `dual_display.ps1` 啟停）
+    - 待確認：AnyDesk service（Auto）是否要改 Manual
