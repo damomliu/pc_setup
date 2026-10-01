@@ -1,5 +1,7 @@
 # WezTerm 設定
 
+實際載入的設定是 `~/.wezterm.lua`；本資料夾的 `wezterm.lua` 為副本。
+
 ## 快速鍵設定
 
 - `Alt+Z`：切換 pane zoom
@@ -18,13 +20,13 @@ Prefix 為 `Ctrl+B`（按下後有 2 秒可接下一鍵）：
 - `Prefix, W`：關閉目前 tab（會先確認）
 - `Prefix, N` / `Prefix, P`：下一個／上一個 tab
 - `Prefix, 1`～`Prefix, 9`：切換至指定 tab
-- `Prefix, Shift+1`～`Prefix, Shift+9`：把目前 pane 移到 tab 1～9；該 tab 不存在則開新 tab
+- `Prefix, Shift+1`～`Prefix, Shift+9`：把目前 pane 移到 tab 1～9；該 tab 不存在則開新 tab；移入後會均分欄寬，避免和原 pane 重疊而選不到
 - `Prefix, ,`：命名 tab；清空可恢復自動標題
 - `Prefix, Q`：在各 pane 上顯示編號；若有 pane 被擠成 0 寬／高會先救回來再顯示
 - `Prefix, L`：開啟啟動選單
 - `Prefix, S`：選 pane 並與目前 pane 對調位置；對調後 focus 跟著移到目標位置
 
-Ubuntu Prefix 為 `Ctrl+U`：
+Ubuntu Prefix 為 `Ctrl+U`（按下後有 2 秒可接下一鍵）：
 
 - `Ctrl+U, C`：建立 Ubuntu tab
 - `Ctrl+U, \`：建立左右分割的 Ubuntu pane
@@ -35,7 +37,7 @@ Ubuntu Prefix 為 `Ctrl+U`：
 - `Ctrl+Shift+P`：命令面板
   - 搜 `sync`：把目前 pane 的輸入列送到同 tab 其他 pane
   - 搜 `close`：關閉目前 tab
-  - 搜 `equal`：平均分配欄寬（僅同列／Tab）、欄高（僅同欄／Tab）、或欄寬高（Tab）；寬依每一列、高依每一欄；若該 tab 的 mux 尺寸沒跟著視窗縮放，會改依視窗實際寬高均分
+  - 搜 `equal`：平均分配欄寬（僅同列／Tab）、欄高（僅同欄／Tab）、或欄寬高（Tab）；寬依每一列（含通高 pane）、高依每一欄；若該 tab 的 mux 尺寸沒跟著視窗縮放，會改依視窗實際寬高均分
 - `Ctrl+Shift+U` / `Ctrl+Shift+D`：向上／向下翻頁
 - `Ctrl+Shift+F`：搜尋終端內容
 - `Ctrl+滑鼠左鍵`：開啟連結
@@ -45,7 +47,7 @@ Ubuntu Prefix 為 `Ctrl+U`：
 ## 其他設定
 
 - 預設 shell：PowerShell 7
-- 啟動選單：PowerShell 7、Ubuntu 24.04、Git Bash、Command Prompt、SSH `nb`
+- 啟動選單：PowerShell 7、Ubuntu 24.04（進 Linux home）、Git Bash、Command Prompt、SSH `nb`
 - 配色：Catppuccin Mocha
 - 字型：Sarasa Term TC Nerd Font 11 pt
 - 啟動時最大化；永遠顯示 tab bar

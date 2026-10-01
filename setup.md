@@ -48,12 +48,14 @@
 - usbipd-win
 - WezTerm
     - 要安裝已修復 IME 的版本
+    - 設定見 `wezterm/`（`wezterm.md`；`wezterm.lua` 為 `~/.wezterm.lua` 副本）
 
 ## 個人化
 - RGB（OpenRGB）：`rgb/Set-RgbMode.ps1`（off、on、dim、idle、cycle、wave）；桌面捷徑「RGB 模式」
 - AutoHotkey
-- Office 停用 OneDrive 鎖定 (onedrive - gloabl.ini)
-    - HoldEnabledUserSetting/CoAuthEnabledUserSetting
+- Office 停用 OneDrive 鎖定 / 不要求登入
+    - onedrive global.ini: CoAuthEnabledUserSetting=false
+    - HKCU Office SignInOptions=3、UseOnlineContent=0
 - Windows
     - 檔案總管不顯示"圖庫"
     - 時鐘顯示"秒"
