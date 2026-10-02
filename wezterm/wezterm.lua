@@ -1418,19 +1418,19 @@ wezterm.on('augment-command-palette', function()
       action = equalize_action('tab', 'width'),
     },
     {
-      brief = 'Equalize: 平均分配欄高 (僅同欄)',
+      brief = 'Equalize: 平均分配列高 (僅同欄)',
       doc = '就地均分與目前 pane 同一欄的列高',
       icon = 'md_arrow_expand_vertical',
       action = equalize_action('band', 'height'),
     },
     {
-      brief = 'Equalize: 平均分配欄高 (Tab)',
+      brief = 'Equalize: 平均分配列高 (Tab)',
       doc = '就地均分目前 tab 的所有列高',
       icon = 'md_view_agenda',
       action = equalize_action('tab', 'height'),
     },
     {
-      brief = 'Equalize: 平均分配欄寬高 (Tab)',
+      brief = 'Equalize: 平均分配欄寬與列高 (Tab)',
       doc = '就地均分目前 tab 的欄寬與列高',
       icon = 'md_view_dashboard',
       action = equalize_action('tab', 'both'),

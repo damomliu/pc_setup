@@ -27,7 +27,7 @@
     - asana-ai-skill
 - 程式語言 (版本參考 `ssh nb`)
     - python (uv)
-    - .net
+    - .net, dotnet-ef
     - npx(npm)
 - WSL
 - Docker
