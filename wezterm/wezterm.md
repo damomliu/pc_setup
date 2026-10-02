@@ -35,9 +35,12 @@ Ubuntu Prefix 為 `Ctrl+U`（按下後有 2 秒可接下一鍵）：
 其他：
 
 - `Ctrl+Shift+P`：命令面板
+  - 搜 `RyokoTower`：七個模擬器，佈局相同
+    - `RyokoTower Simulators (新分頁)`：在目前視窗開一個 tab
+    - `RyokoTower Simulators (新視窗)`：開一個新視窗；等它最大化、格子尺寸跟上來源視窗後才切 pane，再均分欄寬與列高
   - 搜 `sync`：把目前 pane 的輸入列送到同 tab 其他 pane
   - 搜 `close`：關閉目前 tab
-  - 搜 `equal`：平均分配欄寬（僅同列／Tab）、欄高（僅同欄／Tab）、或欄寬高（Tab）；寬依每一列（含通高 pane）、高依每一欄；若該 tab 的 mux 尺寸沒跟著視窗縮放，會改依視窗實際寬高均分
+  - 搜 `equal`：平均分配欄寬（僅同列／Tab）、欄高（僅同欄／Tab）、或欄寬高（Tab）；寬依每一列（含通高 pane）、高依每一欄；移動的是相鄰 pane 真正共用的那條分割線；若該 tab 的 mux 尺寸沒跟著視窗縮放，會改依視窗實際寬高均分
 - `Ctrl+Shift+U` / `Ctrl+Shift+D`：向上／向下翻頁
 - `Ctrl+Shift+F`：搜尋終端內容
 - `Ctrl+滑鼠左鍵`：開啟連結

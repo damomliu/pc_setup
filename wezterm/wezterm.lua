@@ -841,25 +841,80 @@ local function touching_pairs(left_node, right_node, axis)
   return pairs
 end
 
--- 只移動兩欄／兩列相接的那條邊；縮最左欄時對右鄰下刀，避免打到視窗外緣。
-local function adjust_pair(window, pair, axis, delta)
+-- 移動 left 與 right 相接的那條邊。delta > 0 代表 left 變寬／變高。
+-- 右深的分割樹裡，這條邊屬於 left；左深時才屬於 right。
+-- 先試 1 格，確認這兩個 pane 的交界真的動了，再補上剩下的距離。
+local function adjust_pair(window, tab, pair, axis, delta)
   if not pair or delta == 0 then
     return
   end
 
-  local target
-  local direction
-  if delta > 0 then
-    target = pair.left
-    direction = axis == 'width' and 'Right' or 'Down'
-  else
-    target = pair.right
-    direction = axis == 'width' and 'Left' or 'Up'
-    delta = -delta
+  local size_key = axis
+  local pos_key = axis == 'width' and 'left' or 'top'
+  local grow_dir = axis == 'width' and 'Right' or 'Down'
+  local shrink_dir = axis == 'width' and 'Left' or 'Up'
+  local direction = delta > 0 and grow_dir or shrink_dir
+  local undo_dir = delta > 0 and shrink_dir or grow_dir
+  local id_l = pair.left.pane:pane_id()
+  local id_r = pair.right.pane:pane_id()
+
+  local function edge()
+    local by_id = pane_info_by_id(tab)
+    local left = by_id[id_l]
+    local right = by_id[id_r]
+    if not left or not right then
+      return
+    end
+    return left[size_key], right[pos_key]
   end
 
-  target.pane:activate()
-  window:perform_action(act.AdjustPaneSize { direction, delta }, target.pane)
+  local function layout_signature()
+    local parts = {}
+    for _, info in ipairs(tab:panes_with_info()) do
+      parts[#parts + 1] = table.concat({
+        info.pane:pane_id(),
+        info.left,
+        info.top,
+        info.width,
+        info.height,
+      }, ':')
+    end
+    return table.concat(parts, '|')
+  end
+
+  local function nudge(info, dir, amount)
+    info.pane:activate()
+    window:perform_action(act.AdjustPaneSize { dir, amount }, info.pane)
+  end
+
+  local function try_pane(info)
+    local before_size, before_pos = edge()
+    local before_layout = layout_signature()
+    if not before_size then
+      return false
+    end
+
+    nudge(info, direction, 1)
+    local after_size, after_pos = edge()
+    local moved = after_size and after_pos and (after_size ~= before_size) and (after_pos ~= before_pos)
+    if not moved then
+      if layout_signature() ~= before_layout then
+        nudge(info, undo_dir, 1)
+      end
+      return false
+    end
+
+    local rest = math.abs(delta) - 1
+    if rest > 0 then
+      nudge(info, direction, rest)
+    end
+    return true
+  end
+
+  if try_pane(pair.left) then
+    return
+  end
+  try_pane(pair.right)
 end
 
 local function axis_extent(infos, pos_key, size_key)
@@ -1029,7 +1084,7 @@ local function equalize_nodes(window, tab, nodes, axis, usable, split_guard)
           end
           split_guard.shared_done[cut] = true
         end
-        adjust_pair(window, { left = left, right = right }, axis, desired - left[size_key])
+        adjust_pair(window, tab, { left = left, right = right }, axis, desired - left[size_key])
         break
       end
     end
@@ -1203,8 +1258,208 @@ local function equalize_action(scope, axis)
   end)
 end
 
+local SIMULATOR_ROOT = 'C:\\Users\\user\\Documents\\RyokoTower'
+local SIMULATOR_PYTHON = SIMULATOR_ROOT .. '\\.venv\\Scripts\\python.exe'
+
+local function simulator_args(script, ...)
+  local args = { SIMULATOR_PYTHON, SIMULATOR_ROOT .. '\\' .. script }
+  for _, arg in ipairs({ ... }) do
+    table.insert(args, arg)
+  end
+  return args
+end
+
+-- CCaption | LanePLC   | Tower1 | CardR
+-- CCaption | LprAccess | Tower2 | RemoteC
+local function ccaption_spawn()
+  return {
+    cwd = SIMULATOR_ROOT,
+    args = simulator_args(
+      'scripts\\serial-tools\\cc_display_simulator.py',
+      '--port', 'COM9',
+      '--stations', 'A4,A6,A9,B1,B2'
+    ),
+  }
+end
+
+local function layout_simulators(tab, cc)
+  local root = SIMULATOR_ROOT
+  tab:set_title('Simulators')
+
+  local lane = cc:split {
+    direction = 'Right',
+    size = 0.75,
+    cwd = root,
+    args = simulator_args(
+      'scripts\\plc-simulator\\lane_plc_simulator.py',
+      '--port', 'COM15',
+      '--slaves', '10,11',
+      '--cli'
+    ),
+  }
+  local tower = lane:split {
+    direction = 'Right',
+    size = 2 / 3,
+    cwd = root,
+    args = simulator_args(
+      'scripts\\plc-simulator\\tower_plc_v2_simulator.py',
+      '--port', 'COM13',
+      '--cli',
+      '--slave', '1'
+    ),
+  }
+  local card = tower:split {
+    direction = 'Right',
+    size = 0.5,
+    cwd = root,
+    args = simulator_args(
+      'scripts\\serial-tools\\card_reader_simulator.py',
+      '--port', 'COM7'
+    ),
+  }
+  lane:split {
+    direction = 'Bottom',
+    size = 0.5,
+    cwd = root,
+    args = simulator_args(
+      'scripts\\serial-tools\\payment_system_simulator.py',
+      '--port', 'COM17'
+    ),
+  }
+  tower:split {
+    direction = 'Bottom',
+    size = 0.5,
+    cwd = root,
+    args = simulator_args(
+      'scripts\\plc-simulator\\tower_plc_v2_simulator.py',
+      '--port', 'COM21',
+      '--cli',
+      '--slave', '3'
+    ),
+  }
+  card:split {
+    direction = 'Bottom',
+    size = 0.5,
+    cwd = root,
+    args = simulator_args(
+      'scripts\\serial-tools\\remote_control_simulator.py',
+      '--port', 'COM5'
+    ),
+  }
+  tab:activate()
+end
+
+local function notify_spawn_error(gui_win, err)
+  if gui_win then
+    gui_win:toast_notification('WezTerm', tostring(err), nil, 4000)
+  end
+end
+
+local function spawn_simulators_tab(gui_win, pane)
+  local mux_win = pane:window()
+  if not mux_win then
+    return
+  end
+
+  local ok, err = pcall(function()
+    local tab, cc = mux_win:spawn_tab(ccaption_spawn())
+    layout_simulators(tab, cc)
+  end)
+
+  if not ok then
+    notify_spawn_error(gui_win, err)
+  end
+end
+
+local function layout_simulators_when_maximized(gui_win, src_pane, tab, cc, gui)
+  local src_tab = src_pane:tab()
+  local src_size = src_tab and src_tab:get_size() or {}
+  local src_ok, src_dims = pcall(function()
+    return gui_win:get_dimensions()
+  end)
+
+  local function layout_now()
+    local laid_ok, laid_err = pcall(function()
+      layout_simulators(tab, cc)
+      if gui then
+        equalize_panes(gui, cc, 'tab', 'both')
+      end
+    end)
+    if not laid_ok then
+      notify_spawn_error(gui_win, laid_err)
+    end
+  end
+
+  if not gui then
+    layout_now()
+    return
+  end
+
+  local tries = 0
+  local last_signature
+  local function tick()
+    tries = tries + 1
+    local dims_ok, dims = pcall(function()
+      return gui:get_dimensions()
+    end)
+    local size_ok, size = pcall(function()
+      return tab:get_size()
+    end)
+    local signature
+    local matched = false
+    if dims_ok and size_ok and dims and size and src_ok and src_dims and src_size.cols then
+      signature = table.concat({
+        dims.pixel_width or 0,
+        dims.pixel_height or 0,
+        size.cols or 0,
+        size.rows or 0,
+      }, 'x')
+      matched = (dims.pixel_width or 0) >= (src_dims.pixel_width or 0) - 48
+        and (dims.pixel_height or 0) >= (src_dims.pixel_height or 0) - 48
+        and (size.cols or 0) >= src_size.cols - 2
+        and (size.rows or 0) >= (src_size.rows or 0) - 2
+    end
+    local stable = signature and signature == last_signature
+    last_signature = signature
+    if (matched and stable) or tries >= 40 then
+      layout_now()
+      return
+    end
+    wezterm.time.call_after(0.05, tick)
+  end
+
+  wezterm.time.call_after(0.05, tick)
+end
+
+local function spawn_simulators_window(gui_win, pane)
+  local ok, err = pcall(function()
+    local tab, cc, window = mux.spawn_window(ccaption_spawn())
+    local gui = window:gui_window()
+    if gui then
+      gui:maximize()
+    end
+    layout_simulators_when_maximized(gui_win, pane, tab, cc, gui)
+  end)
+
+  if not ok then
+    notify_spawn_error(gui_win, err)
+  end
+end
+
 wezterm.on('augment-command-palette', function()
   return {
+    {
+      brief = 'RyokoTower Simulators (新分頁)',
+      doc = '在目前視窗開 Simulators tab，跑 RyokoTower 的七個模擬器',
+      icon = 'md_tab_plus',
+      action = wezterm.action_callback(spawn_simulators_tab),
+    },
+    {
+      brief = 'RyokoTower Simulators (新視窗)',
+      doc = '開一個新視窗，跑 RyokoTower 的七個模擬器',
+      icon = 'md_window_restore',
+      action = wezterm.action_callback(spawn_simulators_window),
+    },
     {
       brief = 'Sync: 送到其他 pane',
       doc = '把目前 pane 的輸入列送到同 tab 其他 pane，並在目前 pane 送出 Enter',
