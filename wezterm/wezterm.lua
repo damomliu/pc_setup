@@ -925,83 +925,16 @@ local function axis_extent(infos, pos_key, size_key)
   return max_end
 end
 
--- 視窗縮過後，單一 tab 的 mux 寬度可能還停在舊尺寸；同視窗其他 tab 才是真的。
-local function sibling_axis_extent(tab, pos_key, size_key)
-  local mux_win
-  local ok, win = pcall(function()
-    return tab:window()
-  end)
-  if ok then
-    mux_win = win
-  end
-  if not mux_win then
-    return
-  end
-
-  local counts = {}
-  local self_id = tab:tab_id()
-  for _, other in ipairs(mux_win:tabs()) do
-    if other:tab_id() ~= self_id then
-      local extent = axis_extent(other:panes_with_info(), pos_key, size_key)
-      if extent > 0 then
-        counts[extent] = (counts[extent] or 0) + 1
-      end
-    end
-  end
-
-  local best
-  local best_n = 0
-  for extent, count in pairs(counts) do
-    if count > best_n then
-      best = extent
-      best_n = count
-    end
-  end
-  return best
-end
-
-local function gui_axis_extent(window, tab, axis)
-  local ok_w, dims = pcall(function()
-    return window:get_dimensions()
-  end)
-  local ok_t, size = pcall(function()
+-- tab:get_size() 跟視窗一致。其他 tab 的 pane 可能還停在縮放前的寬度，不能拿來當目標。
+local function usable_axis_extent(tab, axis, mux_total)
+  local ok, size = pcall(function()
     return tab:get_size()
   end)
-  if not (ok_w and dims and ok_t and size) then
-    return
-  end
-
-  if axis == 'width' then
-    if size.cols and size.cols > 0 and size.pixel_width and size.pixel_width > 0 then
-      local cell = size.pixel_width / size.cols
-      if cell > 0 then
-        return math.floor((dims.pixel_width - 8) / cell + 0.5)
-      end
+  if ok and size then
+    local extent = axis == 'width' and size.cols or size.rows
+    if extent and extent > 0 then
+      return extent
     end
-    return
-  end
-
-  if size.rows and size.rows > 0 and size.pixel_height and size.pixel_height > 0 then
-    local cell = size.pixel_height / size.rows
-    if cell > 0 then
-      local rows = math.floor((dims.pixel_height - 8) / cell + 0.5)
-      if rows > size.rows + 2 then
-        rows = rows - 1
-      end
-      return rows
-    end
-  end
-end
-
-local function usable_axis_extent(window, tab, axis, mux_total)
-  local pos_key = axis == 'width' and 'left' or 'top'
-  local sibling = sibling_axis_extent(tab, pos_key, axis)
-  if sibling and sibling > 0 then
-    return sibling
-  end
-  local gui = gui_axis_extent(window, tab, axis)
-  if gui and gui > 0 then
-    return gui
   end
   return mux_total
 end
@@ -1055,7 +988,7 @@ local function equalize_nodes(window, tab, nodes, axis, usable, split_guard)
     return
   end
 
-  -- 只有這個帶的 mux 總長和視窗對不上時才改用視窗（tab 2 那種過期寬度）。
+  -- 這一帶的 mux 總長和 tab 實際欄列對不上時，改依 tab 尺寸均分。
   local total = mux_total
   if usable and usable > 0 then
     local mux_extent = mux_total + (#nodes - 1)
@@ -1167,7 +1100,7 @@ end
 local function equalize_tree_axis(window, tab, infos, axis)
   local pos_key = axis == 'width' and 'left' or 'top'
   local mux_extent = axis_extent(infos, pos_key, axis)
-  local usable = usable_axis_extent(window, tab, axis, mux_extent)
+  local usable = usable_axis_extent(tab, axis, mux_extent)
   local band_key = axis == 'width' and 'top' or 'left'
   local cross_size = axis == 'width' and 'height' or 'width'
   local shared_done = {}
@@ -1525,6 +1458,167 @@ local function tab_active_pane(tab)
   return panes and panes[1]
 end
 
+local function layout_overflows(infos, size)
+  for _, info in ipairs(infos) do
+    if info.left + info.width > size.cols + CELL_SLACK
+      or info.top + info.height > size.rows + CELL_SLACK then
+      return true
+    end
+  end
+  return false
+end
+
+local function same_position(infos, key)
+  local origin = infos[1][key]
+  for _, info in ipairs(infos) do
+    if math.abs(info[key] - origin) > CELL_SLACK then
+      return false
+    end
+  end
+  return true
+end
+
+local function shrink_cells(cells_list, room)
+  local fitted = {}
+  local sum = 0
+  for _, cells in ipairs(cells_list) do
+    local size = math.max(1, cells)
+    fitted[#fitted + 1] = size
+    sum = sum + size
+  end
+  if sum <= room or sum == 0 then
+    return fitted
+  end
+
+  local used = 0
+  for index, cells in ipairs(fitted) do
+    if index == #fitted then
+      fitted[index] = math.max(1, room - used)
+    else
+      local share = math.max(1, math.floor(cells * room / sum))
+      local remain_slots = #fitted - index
+      if used + share > room - remain_slots then
+        share = math.max(1, room - used - remain_slots)
+      end
+      fitted[index] = share
+      used = used + share
+    end
+  end
+  return fitted
+end
+
+-- 視窗變窄時，直向或橫向一疊 pane 的分割節點可能仍是舊尺寸。
+-- 那個尺寸比 tab 大，Split 會直接 No space for split。
+-- 先把其他 pane 移出，剩下的根 pane 會回到 tab 尺寸，再依原高度／寬度移回來。
+local function refit_overflow_layout(window, pane)
+  local tab = pane:tab()
+  if not tab then
+    return true
+  end
+  tab:set_zoomed(false)
+
+  local size = tab:get_size()
+  local infos = tab:panes_with_info()
+  if not size or #infos < 2 or not layout_overflows(infos, size) then
+    return true
+  end
+
+  local vertical = same_position(infos, 'left')
+  local horizontal = same_position(infos, 'top')
+  if not vertical and not horizontal then
+    window:toast_notification('WezTerm', 'pane 超出視窗，無法分割', nil, 4000)
+    return false
+  end
+
+  local pos_key = vertical and 'top' or 'left'
+  local size_key = vertical and 'height' or 'width'
+  local direction = vertical and '--bottom' or '--right'
+  local limit = vertical and size.rows or size.cols
+  table.sort(infos, function(a, b)
+    if a[pos_key] == b[pos_key] then
+      return a.pane:pane_id() < b.pane:pane_id()
+    end
+    return a[pos_key] < b[pos_key]
+  end)
+
+  local room = limit - (#infos - 1) - 1
+  if room < #infos - 1 then
+    window:toast_notification('WezTerm', 'pane 超出視窗，無法分割', nil, 4000)
+    return false
+  end
+
+  local anchor_id = infos[1].pane:pane_id()
+  local moved = {}
+  for index = 2, #infos do
+    moved[#moved + 1] = {
+      id = infos[index].pane:pane_id(),
+      cells = infos[index][size_key],
+    }
+  end
+  local cells_list = {}
+  for _, item in ipairs(moved) do
+    cells_list[#cells_list + 1] = item.cells
+  end
+  cells_list = shrink_cells(cells_list, room)
+  for index, cells in ipairs(cells_list) do
+    moved[index].cells = cells
+  end
+
+  for index = #moved, 1, -1 do
+    local moved_pane = wezterm.mux.get_pane(moved[index].id)
+    if not moved_pane then
+      window:toast_notification('WezTerm', '找不到要收回的 pane', nil, 4000)
+      return false
+    end
+    moved_pane:move_to_new_tab()
+  end
+
+  for index = #moved, 1, -1 do
+    local item = moved[index]
+    local ok, _, err = wezterm.run_child_process {
+      wezterm_exe(),
+      'cli',
+      'split-pane',
+      direction,
+      '--cells',
+      tostring(item.cells),
+      '--move-pane-id',
+      tostring(item.id),
+      '--pane-id',
+      tostring(anchor_id),
+    }
+    if not ok then
+      window:toast_notification(
+        'WezTerm',
+        tostring(err or '無法把超出視窗的 pane 收回'),
+        nil,
+        4000
+      )
+      return false
+    end
+  end
+
+  local active = wezterm.mux.get_pane(pane:pane_id())
+  if active then
+    active:activate()
+  end
+  return true
+end
+
+local function split_action(direction, args)
+  return wezterm.action_callback(function(window, pane)
+    if not refit_overflow_layout(window, pane) then
+      return
+    end
+    local spec = { domain = 'CurrentPaneDomain' }
+    if args then
+      spec.args = args
+    end
+    local action = direction == 'Right' and act.SplitHorizontal(spec) or act.SplitVertical(spec)
+    window:perform_action(action, pane)
+  end)
+end
+
 -- 把目前 pane 移到指定 tab（1 起算）；該 tab 不存在則開新 tab。
 local function move_pane_to_tab(index)
   return wezterm.action_callback(function(gui_win, pane)
@@ -1594,8 +1688,8 @@ config.keys = {
   { key = 'DownArrow', mods = 'ALT|SHIFT', action = act.AdjustPaneSize { 'Down', 2 } },
 
   -- Prefix 操作。
-  { key = '\\', mods = 'LEADER', action = act.SplitHorizontal { domain = 'CurrentPaneDomain' } },
-  { key = '-', mods = 'LEADER', action = act.SplitVertical { domain = 'CurrentPaneDomain' } },
+  { key = '\\', mods = 'LEADER', action = split_action 'Right' },
+  { key = '-', mods = 'LEADER', action = split_action 'Bottom' },
   { key = 'x', mods = 'LEADER', action = act.CloseCurrentPane { confirm = false } },
   { key = 'c', mods = 'LEADER', action = act.SpawnTab 'CurrentPaneDomain' },
   { key = 'w', mods = 'LEADER', action = act.CloseCurrentTab { confirm = true } },
@@ -1644,15 +1738,11 @@ config.key_tables = {
     },
     {
       key = '\\',
-      action = act.SplitHorizontal {
-        args = ubuntu_wsl,
-      },
+      action = split_action('Right', ubuntu_wsl),
     },
     {
       key = '-',
-      action = act.SplitVertical {
-        args = ubuntu_wsl,
-      },
+      action = split_action('Bottom', ubuntu_wsl),
     },
   },
 }

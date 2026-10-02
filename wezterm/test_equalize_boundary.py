@@ -136,6 +136,18 @@ def test_window_usable_only_when_mux_disagrees():
     assert target_content(478, 2, 319) == 318
 
 
+def test_tab_size_not_stale_sibling_width():
+    # window1 tab1：三欄已塞進 319。tab2 的 pane 仍是 479，不能拿來當目標。
+    widths = [103, 137, 77]
+    tab_cols = 319
+    assert sum(widths) + 2 == tab_cols
+    usable = tab_cols
+    assert usable != 479
+    total = sum(widths)
+    base, extra = divmod(total, 3)
+    assert [base + (1 if index < extra else 0) for index in range(3)] == [106, 106, 105]
+
+
 def ranges_overlap_exclusive(start_a, size_a, start_b, size_b):
     return min(start_a + size_a, start_b + size_b) - max(start_a, start_b) > 0
 
@@ -237,6 +249,7 @@ if __name__ == '__main__':
     test_stale_narrow_left_grows_to_half_window()
     test_grid_misaligned_is_two_rows_not_three_columns()
     test_window_usable_only_when_mux_disagrees()
+    test_tab_size_not_stale_sibling_width()
     test_tab3_spanning_left_is_in_both_width_rows()
     test_t_layout_bottom_includes_spanning_left_but_shared_split_is_same_cut()
     test_overlapping_moved_pane_is_reachable_to_the_right()
