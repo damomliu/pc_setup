@@ -1,0 +1,23 @@
+{
+  "skill_name": "wezterm",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "幫我在 WezTerm 加一個快速鍵 Ctrl+B 然後按 E，把目前 pane 的字體放大一號。先不要管命令面板。",
+      "expected_output": "先詢問是否同時新增至命令面板，在使用者回答前不寫命令面板項目。",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "命令面板新增一個命令，名稱就叫「關閉縮放」。按下去會取消目前 pane 的 zoom。不要綁快速鍵。",
+      "expected_output": "使用者已言明不要快速鍵，所以只加命令面板與 wezterm.md，然後 sync 並讓 WezTerm 重載。",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "WezTerm 預設字型改成 12 pt，文件也要一起改。",
+      "expected_output": "同時更新 wezterm.lua 與 wezterm.md，sync 到 ~/.wezterm.lua，不擅自新增快速鍵或命令。",
+      "files": []
+    }
+  ]
+}
