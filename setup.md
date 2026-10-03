@@ -66,12 +66,14 @@
     - 熱鍵半自動：Windows / Spacedesk 自動切，LG 用手撥 HDMI；PC 為唯一 coordinator，每次都重新套用目標 profile
     - script `dual_display.ps1`（桌面捷徑「Display」）
         - 首次：`pwsh .\dual_display.ps1 -Install`（跳一次 UAC）；`spacedeskService` 改 Manual，並註冊 elevated 排程工作 `DualDisplay-StartDriver` / `DualDisplay-StopDriver`；`-Uninstall` 還原
-        - 非互動：`-Mode Single|Dual`；`-WhatIf` 只印動作
-        - 顯示: PC Driver 狀態 & NB Viewer 狀態
+        - 非互動：`-Mode Single|Single169|Single1610|Dual`；`-WhatIf` 只印動作
+        - 顯示: PC Driver 狀態、解析度 & NB Viewer 狀態
         - 選單:
             - (R) 更新狀態
-            - (1) 單螢幕模式
-                - NB 停止 viewer、PC 停止 driver（Tray 一併關閉）；虛擬螢幕沒消失時警告並詢問是否強制卸載
+            - (1) 單螢幕模式 25:9 (2560x1080)
+                - NB 停止 viewer、PC 停止 driver（Tray 一併關閉）；虛擬螢幕沒消失時警告並詢問是否強制卸載；成功後切解析度
+            - (9) 單螢幕模式 16:9  (1920x1080)
+            - (0) 單螢幕模式 16:10 (1920x1200)
             - (2) 雙螢幕模式
                 - PC 啟動 driver、NB 啟動 viewer；以 PC 螢幕數 +1 判定成功
             - (F) 強制卸載虛擬顯示器（`Disable-PnpDevice`，跳 UAC）

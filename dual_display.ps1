@@ -5,7 +5,10 @@
 
 .DESCRIPTION
   無參數 -> 互動選單。
-  -Mode Single|Dual -> 非互動，直接套用。
+  -Mode Single|Single169|Single1610|Dual -> 非互動，直接套用。
+    Single     = 單螢幕 25:9  (2560x1080)
+    Single169  = 單螢幕 16:9  (1920x1080)
+    Single1610 = 單螢幕 16:10 (1920x1200)
   -WhatIf -> 只印出會做的事，不改任何狀態 (唯讀的狀態查詢仍會執行)。
   -Install / -Uninstall -> 一次性安裝/還原 (需要 admin，會自我提升，跳一次 UAC)。
 
@@ -14,7 +17,7 @@
 #>
 [CmdletBinding()]
 param(
-    [ValidateSet('Single', 'Dual')][string]$Mode,
+    [ValidateSet('Single', 'Single169', 'Single1610', 'Dual')][string]$Mode,
     [switch]$Install,
     [switch]$Uninstall,
     [switch]$WhatIf,
@@ -37,6 +40,13 @@ $NbViewerTask   = 'DualDisplay-StartViewer'   # NB 上的互動排程工作 (啟
 $PhysicalScreens = 1     # 單螢幕模式預期的螢幕數
 $WaitScreenSec  = 15     # 雙螢幕模式等虛擬螢幕出現
 $WaitStopSec    = 10     # 單螢幕模式等虛擬螢幕消失
+
+# 單螢幕解析度 profile（鍵名對應選單 / -Mode）
+$SingleProfiles = [ordered]@{
+    Single     = @{ Label = '25:9';  Width = 2560; Height = 1080 }
+    Single169  = @{ Label = '16:9';  Width = 1920; Height = 1080 }
+    Single1610 = @{ Label = '16:10'; Width = 1920; Height = 1200 }
+}
 # -----------------------------------------------------------------------------
 
 function Write-Step([string]$Text) { Write-Host "▶ $Text" -ForegroundColor Cyan }
@@ -78,6 +88,116 @@ function Invoke-Elevated([string]$Command) {
 function Get-ScreenCount {
     Add-Type -AssemblyName System.Windows.Forms
     [System.Windows.Forms.Screen]::AllScreens.Count
+}
+
+function Get-PrimaryResolution {
+    Add-Type -AssemblyName System.Windows.Forms
+    $p = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+    [pscustomobject]@{ Width = $p.Width; Height = $p.Height }
+}
+
+# 設定主螢幕解析度。優先選同解析度中最高刷新率。回傳 $true 表示已套用或已是目標。
+function Set-DisplayResolution([int]$Width, [int]$Height) {
+    if (-not ('DualDisplayNative' -as [type])) {
+        Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+
+public static class DualDisplayNative {
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+    private struct DEVMODE {
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string dmDeviceName;
+        public short dmSpecVersion, dmDriverVersion, dmSize, dmDriverExtra;
+        public int dmFields, dmPositionX, dmPositionY, dmDisplayOrientation, dmDisplayFixedOutput;
+        public short dmColor, dmDuplex, dmYResolution, dmTTOption, dmCollate;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string dmFormName;
+        public short dmLogPixels;
+        public int dmBitsPerPel, dmPelsWidth, dmPelsHeight, dmDisplayFlags, dmDisplayFrequency;
+        public int dmICMMethod, dmICMIntent, dmMediaType, dmDitherType, dmReserved1, dmReserved2;
+        public int dmPanningWidth, dmPanningHeight;
+    }
+
+    [DllImport("user32.dll", CharSet = CharSet.Ansi)]
+    private static extern bool EnumDisplaySettings(string deviceName, int modeNum, ref DEVMODE devMode);
+
+    [DllImport("user32.dll")]
+    private static extern int ChangeDisplaySettings(ref DEVMODE devMode, int flags);
+
+    private const int ENUM_CURRENT_SETTINGS = -1;
+    private const int CDS_UPDATEREGISTRY = 0x01;
+    private const int CDS_TEST = 0x02;
+    public const int DISP_CHANGE_SUCCESSFUL = 0;
+    public const int ERR_UNSUPPORTED = -100;
+    public const int ERR_TEST_FAILED = -101;
+
+    // 回傳刷新率；找不到則 -1
+    public static int FindBestFrequency(int width, int height) {
+        var dm = new DEVMODE();
+        dm.dmSize = (short)Marshal.SizeOf(typeof(DEVMODE));
+        int best = -1;
+        for (int i = 0; EnumDisplaySettings(null, i, ref dm); i++) {
+            if (dm.dmPelsWidth == width && dm.dmPelsHeight == height && dm.dmDisplayFrequency > best) {
+                best = dm.dmDisplayFrequency;
+            }
+        }
+        return best;
+    }
+
+    // 回傳 ChangeDisplaySettings 結果碼；ERR_* 為前置失敗
+    public static int Apply(int width, int height, int frequency) {
+        var mode = new DEVMODE();
+        mode.dmSize = (short)Marshal.SizeOf(typeof(DEVMODE));
+        if (!EnumDisplaySettings(null, ENUM_CURRENT_SETTINGS, ref mode)) {
+            return ERR_UNSUPPORTED;
+        }
+        mode.dmPelsWidth = width;
+        mode.dmPelsHeight = height;
+        mode.dmDisplayFrequency = frequency;
+        // DM_PELSWIDTH | DM_PELSHEIGHT | DM_DISPLAYFREQUENCY
+        mode.dmFields = 0x80000 | 0x100000 | 0x400000;
+        int test = ChangeDisplaySettings(ref mode, CDS_TEST);
+        if (test != DISP_CHANGE_SUCCESSFUL) return ERR_TEST_FAILED - test;
+        return ChangeDisplaySettings(ref mode, CDS_UPDATEREGISTRY);
+    }
+}
+'@
+    }
+
+    $cur = Get-PrimaryResolution
+    if ($cur.Width -eq $Width -and $cur.Height -eq $Height) {
+        Write-Ok "解析度已是 ${Width}x${Height}"
+        return $true
+    }
+
+    $freq = [DualDisplayNative]::FindBestFrequency($Width, $Height)
+    if ($freq -lt 0) {
+        Write-Fail "顯示器不支援 ${Width}x${Height}"
+        return $false
+    }
+
+    Write-Step "設定解析度 ${Width}x${Height}@${freq}Hz"
+    $script:resChanged = $false
+    $null = Invoke-Step "ChangeDisplaySettings ${Width}x${Height}@${freq}" {
+        $code = [DualDisplayNative]::Apply($Width, $Height, $freq)
+        if ($code -ne [DualDisplayNative]::DISP_CHANGE_SUCCESSFUL) {
+            Write-Fail "ChangeDisplaySettings 失敗 (code $code)"
+            return
+        }
+        $script:resChanged = $true
+    }
+    if ($WhatIf) { return $true }
+    if (-not $script:resChanged) { return $false }
+
+    if (Wait-Until {
+            $r = Get-PrimaryResolution
+            $r.Width -eq $Width -and $r.Height -eq $Height
+        } 5) {
+        Write-Ok "解析度 ${Width}x${Height}"
+        return $true
+    }
+    $now = Get-PrimaryResolution
+    Write-Warn "解析度未變更 (目前 $($now.Width)x$($now.Height))"
+    return $false
 }
 
 function Get-PcService { Get-Service -Name $ServiceName -ErrorAction SilentlyContinue }
@@ -193,7 +313,8 @@ function Show-Status {
     $tray = if (Get-Process spacedeskServiceTray -ErrorAction SilentlyContinue) { 'on' } else { 'off' }
     $adapter = if (Test-AdapterDisabled) { '，Adapter 已停用' } else { '' }
     Write-Host "PC  driver : $svcText (tray: $tray)$adapter"
-    Write-Host "PC  螢幕數 : $(Get-ScreenCount)"
+    $res = Get-PrimaryResolution
+    Write-Host "PC  螢幕數 : $(Get-ScreenCount) ($($res.Width)x$($res.Height))"
     $nb = Get-NbViewerState
     if ($null -eq $nb) {
         Write-Host 'NB  Viewer : 未知 (無法連線)' -ForegroundColor Yellow
@@ -222,14 +343,21 @@ function Invoke-ForceUnload {
     }
 }
 
-function Invoke-Single {
-    Write-Host '=== 單螢幕模式 ===' -ForegroundColor White
+function Invoke-Single([string]$ProfileKey = 'Single') {
+    $prof = $SingleProfiles[$ProfileKey]
+    if (-not $prof) { Write-Fail "未知的單螢幕 profile: $ProfileKey"; return }
+    $label = "$($prof.Label) ($($prof.Width)x$($prof.Height))"
+    Write-Host "=== 單螢幕模式 $label ===" -ForegroundColor White
     $nbOk = Stop-NbViewer
     $pcOk = Stop-PcDriver
-    if ($WhatIf) { return }
+    if ($WhatIf) {
+        $null = Set-DisplayResolution -Width $prof.Width -Height $prof.Height
+        return
+    }
 
+    $screenOk = $false
     if (Wait-Until { (Get-ScreenCount) -le $PhysicalScreens } $WaitStopSec) {
-        if ($pcOk) { Write-Ok "單螢幕完成 (螢幕數 $(Get-ScreenCount))" }
+        $screenOk = $true
     } else {
         Write-Warn "虛擬螢幕沒有消失 (目前 $(Get-ScreenCount) 個，預期 $PhysicalScreens)"
         if (-not $nbOk) { Write-Warn 'NB 無法連線，Viewer 可能仍在執行，這會讓虛擬螢幕殘留' }
@@ -237,7 +365,20 @@ function Invoke-Single {
             Write-Warn '可從互動選單使用 (F) 強制卸載'
         } elseif ((Read-Host '要強制卸載虛擬顯示器嗎？[y/N]') -match '^[yY]') {
             Invoke-ForceUnload
+            $screenOk = (Get-ScreenCount) -le $PhysicalScreens
         }
+    }
+
+    $resOk = $false
+    if ($screenOk) {
+        $resOk = Set-DisplayResolution -Width $prof.Width -Height $prof.Height
+    } else {
+        Write-Warn '略過解析度切換（仍有虛擬螢幕）'
+    }
+
+    if ($pcOk -and $screenOk -and $resOk) {
+        $now = Get-PrimaryResolution
+        Write-Ok "單螢幕完成 (螢幕數 $(Get-ScreenCount)，$($now.Width)x$($now.Height))"
     }
     if (-not $nbOk) { Write-Warn 'NB 端狀態未知' }
 }
@@ -346,18 +487,22 @@ if ($Install -or $Uninstall) {
 if ($Mode) {
     $script:NonInteractive = $true
     switch ($Mode) {
-        'Single' { Invoke-Single }
-        'Dual'   { Invoke-Dual }
+        'Single'     { Invoke-Single -ProfileKey 'Single' }
+        'Single169'  { Invoke-Single -ProfileKey 'Single169' }
+        'Single1610' { Invoke-Single -ProfileKey 'Single1610' }
+        'Dual'       { Invoke-Dual }
     }
     return
 }
 
 while ($true) {
     Show-Status
-    Write-Host '(R) 更新狀態  (1) 單螢幕  (2) 雙螢幕  (F) 強制卸載虛擬顯示器  (Q) 退出'
+    Write-Host '(R) 更新狀態  (1) 單螢幕 25:9  (9) 16:9  (0) 16:10  (2) 雙螢幕  (F) 強制卸載  (Q) 退出'
     switch ((Read-Host '選擇').Trim().ToUpper()) {
         'R' { continue }
-        '1' { Invoke-Single }
+        '1' { Invoke-Single -ProfileKey 'Single' }
+        '9' { Invoke-Single -ProfileKey 'Single169' }
+        '0' { Invoke-Single -ProfileKey 'Single1610' }
         '2' { Invoke-Dual }
         'F' { Invoke-ForceUnload }
         'Q' { return }
