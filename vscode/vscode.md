@@ -7,7 +7,7 @@
 | repo | 實際載入 | 說明 |
 |---|---|---|
 | `vscode/settings.json` | `%APPDATA%\Code\User\settings.json` | 所有 profile 共用 |
-| `vscode/keybindings.json` | `%APPDATA%\Code\User\keybindings.json` | Windows 用；所有 profile 共用 |
+| `vscode/keybindings.json` | `%APPDATA%\Code\User\keybindings.json` | Windows 用；所有 profile 共用。按鍵說明見 `vscode-keybindings.md` |
 | `vscode/mcp.json` | `%APPDATA%\Code\User\mcp.json` | 由 `~\.cursor\mcp.json` 轉換 |
 | `vscode/extensions.json` | — | 各 profile 的 extension 清單 |
 | `vscode/sync-vscode.ps1` | — | 同步腳本 |
@@ -54,23 +54,7 @@ Cursor 把 remote-ssh / remote-wsl / remote-containers 設成套用到所有 pro
 
 ### 快速鍵
 
-Cursor 把 VS Code 的 `Ctrl+K` 組合鍵整組搬到 `Ctrl+M`。Cursor 的 keybindings 裡有約 200 條是在搬回 `Ctrl+K`；VS Code 原生就是 `Ctrl+K`，這些都拿掉了。
-
-| 按鍵 | Cursor | VS Code |
-|---|---|---|
-| `Ctrl+L` | 開新 chat；terminal 裡切換 Agents | `workbench.action.chat.open` |
-| `Ctrl+N`（chat 內） | 新 chat | `workbench.action.chat.newChat` |
-| `Ctrl+Shift+K`（terminal） | `cursorai.action.generateInTerminal` | `workbench.action.terminal.chat.start` |
-| `Ctrl+Shift+W` | 釘選 composer 後關閉所有 editor | `workbench.action.closeAllEditors` |
-| `Shift+F12` | `glass.editor.action.findImplementationsInSidebar` | `editor.action.goToImplementation` |
-| `Ctrl+Shift+Alt+Y` | 加到 chat（`aichat.newfollowupaction`） | 未對應 |
-| `Ctrl+K F2` | 重新命名 chat（`composer.renameChat`） | 恢復 VS Code 預設 |
-
-Cursor 裡有幾組綁定被後面的「搬回 Ctrl+K」覆蓋，VS Code 這邊照手寫段落的原意：
-
-- `Ctrl+K ←/→`：移動目前 editor 到左右群組（Cursor 實際上是移動整個群組）。
-- `Ctrl+K Ctrl+D`：`workbench.action.debug.callStackTop`（Cursor 在 editor 裡是 `moveSelectionToNextFindMatch`）。
-- `Ctrl+K Ctrl+M`：VS Code 預設的最大化群組。`editor.foldAllExcept` 回到預設的 `Ctrl+K Ctrl+-`。
+見 [vscode-keybindings.md](vscode-keybindings.md)。
 
 ## 不搬的 Cursor 設定
 

@@ -1,30 +1,11 @@
-// VS Code（Windows）keybindings。來源：Cursor keybindings.json（2026-10-04 轉換）
+// VS Code（Windows）keybindings。來源：Cursor keybindings.json（2026-10-04 轉換），2026-10-05 移除 Eclipse Keymap 與 Copilot chat。
 // Settings Sync 依平台分開存（keybindingsPerPlatform 預設 true），這份只會同步到 windows 那份。
+// 按鍵說明見 vscode-keybindings.md。
 [
     // ========== 視窗 ==========
     {
-        "key": "ctrl+alt+r",
-        "command": "workbench.action.reloadWindow",
-        "when": "isDevelopment"
-    },
-    {
-        "key": "ctrl+r",
-        "command": "-workbench.action.reloadWindow",
-        "when": "isDevelopment"
-    },
-    {
         "key": "ctrl+q",
         "command": "-workbench.action.quickOpenView"
-    },
-    {
-        "key": "ctrl+q",
-        "command": "-extension.vim_winCtrlQ",
-        "when": "editorTextFocus && vim.active && vim.use<C-q> && !inDebugRepl"
-    },
-    {
-        "key": "ctrl+q",
-        "command": "-workbench.action.navigateToLastEditLocation",
-        "when": "editorTextFocus"
     },
     {
         "key": "ctrl+q",
@@ -37,6 +18,15 @@
     {
         "key": "ctrl+shift+w",
         "command": "workbench.action.closeAllEditors"
+    },
+    {
+        // 刻意不給 Save As 快速鍵
+        "key": "ctrl+shift+s",
+        "command": "-workbench.action.files.saveAs"
+    },
+    {
+        "key": "ctrl+shift+s",
+        "command": "workbench.action.files.saveAll"
     },
     {
         "key": "ctrl+k z",
@@ -76,6 +66,15 @@
         "key": "ctrl+r",
         "command": "workbench.action.openRecent",
         "when": "terminalFocus"
+    },
+    {
+        // 右側欄（Claude Code / Codex）；terminal 內也能用（見 settings 的 commandsToSkipShell）
+        "key": "ctrl+m",
+        "command": "-editor.action.toggleTabFocusMode"
+    },
+    {
+        "key": "ctrl+m",
+        "command": "workbench.action.toggleAuxiliaryBar"
     },
     {
         "key": "ctrl+0",
@@ -153,10 +152,6 @@
         "key": "ctrl+k n",
         "command": "workbench.action.moveEditorToNewWindow"
     },
-    {
-        "key": "ctrl+shift+[",
-        "command": "-workbench.action.splitEditor"
-    },
 
     // ========== 編輯操作 ==========
     {
@@ -184,49 +179,14 @@
         "when": "textInputFocus && !editorReadonly"
     },
     {
-        "key": "ctrl+shift+k",
-        "command": "-editor.action.previousSelectionMatchFindAction",
-        "when": "editorTextFocus"
-    },
-    {
-        "key": "ctrl+alt+down",
-        "command": "-editor.action.copyLinesDownAction",
-        "when": "editorTextFocus"
-    },
-    {
-        "key": "shift+alt+up",
-        "command": "-editor.action.smartSelect.expand",
-        "when": "editorTextFocus"
-    },
-    {
         "key": "ctrl+u",
         "command": "-cursorUndo",
         "when": "textInputFocus"
     },
     {
-        "key": "ctrl+shift+f",
-        "command": "-editor.action.formatSelection",
-        "when": "editorHasSelection && editorTextFocus"
-    },
-    {
-        "key": "ctrl+shift+f",
-        "command": "-editor.action.formatDocument",
-        "when": "editorTextFocus && !editorHasSelection"
-    },
-    {
-        "key": "ctrl+shift+x",
-        "command": "-editor.action.transformToUppercase",
-        "when": "editorTextFocus"
-    },
-    {
-        "key": "ctrl+shift+y",
-        "command": "-editor.action.transformToLowercase",
-        "when": "editorTextFocus"
-    },
-    {
         "key": "ctrl+1",
-        "command": "-editor.action.quickFix",
-        "when": "editorTextFocus"
+        "command": "editor.action.quickFix",
+        "when": "editorHasCodeActionsProvider && textInputFocus && !editorReadonly"
     },
     {
         "key": "shift+f8",
@@ -239,39 +199,11 @@
     },
     {
         "key": "shift+enter",
-        "command": "-editor.action.insertLineAfter",
-        "when": "editorTextFocus && !editorReadonly"
-    },
-    {
-        "key": "shift+enter",
         "command": "editor.action.insertLineAfter",
         "when": "editorTextFocus && !editorReadonly && !findInputFocussed && !replaceInputFocussed"
     },
 
     // ========== 尋找 ==========
-    {
-        "key": "ctrl+h",
-        "command": "-workbench.action.findInFiles"
-    },
-    {
-        "key": "ctrl+f3",
-        "command": "-editor.action.nextSelectionMatchFindAction",
-        "when": "editorFocus"
-    },
-    {
-        "key": "ctrl+shift+f3",
-        "command": "-editor.action.previousSelectionMatchFindAction",
-        "when": "editorFocus"
-    },
-    {
-        "key": "ctrl+f3",
-        "command": "-outline.focus"
-    },
-    {
-        "key": "ctrl+f3",
-        "command": "editor.action.nextMatchFindAction",
-        "when": "editorFocus"
-    },
     {
         "key": "f3",
         "command": "-editor.action.nextMatchFindAction",
@@ -283,32 +215,11 @@
         "when": "editorFocus && findInputFocussed"
     },
     {
-        "key": "ctrl+l",
-        "command": "-workbench.action.gotoLine"
-    },
-    {
         "key": "ctrl+e",
         "command": "-workbench.action.quickOpen"
     },
-    {
-        "key": "ctrl+shift+r",
-        "command": "-workbench.action.quickOpen"
-    },
-    {
-        "key": "ctrl+shift+t",
-        "command": "-workbench.action.showAllSymbols"
-    },
 
     // ========== 導覽（定義 / 實作 / 參考） ==========
-    {
-        "key": "f3",
-        "command": "-editor.action.goToDeclaration",
-        "when": "editorTextFocus"
-    },
-    {
-        "key": "f3",
-        "command": "editor.action.revealDeclaration"
-    },
     {
         "key": "f3",
         "command": "editor.action.goToDeclaration"
@@ -381,23 +292,18 @@
         "when": "debuggersAvailable && debugState == 'inactive'"
     },
     {
-        "key": "f11",
-        "command": "-extension.node-debug.startWithStopOnEntry",
-        "when": "!inDebugMode && debugConfigurationType == 'node' || !inDebugMode && debugConfigurationType == 'pwa-extensionHost' || !inDebugMode && debugConfigurationType == 'pwa-node'"
-    },
-    {
-        "key": "f10",
-        "command": "-extension.node-debug.startWithStopOnEntry",
-        "when": "!inDebugMode && debugConfigurationType == 'node' || !inDebugMode && debugConfigurationType == 'pwa-extensionHost' || !inDebugMode && debugConfigurationType == 'pwa-node'"
-    },
-    {
         "key": "ctrl+f11",
         "command": "workbench.action.debug.selectandstart"
     },
     {
-        "key": "ctrl+f11",
-        "command": "-workbench.action.debug.run",
-        "when": "debuggersAvailable && debugState != 'initializing'"
+        "key": "f8",
+        "command": "workbench.action.debug.continue",
+        "when": "inDebugMode"
+    },
+    {
+        "key": "ctrl+f2",
+        "command": "workbench.action.debug.stop",
+        "when": "inDebugMode"
     },
     {
         "key": "ctrl+f10",
@@ -409,11 +315,13 @@
     },
     {
         "key": "ctrl+y",
-        "command": "editor.debug.action.selectionToRepl"
+        "command": "editor.debug.action.selectionToRepl",
+        "when": "inDebugMode && editorTextFocus"
     },
     {
         "key": "ctrl+u",
-        "command": "editor.debug.action.selectionToWatch"
+        "command": "editor.debug.action.selectionToWatch",
+        "when": "inDebugMode && editorTextFocus"
     },
     {
         "key": "ctrl+k ctrl+d",
@@ -522,64 +430,94 @@
     },
     {
         "key": "f5",
-        "command": "markdown.preview.refresh"
+        "command": "markdown.preview.refresh",
+        "when": "editorLangId == 'markdown' || activeWebviewPanelId == 'markdown.preview'"
     },
 
-    // ========== AI / Chat / Copilot / Claude ==========
+    // ========== Claude Code ==========
     {
-        "key": "ctrl+enter",
-        "command": "-github.copilot.generate",
+        // 不加 when：editor 與 terminal（見 settings 的 commandsToSkipShell）都能用
+        "key": "ctrl+l",
+        "command": "claude-vscode.focus"
+    },
+    {
+        // 焦點已在 Claude Code 時改為回到 editor，讓 Ctrl+L 成為 toggle；放在 focus 之後才會優先。
+        // webview 不會設 focusedView，改用 extension 自己判斷新對話快速鍵的條件（sideBarActive = Claude sidebar 可見）
+        "key": "ctrl+l",
+        "command": "claude-vscode.blur",
+        "when": "(claude-vscode.sideBarActive && !editorFocus && !panelFocus && !sideBarFocus) || (activeWebviewPanelId == 'claudeVSCodePanel' && !panelFocus && !sideBarFocus && !auxiliaryBarFocus)"
+    },
+    {
+        // 取代內建 Ctrl+Shift+Esc（Windows 會攔去開工作管理員）；也蓋掉 Copilot 的 Ctrl+Alt+I（chat.open、panel.chat）
+        "key": "ctrl+alt+i",
+        "command": "claude-vscode.editor.open"
+    },
+    {
+        // 內建 Alt+K 被 AutoHotkey（damon.ahk 的 !k → ↑）攔走；Ctrl+Alt+K 原本是送到 terminal CLI 的 insertAtMentioned，不用
+        "key": "ctrl+alt+k",
+        "command": "-claude-code.insertAtMentioned",
         "when": "editorTextFocus"
     },
     {
+        "key": "ctrl+alt+k",
+        "command": "claude-vscode.insertAtMention",
+        "when": "editorTextFocus"
+    },
+    {
+        "key": "alt+k",
+        "command": "-claude-vscode.insertAtMention",
+        "when": "editorTextFocus"
+    },
+
+    // ========== Codex ==========
+    {
+        "key": "ctrl+alt+l",
+        "command": "chatgpt.openSidebar"
+    },
+    {
+        "key": "shift+alt+k",
+        "command": "chatgpt.addToThread",
+        "when": "editorTextFocus"
+    },
+
+    // ========== Copilot chat 解除綁定（只留 tab completion） ==========
+    {
+        "key": "ctrl+shift+i",
+        "command": "-workbench.action.chat.openagent"
+    },
+    {
         "key": "ctrl+shift+alt+l",
-        "command": "github.copilot.chat.attachFile"
+        "command": "-workbench.action.quickchat.toggle"
     },
     {
-        // Cursor：aichat.newchataction / toggleAgentsFromKeyboard
-        "key": "ctrl+l",
-        "command": "-workbench.action.chat.newChat",
-        "when": "inChat"
+        "key": "ctrl+i",
+        "command": "-inlineChat.start"
     },
     {
-        "key": "ctrl+l",
-        "command": "workbench.action.chat.open"
+        "key": "ctrl+i",
+        "command": "-inlineChat.askInChat"
     },
     {
-        "key": "ctrl+n",
-        "command": "workbench.action.chat.newChat",
-        "when": "inChat"
+        "key": "ctrl+i",
+        "command": "-notebook.cell.chat.start"
     },
     {
-        // Cursor：cursorai.action.generateInTerminal
-        "key": "ctrl+shift+k",
-        "command": "workbench.action.terminal.chat.start",
-        "when": "terminalFocus"
+        "key": "ctrl+i",
+        "command": "-workbench.action.terminal.chat.start"
     },
     {
-        "key": "ctrl+alt+j",
-        "command": "-liveshare.join",
-        "when": "liveshare:state != 'Joined' && liveshare:state != 'Shared'"
+        "key": "ctrl+alt+oem_period",
+        "command": "-github.copilot.chat.rerunWithCopilotDebug"
     },
     {
-        "key": "ctrl+shift+c",
-        "command": "claude-vscode.focus",
-        "when": "editorTextFocus && !config.claudeCode.useTerminal"
-    },
-    {
-        "key": "ctrl+escape",
-        "command": "-claude-vscode.focus",
-        "when": "editorTextFocus && !config.claudeCode.useTerminal"
+        "key": "ctrl+shift+oem_period",
+        "command": "-github.copilot.chat.copilotCLI.addFileReference"
     },
 
     // ========== 其他擴充 ==========
     {
         "key": "ctrl+k e",
         "command": "edit-csv.edit"
-    },
-    {
-        "key": "ctrl+shift+s",
-        "command": "-workbench.action.files.saveAs"
     },
     {
         "key": "ctrl+k m",
@@ -593,157 +531,5 @@
     {
         "key": "shift+alt+p",
         "command": "projectsExplorerFavorites.focus"
-    },
-
-    // ========== Vim 解除綁定（讓 Ctrl 快捷鍵回歸 VS Code） ==========
-    {
-        "key": "ctrl+a",
-        "command": "-extension.vim_ctrl+a",
-        "when": "editorTextFocus && vim.active && vim.use<C-a> && !inDebugRepl"
-    },
-    {
-        "key": "ctrl+b",
-        "command": "-extension.vim_ctrl+b",
-        "when": "editorTextFocus && vim.active && vim.use<C-b> && !inDebugRepl && vim.mode != 'Insert'"
-    },
-    {
-        "key": "ctrl+c",
-        "command": "-extension.vim_ctrl+c",
-        "when": "editorTextFocus && vim.active && vim.overrideCtrlC && vim.use<C-c> && !inDebugRepl"
-    },
-    {
-        "key": "ctrl+d",
-        "command": "-extension.vim_ctrl+d",
-        "when": "editorTextFocus && vim.active && vim.use<C-d> && !inDebugRepl"
-    },
-    {
-        "key": "ctrl+e",
-        "command": "-extension.vim_ctrl+e",
-        "when": "editorTextFocus && vim.active && vim.use<C-e> && !inDebugRepl"
-    },
-    {
-        "key": "ctrl+f",
-        "command": "-extension.vim_ctrl+f",
-        "when": "editorTextFocus && vim.active && vim.use<C-f> && !inDebugRepl && vim.mode != 'Insert'"
-    },
-    {
-        "key": "ctrl+g",
-        "command": "-extension.vim_ctrl+g",
-        "when": "editorTextFocus && vim.active && vim.use<C-g> && !inDebugRepl"
-    },
-    {
-        "key": "ctrl+h",
-        "command": "-extension.vim_ctrl+h",
-        "when": "editorTextFocus && vim.active && vim.use<C-h> && !inDebugRepl"
-    },
-    {
-        "key": "ctrl+i",
-        "command": "-extension.vim_ctrl+i",
-        "when": "editorTextFocus && vim.active && vim.use<C-i> && !inDebugRepl"
-    },
-    {
-        "key": "ctrl+j",
-        "command": "-extension.vim_ctrl+j",
-        "when": "editorTextFocus && vim.active && vim.use<C-j> && !inDebugRepl"
-    },
-    {
-        "key": "ctrl+k",
-        "command": "-extension.vim_ctrl+k",
-        "when": "editorTextFocus && vim.active && vim.use<C-k> && !inDebugRepl"
-    },
-    {
-        "key": "ctrl+m",
-        "command": "-extension.vim_ctrl+m",
-        "when": "editorTextFocus && vim.active && vim.use<C-m> && !inDebugRepl || vim.active && vim.use<C-m> && !inDebugRepl && vim.mode == 'CommandlineInProgress' || vim.active && vim.use<C-m> && !inDebugRepl && vim.mode == 'SearchInProgressMode'"
-    },
-    {
-        "key": "ctrl+n",
-        "command": "-extension.vim_ctrl+n",
-        "when": "editorTextFocus && vim.active && vim.use<C-n> && !inDebugRepl || vim.active && vim.use<C-n> && !inDebugRepl && vim.mode == 'CommandlineInProgress' || vim.active && vim.use<C-n> && !inDebugRepl && vim.mode == 'SearchInProgressMode'"
-    },
-    {
-        "key": "ctrl+o",
-        "command": "-extension.vim_ctrl+o",
-        "when": "editorTextFocus && vim.active && vim.use<C-o> && !inDebugRepl"
-    },
-    {
-        "key": "ctrl+p",
-        "command": "-extension.vim_ctrl+p",
-        "when": "suggestWidgetVisible && vim.active && vim.use<C-p> && !inDebugRepl || vim.active && vim.use<C-p> && !inDebugRepl && vim.mode == 'CommandlineInProgress' || vim.active && vim.use<C-p> && !inDebugRepl && vim.mode == 'SearchInProgressMode'"
-    },
-    {
-        "key": "ctrl+r",
-        "command": "-extension.vim_ctrl+r",
-        "when": "editorTextFocus && vim.active && vim.use<C-r> && !inDebugRepl"
-    },
-    {
-        "key": "ctrl+t",
-        "command": "-extension.vim_ctrl+t",
-        "when": "editorTextFocus && vim.active && vim.use<C-t> && !inDebugRepl"
-    },
-    {
-        "key": "ctrl+u",
-        "command": "-extension.vim_ctrl+u",
-        "when": "editorTextFocus && vim.active && vim.use<C-u> && !inDebugRepl"
-    },
-    {
-        "key": "ctrl+v",
-        "command": "-extension.vim_ctrl+v",
-        "when": "editorTextFocus && vim.active && vim.use<C-v> && !inDebugRepl"
-    },
-    {
-        "key": "ctrl+w",
-        "command": "-extension.vim_ctrl+w",
-        "when": "editorTextFocus && vim.active && vim.use<C-w> && !inDebugRepl"
-    },
-    {
-        "key": "ctrl+x",
-        "command": "-extension.vim_ctrl+x",
-        "when": "editorTextFocus && vim.active && vim.use<C-x> && !inDebugRepl"
-    },
-    {
-        "key": "ctrl+y",
-        "command": "-extension.vim_ctrl+y",
-        "when": "editorTextFocus && vim.active && vim.use<C-y> && !inDebugRepl"
-    },
-    {
-        "key": "ctrl+[",
-        "command": "-extension.vim_ctrl+[",
-        "when": "editorTextFocus && vim.active && vim.use<C-[> && !inDebugRepl"
-    },
-    {
-        "key": "ctrl+]",
-        "command": "-extension.vim_ctrl+]",
-        "when": "editorTextFocus && vim.active && vim.use<C-]> && !inDebugRepl"
-    },
-    {
-        "key": "ctrl+pageup",
-        "command": "-extension.vim_ctrl+pageup",
-        "when": "editorTextFocus && vim.active && vim.use<C-pageup> && !inDebugRepl"
-    },
-    {
-        "key": "ctrl+pagedown",
-        "command": "-extension.vim_ctrl+pagedown",
-        "when": "editorTextFocus && vim.active && vim.use<C-pagedown> && !inDebugRepl"
-    },
-    {
-        "key": "tab",
-        "command": "-extension.vim_tab",
-        "when": "editorFocus && vim.active && !inDebugRepl && vim.mode != 'Insert'"
-    },
-    {
-        "key": "shift+tab",
-        "command": "-extension.vim_shift+tab",
-        "when": "editorFocus && vim.active && !inDebugRepl && vim.mode != 'Insert'"
-    },
-    {
-        "key": "shift+alt+down",
-        "command": "-extension.vim_cmd+alt+down",
-        "when": "editorTextFocus && vim.active && !inDebugRepl"
-    },
-    {
-        "key": "shift+alt+up",
-        "command": "-extension.vim_cmd+alt+up",
-        "when": "editorTextFocus && vim.active && !inDebugRepl"
     }
 ]

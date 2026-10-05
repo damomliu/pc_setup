@@ -168,14 +168,17 @@
     "workbench.activityBar.orientation": "vertical",
     "editor.semanticTokenColorCustomizations": {},
     "claudeCode.preferredLocation": "sidebar",
+    "claudeCode.enableNewConversationShortcut": true,
+    "chat.commandCenter.enabled": false,
     "update.mode": "default",
     "terminal.integrated.enableMultiLinePasteWarning": "never",
     "window.autoDetectColorScheme": false,
     "terminal.integrated.shellIntegration.decorationsEnabled": "never",
     "terminal.integrated.commandsToSkipShell": [
         "workbench.action.toggleSidebarVisibility",
-        "workbench.action.chat.open",
+        "claude-vscode.focus",
         "workbench.action.togglePanel",
+        "workbench.action.toggleAuxiliaryBar",
         "workbench.action.openRecent"
     ],
     "git.detectWorktrees": true,

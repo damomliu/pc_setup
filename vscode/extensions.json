@@ -1,7 +1,6 @@
 {
     "Default": [
         "aaron-bond.better-comments",
-        "alphabotsec.vscode-eclipse-keybindings",
         "anan.jetbrains-darcula-theme",
         "anthropic.claude-code",
         "arjun.swagger-viewer",
@@ -36,6 +35,7 @@
         "ms-vscode-remote.remote-wsl",
         "ms-vscode.remote-explorer",
         "ms-vscode.test-adapter-converter",
+        "openai.chatgpt",
         "pkief.material-icon-theme",
         "raunofreiberg.vesper",
         "redhat.vscode-yaml",
@@ -45,7 +45,6 @@
     ],
     ".NET": [
         "alefragnani.project-manager",
-        "alphabotsec.vscode-eclipse-keybindings",
         "anan.jetbrains-darcula-theme",
         "dotjoshjohnson.xml",
         "eamodio.gitlens",
@@ -69,7 +68,6 @@
     "Doc": [
         "aaron-bond.better-comments",
         "alefragnani.project-manager",
-        "alphabotsec.vscode-eclipse-keybindings",
         "anan.jetbrains-darcula-theme",
         "bpruitt-goddard.mermaid-markdown-syntax-highlighting",
         "catppuccin.catppuccin-vsc",
