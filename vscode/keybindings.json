@@ -1,0 +1,749 @@
+// VS Code（Windows）keybindings。來源：Cursor keybindings.json（2026-10-04 轉換）
+// Settings Sync 依平台分開存（keybindingsPerPlatform 預設 true），這份只會同步到 windows 那份。
+[
+    // ========== 視窗 ==========
+    {
+        "key": "ctrl+alt+r",
+        "command": "workbench.action.reloadWindow",
+        "when": "isDevelopment"
+    },
+    {
+        "key": "ctrl+r",
+        "command": "-workbench.action.reloadWindow",
+        "when": "isDevelopment"
+    },
+    {
+        "key": "ctrl+q",
+        "command": "-workbench.action.quickOpenView"
+    },
+    {
+        "key": "ctrl+q",
+        "command": "-extension.vim_winCtrlQ",
+        "when": "editorTextFocus && vim.active && vim.use<C-q> && !inDebugRepl"
+    },
+    {
+        "key": "ctrl+q",
+        "command": "-workbench.action.navigateToLastEditLocation",
+        "when": "editorTextFocus"
+    },
+    {
+        "key": "ctrl+q",
+        "command": "workbench.action.closeWindow"
+    },
+    {
+        "key": "ctrl+shift+w",
+        "command": "-workbench.action.closeWindow"
+    },
+    {
+        "key": "ctrl+shift+w",
+        "command": "workbench.action.closeAllEditors"
+    },
+    {
+        "key": "ctrl+k z",
+        "command": "-workbench.action.toggleZenMode"
+    },
+    {
+        "key": "ctrl+k z",
+        "command": "workbench.action.toggleFullScreen"
+    },
+
+    // ========== 終端機 / 面板 / 側邊欄 ==========
+    {
+        "key": "ctrl+'",
+        "command": "workbench.action.terminal.toggleTerminal",
+        "when": "terminal.active"
+    },
+    {
+        "key": "ctrl+`",
+        "command": "-workbench.action.terminal.toggleTerminal",
+        "when": "terminal.active"
+    },
+    {
+        "key": "ctrl+shift+'",
+        "command": "workbench.action.toggleMaximizedPanel"
+    },
+    {
+        "key": "ctrl+b",
+        "command": "workbench.action.toggleSidebarVisibility",
+        "when": "terminalFocus"
+    },
+    {
+        "key": "ctrl+j",
+        "command": "workbench.action.togglePanel",
+        "when": "terminalFocus"
+    },
+    {
+        "key": "ctrl+r",
+        "command": "workbench.action.openRecent",
+        "when": "terminalFocus"
+    },
+    {
+        "key": "ctrl+0",
+        "command": "-workbench.action.focusSideBar"
+    },
+    {
+        "key": "ctrl+0",
+        "command": "workbench.action.zoomReset"
+    },
+    {
+        "key": "shift+enter",
+        "command": "workbench.action.terminal.sendSequence",
+        "args": {
+            "text": "\u001b\r"
+        },
+        "when": "terminalFocus"
+    },
+
+    // ========== 編輯器群組 / 分割 ==========
+    {
+        "key": "ctrl+k left",
+        "command": "-workbench.action.moveActiveEditorGroupLeft"
+    },
+    {
+        "key": "ctrl+k left",
+        "command": "-views.moveViewLeft",
+        "when": "focusedView != ''"
+    },
+    {
+        "key": "ctrl+k right",
+        "command": "-workbench.action.moveActiveEditorGroupRight"
+    },
+    {
+        "key": "ctrl+k right",
+        "command": "-views.moveViewRight",
+        "when": "focusedView != ''"
+    },
+    {
+        "key": "ctrl+k down",
+        "command": "-workbench.action.moveActiveEditorGroupDown"
+    },
+    {
+        "key": "ctrl+k up",
+        "command": "-workbench.action.moveActiveEditorGroupUp"
+    },
+    {
+        "key": "ctrl+shift+pageup",
+        "command": "-workbench.action.moveEditorLeftInGroup"
+    },
+    {
+        "key": "ctrl+shift+pagedown",
+        "command": "-workbench.action.moveEditorRightInGroup"
+    },
+    {
+        "key": "ctrl+k left",
+        "command": "workbench.action.moveEditorToLeftGroup"
+    },
+    {
+        "key": "ctrl+k right",
+        "command": "workbench.action.moveEditorToRightGroup"
+    },
+    {
+        "key": "ctrl+k down",
+        "command": "workbench.action.moveEditorToBelowGroup"
+    },
+    {
+        "key": "ctrl+k up",
+        "command": "workbench.action.moveEditorToAboveGroup"
+    },
+    {
+        "key": "ctrl+k oem_minus",
+        "command": "workbench.action.splitEditorOrthogonal"
+    },
+    {
+        "key": "ctrl+k n",
+        "command": "workbench.action.moveEditorToNewWindow"
+    },
+    {
+        "key": "ctrl+shift+[",
+        "command": "-workbench.action.splitEditor"
+    },
+
+    // ========== 編輯操作 ==========
+    {
+        "key": "ctrl+shift+backspace",
+        "command": "deleteAllLeft"
+    },
+    {
+        "key": "alt+d",
+        "command": "editor.action.addSelectionToNextFindMatch",
+        "when": "editorFocus"
+    },
+    {
+        "key": "ctrl+d",
+        "command": "-editor.action.addSelectionToNextFindMatch",
+        "when": "editorFocus"
+    },
+    {
+        "key": "ctrl+d",
+        "command": "editor.action.deleteLines",
+        "when": "textInputFocus && !editorReadonly"
+    },
+    {
+        "key": "ctrl+shift+k",
+        "command": "-editor.action.deleteLines",
+        "when": "textInputFocus && !editorReadonly"
+    },
+    {
+        "key": "ctrl+shift+k",
+        "command": "-editor.action.previousSelectionMatchFindAction",
+        "when": "editorTextFocus"
+    },
+    {
+        "key": "ctrl+alt+down",
+        "command": "-editor.action.copyLinesDownAction",
+        "when": "editorTextFocus"
+    },
+    {
+        "key": "shift+alt+up",
+        "command": "-editor.action.smartSelect.expand",
+        "when": "editorTextFocus"
+    },
+    {
+        "key": "ctrl+u",
+        "command": "-cursorUndo",
+        "when": "textInputFocus"
+    },
+    {
+        "key": "ctrl+shift+f",
+        "command": "-editor.action.formatSelection",
+        "when": "editorHasSelection && editorTextFocus"
+    },
+    {
+        "key": "ctrl+shift+f",
+        "command": "-editor.action.formatDocument",
+        "when": "editorTextFocus && !editorHasSelection"
+    },
+    {
+        "key": "ctrl+shift+x",
+        "command": "-editor.action.transformToUppercase",
+        "when": "editorTextFocus"
+    },
+    {
+        "key": "ctrl+shift+y",
+        "command": "-editor.action.transformToLowercase",
+        "when": "editorTextFocus"
+    },
+    {
+        "key": "ctrl+1",
+        "command": "-editor.action.quickFix",
+        "when": "editorTextFocus"
+    },
+    {
+        "key": "shift+f8",
+        "command": "-editor.action.marker.prevInFiles",
+        "when": "editorFocus"
+    },
+    {
+        "key": "ctrl+alt+j",
+        "command": "editor.action.joinLines"
+    },
+    {
+        "key": "shift+enter",
+        "command": "-editor.action.insertLineAfter",
+        "when": "editorTextFocus && !editorReadonly"
+    },
+    {
+        "key": "shift+enter",
+        "command": "editor.action.insertLineAfter",
+        "when": "editorTextFocus && !editorReadonly && !findInputFocussed && !replaceInputFocussed"
+    },
+
+    // ========== 尋找 ==========
+    {
+        "key": "ctrl+h",
+        "command": "-workbench.action.findInFiles"
+    },
+    {
+        "key": "ctrl+f3",
+        "command": "-editor.action.nextSelectionMatchFindAction",
+        "when": "editorFocus"
+    },
+    {
+        "key": "ctrl+shift+f3",
+        "command": "-editor.action.previousSelectionMatchFindAction",
+        "when": "editorFocus"
+    },
+    {
+        "key": "ctrl+f3",
+        "command": "-outline.focus"
+    },
+    {
+        "key": "ctrl+f3",
+        "command": "editor.action.nextMatchFindAction",
+        "when": "editorFocus"
+    },
+    {
+        "key": "f3",
+        "command": "-editor.action.nextMatchFindAction",
+        "when": "editorFocus"
+    },
+    {
+        "key": "shift+enter",
+        "command": "editor.action.previousMatchFindAction",
+        "when": "editorFocus && findInputFocussed"
+    },
+    {
+        "key": "ctrl+l",
+        "command": "-workbench.action.gotoLine"
+    },
+    {
+        "key": "ctrl+e",
+        "command": "-workbench.action.quickOpen"
+    },
+    {
+        "key": "ctrl+shift+r",
+        "command": "-workbench.action.quickOpen"
+    },
+    {
+        "key": "ctrl+shift+t",
+        "command": "-workbench.action.showAllSymbols"
+    },
+
+    // ========== 導覽（定義 / 實作 / 參考） ==========
+    {
+        "key": "f3",
+        "command": "-editor.action.goToDeclaration",
+        "when": "editorTextFocus"
+    },
+    {
+        "key": "f3",
+        "command": "editor.action.revealDeclaration"
+    },
+    {
+        "key": "f3",
+        "command": "editor.action.goToDeclaration"
+    },
+    {
+        "key": "f12",
+        "command": "-editor.action.revealDefinition",
+        "when": "editorHasDefinitionProvider && editorTextFocus && !isInEmbeddedEditor"
+    },
+    {
+        "key": "f12",
+        "command": "editor.action.goToReferences",
+        "when": "editorHasReferenceProvider && editorTextFocus && !inReferenceSearchEditor && !isInEmbeddedEditor"
+    },
+    {
+        "key": "shift+f12",
+        "command": "-editor.action.goToReferences",
+        "when": "editorHasReferenceProvider && editorTextFocus && !inReferenceSearchEditor && !isInEmbeddedEditor"
+    },
+    {
+        // Cursor 用 glass.editor.action.findImplementationsInSidebar
+        "key": "shift+f12",
+        "command": "editor.action.goToImplementation",
+        "when": "editorHasImplementationProvider && editorTextFocus && !isInEmbeddedEditor"
+    },
+    {
+        "key": "ctrl+f12",
+        "command": "-editor.action.goToImplementation",
+        "when": "editorHasImplementationProvider && editorTextFocus && !isInEmbeddedEditor"
+    },
+    {
+        "key": "alt+f12",
+        "command": "-editor.action.peekDefinition",
+        "when": "editorHasDefinitionProvider && editorTextFocus && !inReferenceSearchEditor && !isInEmbeddedEditor"
+    },
+    {
+        "key": "alt+f12",
+        "command": "editor.action.peekImplementation",
+        "when": "editorHasImplementationProvider && editorTextFocus && !inReferenceSearchEditor && !isInEmbeddedEditor"
+    },
+    {
+        "key": "ctrl+shift+f12",
+        "command": "-editor.action.peekImplementation",
+        "when": "editorHasImplementationProvider && editorTextFocus && !inReferenceSearchEditor && !isInEmbeddedEditor"
+    },
+
+    // ========== 字型縮放 ==========
+    {
+        "key": "ctrl+shift+oem_plus",
+        "command": "editor.action.fontZoomIn"
+    },
+    {
+        "key": "ctrl+shift+oem_minus",
+        "command": "editor.action.fontZoomOut"
+    },
+    {
+        "key": "ctrl+shift+9",
+        "command": "editor.action.fontZoomReset"
+    },
+
+    // ========== 偵錯 ==========
+    {
+        "key": "f11",
+        "command": "workbench.action.debug.start",
+        "when": "debuggersAvailable && debugState == 'inactive'"
+    },
+    {
+        "key": "f5",
+        "command": "-workbench.action.debug.start",
+        "when": "debuggersAvailable && debugState == 'inactive'"
+    },
+    {
+        "key": "f11",
+        "command": "-extension.node-debug.startWithStopOnEntry",
+        "when": "!inDebugMode && debugConfigurationType == 'node' || !inDebugMode && debugConfigurationType == 'pwa-extensionHost' || !inDebugMode && debugConfigurationType == 'pwa-node'"
+    },
+    {
+        "key": "f10",
+        "command": "-extension.node-debug.startWithStopOnEntry",
+        "when": "!inDebugMode && debugConfigurationType == 'node' || !inDebugMode && debugConfigurationType == 'pwa-extensionHost' || !inDebugMode && debugConfigurationType == 'pwa-node'"
+    },
+    {
+        "key": "ctrl+f11",
+        "command": "workbench.action.debug.selectandstart"
+    },
+    {
+        "key": "ctrl+f11",
+        "command": "-workbench.action.debug.run",
+        "when": "debuggersAvailable && debugState != 'initializing'"
+    },
+    {
+        "key": "ctrl+f10",
+        "command": "editor.debug.action.runToCursor"
+    },
+    {
+        "key": "ctrl+y",
+        "command": "-redo"
+    },
+    {
+        "key": "ctrl+y",
+        "command": "editor.debug.action.selectionToRepl"
+    },
+    {
+        "key": "ctrl+u",
+        "command": "editor.debug.action.selectionToWatch"
+    },
+    {
+        "key": "ctrl+k ctrl+d",
+        "command": "workbench.action.debug.callStackTop"
+    },
+    {
+        "key": "ctrl+shift+y",
+        "command": "workbench.debug.action.toggleRepl",
+        "when": "workbench.panel.repl.view.active"
+    },
+    {
+        "key": "ctrl+shift+alt+y",
+        "command": "-workbench.debug.action.toggleRepl",
+        "when": "workbench.panel.repl.view.active"
+    },
+
+    // ========== Git / SCM ==========
+    {
+        "key": "ctrl+k ctrl+g",
+        "command": "git-graph.view"
+    },
+    {
+        "key": "ctrl+shift+j",
+        "command": "workbench.view.scm",
+        "when": "workbench.scm.active"
+    },
+    {
+        "key": "ctrl+shift+g",
+        "command": "-workbench.view.scm",
+        "when": "workbench.scm.active"
+    },
+    {
+        "key": "ctrl+shift+alt+o",
+        "command": "git.openWorktreeInNewWindow"
+    },
+
+    // ========== Markdown ==========
+    {
+        "key": "alt+b",
+        "command": "markdown.extension.editing.toggleBold",
+        "when": "editorTextFocus && !editorReadonly && editorLangId =~ /^markdown$|^rmd$|^quarto$/"
+    },
+    {
+        "key": "ctrl+b",
+        "command": "-markdown.extension.editing.toggleBold",
+        "when": "editorTextFocus && !editorReadonly && editorLangId =~ /^markdown$|^rmd$|^quarto$/"
+    },
+    {
+        "key": "alt+i",
+        "command": "markdown.extension.editing.toggleItalic",
+        "when": "editorTextFocus && !editorReadonly && editorLangId =~ /^markdown$|^rmd$|^quarto$/"
+    },
+    {
+        "key": "ctrl+i",
+        "command": "-markdown.extension.editing.toggleItalic",
+        "when": "editorTextFocus && !editorReadonly && editorLangId =~ /^markdown$|^rmd$|^quarto$/"
+    },
+    {
+        "key": "alt+m",
+        "command": "markdown.extension.editing.toggleMath",
+        "when": "editorTextFocus && !editorReadonly && editorLangId =~ /^markdown$|^rmd$|^quarto$/"
+    },
+    {
+        "key": "ctrl+m",
+        "command": "-markdown.extension.editing.toggleMath",
+        "when": "editorTextFocus && !editorReadonly && editorLangId =~ /^markdown$|^rmd$|^quarto$/"
+    },
+    {
+        "key": "shift+enter",
+        "command": "-markdown.extension.onShiftEnterKey",
+        "when": "editorTextFocus && !editorReadonly && editorLangId =~ /^markdown$|^rmd$|^quarto$/ && (!suggestWidgetVisible || config.editor.acceptSuggestionOnEnter == 'off') && !editorHasMultipleSelections && !markdown.extension.editor.cursor.inFencedCodeBlock && !markdown.extension.editor.cursor.inMathEnv"
+    },
+    {
+        "key": "shift+enter",
+        "command": "markdown.extension.onShiftEnterKey",
+        "when": "editorTextFocus && !editorReadonly && !findInputFocussed && !replaceInputFocussed && editorLangId =~ /^markdown$|^rmd$|^quarto$/ && (!suggestWidgetVisible || config.editor.acceptSuggestionOnEnter == 'off') && !editorHasMultipleSelections && !markdown.extension.editor.cursor.inFencedCodeBlock && !markdown.extension.editor.cursor.inMathEnv"
+    },
+    {
+        "key": "ctrl+k v",
+        "command": "-markdown.showPreviewToSide",
+        "when": "!notebookEditorFocused && editorLangId == 'markdown'"
+    },
+    {
+        "key": "ctrl+k shift+v",
+        "command": "markdown-preview-enhanced.openLockedPreviewToTheSide",
+        "when": "editorLangId =~ /^(markdown|quarto|prompt|instructions|chatagent|skill)$/"
+    },
+    {
+        "key": "ctrl+k shift+l",
+        "command": "-markdown-preview-enhanced.openLockedPreviewToTheSide",
+        "when": "editorLangId =~ /^(markdown|quarto|prompt|instructions|chatagent|skill)$/"
+    },
+    {
+        "key": "ctrl+alt+m",
+        "command": "markdown-preview-enhanced.toggleScrollSync"
+    },
+    {
+        "key": "ctrl+shift+enter",
+        "command": "-markdown-preview-enhanced.runAllCodeChunks",
+        "when": "editorLangId =~ /^(markdown|quarto|prompt|instructions|chatagent|skill)$/"
+    },
+    {
+        "key": "shift+enter",
+        "command": "-markdown-preview-enhanced.runCodeChunk",
+        "when": "editorLangId =~ /^(markdown|quarto|prompt|instructions|chatagent|skill)$/"
+    },
+    {
+        "key": "f5",
+        "command": "markdown.preview.refresh"
+    },
+
+    // ========== AI / Chat / Copilot / Claude ==========
+    {
+        "key": "ctrl+enter",
+        "command": "-github.copilot.generate",
+        "when": "editorTextFocus"
+    },
+    {
+        "key": "ctrl+shift+alt+l",
+        "command": "github.copilot.chat.attachFile"
+    },
+    {
+        // Cursor：aichat.newchataction / toggleAgentsFromKeyboard
+        "key": "ctrl+l",
+        "command": "-workbench.action.chat.newChat",
+        "when": "inChat"
+    },
+    {
+        "key": "ctrl+l",
+        "command": "workbench.action.chat.open"
+    },
+    {
+        "key": "ctrl+n",
+        "command": "workbench.action.chat.newChat",
+        "when": "inChat"
+    },
+    {
+        // Cursor：cursorai.action.generateInTerminal
+        "key": "ctrl+shift+k",
+        "command": "workbench.action.terminal.chat.start",
+        "when": "terminalFocus"
+    },
+    {
+        "key": "ctrl+alt+j",
+        "command": "-liveshare.join",
+        "when": "liveshare:state != 'Joined' && liveshare:state != 'Shared'"
+    },
+    {
+        "key": "ctrl+shift+c",
+        "command": "claude-vscode.focus",
+        "when": "editorTextFocus && !config.claudeCode.useTerminal"
+    },
+    {
+        "key": "ctrl+escape",
+        "command": "-claude-vscode.focus",
+        "when": "editorTextFocus && !config.claudeCode.useTerminal"
+    },
+
+    // ========== 其他擴充 ==========
+    {
+        "key": "ctrl+k e",
+        "command": "edit-csv.edit"
+    },
+    {
+        "key": "ctrl+shift+s",
+        "command": "-workbench.action.files.saveAs"
+    },
+    {
+        "key": "ctrl+k m",
+        "command": "-notebook.cell.changeLanguage",
+        "when": "notebookCellEditable && notebookEditable && notebookEditorFocused"
+    },
+    {
+        "key": "shift+alt+p",
+        "command": "-projectManager.listProjects"
+    },
+    {
+        "key": "shift+alt+p",
+        "command": "projectsExplorerFavorites.focus"
+    },
+
+    // ========== Vim 解除綁定（讓 Ctrl 快捷鍵回歸 VS Code） ==========
+    {
+        "key": "ctrl+a",
+        "command": "-extension.vim_ctrl+a",
+        "when": "editorTextFocus && vim.active && vim.use<C-a> && !inDebugRepl"
+    },
+    {
+        "key": "ctrl+b",
+        "command": "-extension.vim_ctrl+b",
+        "when": "editorTextFocus && vim.active && vim.use<C-b> && !inDebugRepl && vim.mode != 'Insert'"
+    },
+    {
+        "key": "ctrl+c",
+        "command": "-extension.vim_ctrl+c",
+        "when": "editorTextFocus && vim.active && vim.overrideCtrlC && vim.use<C-c> && !inDebugRepl"
+    },
+    {
+        "key": "ctrl+d",
+        "command": "-extension.vim_ctrl+d",
+        "when": "editorTextFocus && vim.active && vim.use<C-d> && !inDebugRepl"
+    },
+    {
+        "key": "ctrl+e",
+        "command": "-extension.vim_ctrl+e",
+        "when": "editorTextFocus && vim.active && vim.use<C-e> && !inDebugRepl"
+    },
+    {
+        "key": "ctrl+f",
+        "command": "-extension.vim_ctrl+f",
+        "when": "editorTextFocus && vim.active && vim.use<C-f> && !inDebugRepl && vim.mode != 'Insert'"
+    },
+    {
+        "key": "ctrl+g",
+        "command": "-extension.vim_ctrl+g",
+        "when": "editorTextFocus && vim.active && vim.use<C-g> && !inDebugRepl"
+    },
+    {
+        "key": "ctrl+h",
+        "command": "-extension.vim_ctrl+h",
+        "when": "editorTextFocus && vim.active && vim.use<C-h> && !inDebugRepl"
+    },
+    {
+        "key": "ctrl+i",
+        "command": "-extension.vim_ctrl+i",
+        "when": "editorTextFocus && vim.active && vim.use<C-i> && !inDebugRepl"
+    },
+    {
+        "key": "ctrl+j",
+        "command": "-extension.vim_ctrl+j",
+        "when": "editorTextFocus && vim.active && vim.use<C-j> && !inDebugRepl"
+    },
+    {
+        "key": "ctrl+k",
+        "command": "-extension.vim_ctrl+k",
+        "when": "editorTextFocus && vim.active && vim.use<C-k> && !inDebugRepl"
+    },
+    {
+        "key": "ctrl+m",
+        "command": "-extension.vim_ctrl+m",
+        "when": "editorTextFocus && vim.active && vim.use<C-m> && !inDebugRepl || vim.active && vim.use<C-m> && !inDebugRepl && vim.mode == 'CommandlineInProgress' || vim.active && vim.use<C-m> && !inDebugRepl && vim.mode == 'SearchInProgressMode'"
+    },
+    {
+        "key": "ctrl+n",
+        "command": "-extension.vim_ctrl+n",
+        "when": "editorTextFocus && vim.active && vim.use<C-n> && !inDebugRepl || vim.active && vim.use<C-n> && !inDebugRepl && vim.mode == 'CommandlineInProgress' || vim.active && vim.use<C-n> && !inDebugRepl && vim.mode == 'SearchInProgressMode'"
+    },
+    {
+        "key": "ctrl+o",
+        "command": "-extension.vim_ctrl+o",
+        "when": "editorTextFocus && vim.active && vim.use<C-o> && !inDebugRepl"
+    },
+    {
+        "key": "ctrl+p",
+        "command": "-extension.vim_ctrl+p",
+        "when": "suggestWidgetVisible && vim.active && vim.use<C-p> && !inDebugRepl || vim.active && vim.use<C-p> && !inDebugRepl && vim.mode == 'CommandlineInProgress' || vim.active && vim.use<C-p> && !inDebugRepl && vim.mode == 'SearchInProgressMode'"
+    },
+    {
+        "key": "ctrl+r",
+        "command": "-extension.vim_ctrl+r",
+        "when": "editorTextFocus && vim.active && vim.use<C-r> && !inDebugRepl"
+    },
+    {
+        "key": "ctrl+t",
+        "command": "-extension.vim_ctrl+t",
+        "when": "editorTextFocus && vim.active && vim.use<C-t> && !inDebugRepl"
+    },
+    {
+        "key": "ctrl+u",
+        "command": "-extension.vim_ctrl+u",
+        "when": "editorTextFocus && vim.active && vim.use<C-u> && !inDebugRepl"
+    },
+    {
+        "key": "ctrl+v",
+        "command": "-extension.vim_ctrl+v",
+        "when": "editorTextFocus && vim.active && vim.use<C-v> && !inDebugRepl"
+    },
+    {
+        "key": "ctrl+w",
+        "command": "-extension.vim_ctrl+w",
+        "when": "editorTextFocus && vim.active && vim.use<C-w> && !inDebugRepl"
+    },
+    {
+        "key": "ctrl+x",
+        "command": "-extension.vim_ctrl+x",
+        "when": "editorTextFocus && vim.active && vim.use<C-x> && !inDebugRepl"
+    },
+    {
+        "key": "ctrl+y",
+        "command": "-extension.vim_ctrl+y",
+        "when": "editorTextFocus && vim.active && vim.use<C-y> && !inDebugRepl"
+    },
+    {
+        "key": "ctrl+[",
+        "command": "-extension.vim_ctrl+[",
+        "when": "editorTextFocus && vim.active && vim.use<C-[> && !inDebugRepl"
+    },
+    {
+        "key": "ctrl+]",
+        "command": "-extension.vim_ctrl+]",
+        "when": "editorTextFocus && vim.active && vim.use<C-]> && !inDebugRepl"
+    },
+    {
+        "key": "ctrl+pageup",
+        "command": "-extension.vim_ctrl+pageup",
+        "when": "editorTextFocus && vim.active && vim.use<C-pageup> && !inDebugRepl"
+    },
+    {
+        "key": "ctrl+pagedown",
+        "command": "-extension.vim_ctrl+pagedown",
+        "when": "editorTextFocus && vim.active && vim.use<C-pagedown> && !inDebugRepl"
+    },
+    {
+        "key": "tab",
+        "command": "-extension.vim_tab",
+        "when": "editorFocus && vim.active && !inDebugRepl && vim.mode != 'Insert'"
+    },
+    {
+        "key": "shift+tab",
+        "command": "-extension.vim_shift+tab",
+        "when": "editorFocus && vim.active && !inDebugRepl && vim.mode != 'Insert'"
+    },
+    {
+        "key": "shift+alt+down",
+        "command": "-extension.vim_cmd+alt+down",
+        "when": "editorTextFocus && vim.active && !inDebugRepl"
+    },
+    {
+        "key": "shift+alt+up",
+        "command": "-extension.vim_cmd+alt+up",
+        "when": "editorTextFocus && vim.active && !inDebugRepl"
+    }
+]

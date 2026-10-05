@@ -21,6 +21,9 @@
     - vscode settings: settings.json, keybindings.json
     - cursor settings: state.vscdb (sqlite), cli-config.json, mcp.json
     - terminal profile: None (不要 zsh)
+- VS Code（2026-10 起主力，設定以 Cursor 為主）
+    - 設定見 `vscode/`（`vscode.md`；`sync-vscode.ps1` 同步至 `%APPDATA%\Code\User`）
+    - Settings Sync（GitHub），keybindings 依平台分開
 - Claude - Desktop, CLI
     - settings.json, keybindings.json
 - Skills
