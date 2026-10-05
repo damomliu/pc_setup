@@ -630,26 +630,6 @@ local function sync_current_command_to_other_panes(window, pane)
   end
 end
 
-local function pane_info_by_id(tab)
-  local by_id = {}
-  for _, info in ipairs(tab:panes_with_info()) do
-    by_id[info.pane:pane_id()] = info
-  end
-  return by_id
-end
-
-local function refresh_infos(tab, infos)
-  local by_id = pane_info_by_id(tab)
-  local next_infos = {}
-  for _, info in ipairs(infos) do
-    local fresh = by_id[info.pane:pane_id()]
-    if fresh then
-      next_infos[#next_infos + 1] = fresh
-    end
-  end
-  return next_infos
-end
-
 local CELL_SLACK = 1
 
 local function ranges_overlap_exclusive(start_a, size_a, start_b, size_b)
@@ -808,333 +788,290 @@ local function tree_span(node, pos_key, size_key)
   return max_end - min_pos
 end
 
-local function touching_pairs(left_node, right_node, axis)
-  local pos_key = axis == 'width' and 'left' or 'top'
-  local size_key = axis
-  local cross_pos = axis == 'width' and 'top' or 'left'
-  local cross_size = axis == 'width' and 'height' or 'width'
-  local pairs = {}
-
-  for _, left in ipairs(tree_leaves(left_node)) do
-    local edge = left[pos_key] + left[size_key]
-    for _, right in ipairs(tree_leaves(right_node)) do
-      if math.abs(right[pos_key] - edge) <= CELL_SLACK and
-          ranges_overlap_exclusive(
-            left[cross_pos],
-            left[cross_size],
-            right[cross_pos],
-            right[cross_size]
-          ) then
-        pairs[#pairs + 1] = { left = left, right = right }
-      end
-    end
+local function wezterm_exe()
+  local dir = wezterm.executable_dir
+  if dir and dir ~= '' then
+    return dir .. '\\wezterm.exe'
   end
-
-  if #pairs == 0 then
-    local lefts = tree_leaves(left_node)
-    local rights = tree_leaves(right_node)
-    if #lefts > 0 and #rights > 0 then
-      pairs[1] = { left = lefts[1], right = rights[1] }
-    end
-  end
-
-  return pairs
+  return 'wezterm.exe'
 end
 
--- 移動 left 與 right 相接的那條邊。delta > 0 代表 left 變寬／變高。
--- 右深的分割樹裡，這條邊屬於 left；左深時才屬於 right。
--- 先試 1 格，確認這兩個 pane 的交界真的動了，再補上剩下的距離。
-local function adjust_pair(window, tab, pair, axis, delta)
-  if not pair or delta == 0 then
-    return
+-- 反推出的樹是二元的；同方向連續的分割攤平成一層，才能一次按份數切。
+local function flatten_tree(node)
+  if node.kind == 'leaf' then
+    return node
   end
+  local children = {}
+  for _, child in ipairs(node.children) do
+    child = flatten_tree(child)
+    if child.kind == node.kind then
+      for _, grandchild in ipairs(child.children) do
+        children[#children + 1] = grandchild
+      end
+    elseif child.kind ~= 'leaf' or child.info then
+      children[#children + 1] = child
+    end
+  end
+  if #children == 1 then
+    return children[1]
+  end
+  return { kind = node.kind, children = children }
+end
 
-  local size_key = axis
-  local pos_key = axis == 'width' and 'left' or 'top'
-  local grow_dir = axis == 'width' and 'Right' or 'Down'
-  local shrink_dir = axis == 'width' and 'Left' or 'Up'
-  local direction = delta > 0 and grow_dir or shrink_dir
-  local undo_dir = delta > 0 and shrink_dir or grow_dir
-  local id_l = pair.left.pane:pane_id()
-  local id_r = pair.right.pane:pane_id()
+local function leaf_nodes(node, out)
+  out = out or {}
+  if node.kind == 'leaf' then
+    if node.info then
+      out[#out + 1] = node
+    end
+  else
+    for _, child in ipairs(node.children) do
+      leaf_nodes(child, out)
+    end
+  end
+  return out
+end
 
-  local function edge()
-    local by_id = pane_info_by_id(tab)
-    local left = by_id[id_l]
-    local right = by_id[id_r]
-    if not left or not right then
+-- vsplit 的子節點左右並排，切的是欄寬；hsplit 上下堆疊，切的是列高。
+local function split_axis(node)
+  return node.kind == 'vsplit' and 'width' or 'height'
+end
+
+local function contains_pane(node, pane_id)
+  for _, info in ipairs(tree_leaves(node)) do
+    if info.pane:pane_id() == pane_id then
+      return true
+    end
+  end
+  return false
+end
+
+-- 均分時這個節點佔幾份：順著分割方向把子節點相加，另一方向取最多的那一支。
+-- 例：左欄通高、右邊上 2 下 3 → 右邊 3 份、左欄 1 份，下列三欄與左欄同寬。
+local function axis_weight(node, axis)
+  if node.kind == 'leaf' then
+    return 1
+  end
+  local along = split_axis(node) == axis
+  local total = 0
+  for _, child in ipairs(node.children) do
+    local weight = axis_weight(child, axis)
+    total = along and total + weight or math.max(total, weight)
+  end
+  return total
+end
+
+-- 「僅同列／同欄」：只數目前 pane 那一列（欄）上的份數。
+local function band_weight(node, axis, active_id)
+  if node.kind == 'leaf' then
+    return 1
+  end
+  local along = split_axis(node) == axis
+  local total = 0
+  for _, child in ipairs(node.children) do
+    if contains_pane(child, active_id) then
+      if not along then
+        return band_weight(child, axis, active_id)
+      end
+      total = total + band_weight(child, axis, active_id)
+    elseif along then
+      total = total + axis_weight(child, axis)
+    end
+  end
+  return math.max(1, total)
+end
+
+-- 依權重把 total 格分給各子節點，中間各留 1 格分隔線；累進取整，總和剛好用完。
+local function distribute(total, weights)
+  local room = total - (#weights - 1)
+  local sum = 0
+  for _, weight in ipairs(weights) do
+    sum = sum + weight
+  end
+  local sizes = {}
+  local acc = 0
+  local used = 0
+  for index, weight in ipairs(weights) do
+    acc = acc + weight
+    local edge = math.floor(room * acc / sum + 0.5)
+    sizes[index] = edge - used
+    used = edge
+    if sizes[index] < 1 then
       return
     end
-    return left[size_key], right[pos_key]
   end
+  return sizes
+end
 
-  local function layout_signature()
-    local parts = {}
-    for _, info in ipairs(tab:panes_with_info()) do
-      parts[#parts + 1] = table.concat({
-        info.pane:pane_id(),
-        info.left,
-        info.top,
-        info.width,
-        info.height,
-      }, ':')
-    end
-    return table.concat(parts, '|')
-  end
-
-  local function nudge(info, dir, amount)
-    info.pane:activate()
-    window:perform_action(act.AdjustPaneSize { dir, amount }, info.pane)
-  end
-
-  local function try_pane(info)
-    local before_size, before_pos = edge()
-    local before_layout = layout_signature()
-    if not before_size then
-      return false
-    end
-
-    nudge(info, direction, 1)
-    local after_size, after_pos = edge()
-    local moved = after_size and after_pos and (after_size ~= before_size) and (after_pos ~= before_pos)
-    if not moved then
-      if layout_signature() ~= before_layout then
-        nudge(info, undo_dir, 1)
-      end
-      return false
-    end
-
-    local rest = math.abs(delta) - 1
-    if rest > 0 then
-      nudge(info, direction, rest)
-    end
+-- 算出每個節點的欄數與列數，存在 node.cols / node.rows。
+-- opts.axis 指定要均分的方向（width / height / both），其餘方向沿用目前比例。
+-- opts.scope == 'band' 時只均分目前 pane（opts.active_id）所在的那一路。
+local function plan_layout(node, cols, rows, opts)
+  node.cols = cols
+  node.rows = rows
+  if node.kind == 'leaf' then
     return true
   end
 
-  if try_pane(pair.left) then
-    return
-  end
-  try_pane(pair.right)
-end
-
-local function axis_extent(infos, pos_key, size_key)
-  local max_end = 0
-  for _, info in ipairs(infos) do
-    max_end = math.max(max_end, info[pos_key] + info[size_key])
-  end
-  return max_end
-end
-
--- tab:get_size() 跟視窗一致。其他 tab 的 pane 可能還停在縮放前的寬度，不能拿來當目標。
-local function usable_axis_extent(tab, axis, mux_total)
-  local ok, size = pcall(function()
-    return tab:get_size()
-  end)
-  if ok and size then
-    local extent = axis == 'width' and size.cols or size.rows
-    if extent and extent > 0 then
-      return extent
-    end
-  end
-  return mux_total
-end
-
-local function equalize_nodes(window, tab, nodes, axis, usable, split_guard)
-  if #nodes < 2 then
-    return
-  end
-
+  local axis = split_axis(node)
   local pos_key = axis == 'width' and 'left' or 'top'
-  local size_key = axis
-  local ids = {}
-  for index, node in ipairs(nodes) do
-    ids[index] = {}
-    for _, info in ipairs(tree_leaves(node)) do
-      ids[index][#ids[index] + 1] = info.pane:pane_id()
+  local equalize = (opts.axis == 'both' or opts.axis == axis)
+    and (opts.scope ~= 'band' or contains_pane(node, opts.active_id))
+  local weights = {}
+  for index, child in ipairs(node.children) do
+    if not equalize then
+      weights[index] = math.max(1, tree_span(child, pos_key, axis))
+    elseif opts.scope == 'band' and contains_pane(child, opts.active_id) then
+      weights[index] = band_weight(child, axis, opts.active_id)
+    else
+      weights[index] = axis_weight(child, axis)
     end
   end
 
-  local function current_nodes()
-    local by_id = pane_info_by_id(tab)
-    local fresh = {}
-    for index, pane_ids in ipairs(ids) do
-      local infos = {}
-      for _, pane_id in ipairs(pane_ids) do
-        if by_id[pane_id] then
-          infos[#infos + 1] = by_id[pane_id]
-        end
-      end
-      fresh[index] = build_split_tree(infos)
-    end
-    return fresh
+  local sizes = distribute(axis == 'width' and cols or rows, weights)
+  if not sizes then
+    return false
   end
-
-  local function spans_beyond_band(info)
-    if not split_guard then
+  for index, child in ipairs(node.children) do
+    local child_cols = axis == 'width' and sizes[index] or cols
+    local child_rows = axis == 'width' and rows or sizes[index]
+    if not plan_layout(child, child_cols, child_rows, opts) then
       return false
     end
-    local pos = info[split_guard.cross_pos]
-    local size = info[split_guard.cross_size]
-    return pos < split_guard.band_pos - CELL_SLACK
-      or pos + size > split_guard.band_pos + split_guard.band_span + CELL_SLACK
   end
+  return true
+end
 
-  nodes = current_nodes()
-  local mux_total = 0
-  for _, node in ipairs(nodes) do
-    mux_total = mux_total + tree_span(node, pos_key, size_key)
-  end
-  if mux_total <= 0 then
-    return
-  end
-
-  -- 這一帶的 mux 總長和 tab 實際欄列對不上時，改依 tab 尺寸均分。
-  local total = mux_total
-  if usable and usable > 0 then
-    local mux_extent = mux_total + (#nodes - 1)
-    if math.abs(mux_extent - usable) > CELL_SLACK then
-      total = math.max(1, usable - (#nodes - 1))
-    end
-  end
-
-  local base = math.floor(total / #nodes)
-  local extra = total % #nodes
-
-  for index = 1, #nodes - 1 do
-    local fresh = current_nodes()
-    local desired = base + (index <= extra and 1 or 0)
-    local by_id = pane_info_by_id(tab)
-    -- 同一條分割線只調一次，避免田字共用邊被左右／上下各砍一刀。
-    for _, pair in ipairs(touching_pairs(fresh[index], fresh[index + 1], axis)) do
-      local left = by_id[pair.left.pane:pane_id()]
-      local right = by_id[pair.right.pane:pane_id()]
-      if left and right then
-        local shared = spans_beyond_band(left) or spans_beyond_band(right)
-        if shared and split_guard and split_guard.shared_done then
-          local cut = right[pos_key]
-          if split_guard.shared_done[cut] then
-            break
-          end
-          split_guard.shared_done[cut] = true
-        end
-        adjust_pair(window, tab, { left = left, right = right }, axis, desired - left[size_key])
-        break
+-- 剛分割或移動完，pane 的寬高可能還是舊值而互相重疊；這時反推出的樹不可靠。
+local function layout_overlaps(infos)
+  for i = 1, #infos do
+    for j = i + 1, #infos do
+      local a = infos[i]
+      local b = infos[j]
+      if ranges_overlap_exclusive(a.left, a.width, b.left, b.width)
+        and ranges_overlap_exclusive(a.top, a.height, b.top, b.height) then
+        return true
       end
     end
   end
+  return false
 end
 
-local function cluster_groups(infos, pos_key)
-  local sorted = {}
-  for _, info in ipairs(infos) do
-    sorted[#sorted + 1] = info
-  end
-  table.sort(sorted, function(a, b)
-    if a[pos_key] == b[pos_key] then
-      return a.left < b.left
-    end
-    return a[pos_key] < b[pos_key]
-  end)
-
-  local groups = {}
-  for _, info in ipairs(sorted) do
-    local last = groups[#groups]
-    if last and math.abs(info[pos_key] - last.pos) <= CELL_SLACK then
-      last.panes[#last.panes + 1] = info
-    else
-      groups[#groups + 1] = { pos = info[pos_key], panes = { info } }
+local function layout_matches(leaves)
+  for _, leaf in ipairs(leaves) do
+    if leaf.info.width ~= leaf.cols or leaf.info.height ~= leaf.rows then
+      return false
     end
   end
-  return groups
+  return true
 end
 
-local function group_as_node(group)
-  if #group.panes == 1 then
-    return { kind = 'leaf', info = group.panes[1] }
-  end
-  return fanout_leaves(group.panes, 'hsplit')
+local function first_pane_id(node)
+  return tree_leaves(node)[1].pane:pane_id()
 end
 
-local function infos_to_axis_nodes(infos, axis)
-  local pos_key = axis == 'width' and 'left' or 'top'
-  local nodes = {}
-  for _, group in ipairs(cluster_groups(infos, pos_key)) do
-    nodes[#nodes + 1] = group_as_node(group)
-  end
-  return nodes
+local function cli_split(direction, cells, move_id, host_id)
+  local ok, _, err = wezterm.run_child_process {
+    wezterm_exe(),
+    'cli',
+    'split-pane',
+    direction,
+    '--cells',
+    tostring(cells),
+    '--move-pane-id',
+    tostring(move_id),
+    '--pane-id',
+    tostring(host_id),
+  }
+  return ok, err
 end
 
--- 通高／通寬 pane 只出現在 cluster 的第一帶；其他列／欄均分時要補回來。
-local function expand_band(infos, band, cross_pos, cross_size)
-  local span = math.huge
-  for _, pane in ipairs(band.panes) do
-    span = math.min(span, pane[cross_size])
+-- 這個節點的範圍目前由它的第一個 pane 獨佔：依序切出後面的兄弟節點，再往下處理各子節點。
+-- --cells 是新 pane 的格數，原 pane 剩「總數 - cells - 1」。
+local function place_tree(node)
+  if node.kind == 'leaf' then
+    return true
   end
-  if span == math.huge then
-    return band.panes
+  local vertical = node.kind == 'vsplit'
+  local direction = vertical and '--right' or '--bottom'
+  local function span(item)
+    return vertical and item.cols or item.rows
   end
 
-  local seen = {}
-  local panes = {}
-  for _, pane in ipairs(band.panes) do
-    seen[pane.pane:pane_id()] = true
-    panes[#panes + 1] = pane
+  local host = first_pane_id(node)
+  local remaining = span(node) - span(node.children[1]) - 1
+  for index = 2, #node.children do
+    local child = node.children[index]
+    local id = first_pane_id(child)
+    local ok, err = cli_split(direction, remaining, id, host)
+    if not ok then
+      return false, err
+    end
+    host = id
+    remaining = remaining - span(child) - 1
   end
-  for _, info in ipairs(infos) do
-    local id = info.pane:pane_id()
-    if not seen[id] and ranges_overlap_exclusive(
-      band.pos,
-      span,
-      info[cross_pos],
-      info[cross_size]
-    ) then
-      seen[id] = true
-      panes[#panes + 1] = info
+
+  for _, child in ipairs(node.children) do
+    local ok, err = place_tree(child)
+    if not ok then
+      return false, err
     end
   end
-  return panes, span
+  return true
 end
 
--- 寬：每一列自己均分（田字上下分割線可以不對齊）；通高左欄要算進每一列。
--- 高：每一欄自己均分。
-local function equalize_tree_axis(window, tab, infos, axis)
-  local pos_key = axis == 'width' and 'left' or 'top'
-  local mux_extent = axis_extent(infos, pos_key, axis)
-  local usable = usable_axis_extent(tab, axis, mux_extent)
-  local band_key = axis == 'width' and 'top' or 'left'
-  local cross_size = axis == 'width' and 'height' or 'width'
-  local shared_done = {}
+-- 依 opts 重排 tab：先算好每個 pane 的格數，再把第一個 pane 以外的移到暫存 tab，
+-- 用 cli split-pane 按格數一個個移回來。分割建立當下就是精確大小，不必事後推分隔線。
+-- tree 可以含別的 tab 的 pane（Prefix+Shift+N），cli 會直接把它搬過來。
+local function rebuild_layout(window, tab, tree, opts, focus)
+  local size = tab:get_size()
+  if not size or not plan_layout(tree, size.cols, size.rows, opts) then
+    window:toast_notification('WezTerm', 'pane 太多，視窗放不下', nil, 4000)
+    return false
+  end
 
-  for _, band in ipairs(cluster_groups(infos, band_key)) do
-    local panes, band_span = expand_band(infos, band, band_key, cross_size)
-    local nodes = infos_to_axis_nodes(panes, axis)
-    if #nodes >= 2 then
-      equalize_nodes(window, tab, nodes, axis, usable, {
-        band_pos = band.pos,
-        band_span = band_span,
-        cross_pos = band_key,
-        cross_size = cross_size,
-        shared_done = shared_done,
-      })
+  local leaves = leaf_nodes(tree)
+  if layout_matches(leaves) then
+    focus:activate()
+    return true
+  end
+
+  local home_id = tab:tab_id()
+  local anchor = leaves[1].info.pane
+  local parked = {}
+  for index = 2, #leaves do
+    local pane = leaves[index].info.pane
+    local pane_tab = pane:tab()
+    if pane_tab and pane_tab:tab_id() == home_id then
+      pane:move_to_new_tab()
+      parked[#parked + 1] = pane
     end
   end
-end
 
-local function overlapping_infos(infos, active, axis)
-  local pos_key = axis == 'width' and 'top' or 'left'
-  local size_key = axis == 'width' and 'height' or 'width'
-  local subset = {}
-  for _, info in ipairs(infos) do
-    if ranges_overlap_exclusive(
-      active[pos_key],
-      active[size_key],
-      info[pos_key],
-      info[size_key]
-    ) then
-      subset[#subset + 1] = info
+  local ok, err = place_tree(tree)
+  if not ok then
+    -- 沒排回來的 pane 盡量接回原 tab 最右邊，不要留在暫存 tab。
+    for _, pane in ipairs(parked) do
+      local pane_tab = pane:tab()
+      if pane_tab and pane_tab:tab_id() ~= home_id then
+        wezterm.run_child_process {
+          wezterm_exe(),
+          'cli',
+          'split-pane',
+          '--right',
+          '--top-level',
+          '--move-pane-id',
+          tostring(pane:pane_id()),
+          '--pane-id',
+          tostring(anchor:pane_id()),
+        }
+      end
     end
+    window:toast_notification('WezTerm', tostring(err or '無法重排 pane'), nil, 4000)
   end
-  return subset
+
+  focus:activate()
+  return ok
 end
 
 local function equalize_panes(window, pane, scope, axis)
@@ -1144,45 +1081,22 @@ local function equalize_panes(window, pane, scope, axis)
   end
 
   tab:set_zoomed(false)
-  revive_collapsed_panes(window, tab)
   local infos = tab:panes_with_info()
   if #infos < 2 then
     pane:activate()
     return
   end
-
-  local active
-  for _, info in ipairs(infos) do
-    if info.pane:pane_id() == pane:pane_id() then
-      active = info
-      break
-    end
-  end
-  if not active then
-    pane:activate()
+  if layout_overlaps(infos) then
+    window:toast_notification('WezTerm', 'pane 位置還在更新，請稍後再均分', nil, 4000)
     return
   end
 
-  local function run(target_axis)
-    local target = infos
-    if scope == 'band' then
-      target = overlapping_infos(infos, active, target_axis)
-    end
-    if #target >= 2 then
-      equalize_tree_axis(window, tab, target, target_axis)
-      infos = refresh_infos(tab, infos)
-      active = pane_info_by_id(tab)[pane:pane_id()] or active
-    end
-  end
-
-  if axis == 'both' then
-    run 'height'
-    run 'width'
-  else
-    run(axis)
-  end
-
-  pane:activate()
+  local tree = flatten_tree(build_split_tree(infos))
+  rebuild_layout(window, tab, tree, {
+    scope = scope,
+    axis = axis,
+    active_id = pane:pane_id(),
+  }, pane)
 end
 
 local function equalize_action(scope, axis)
@@ -1440,24 +1354,6 @@ end)
 
 local shifted_number_keys = { '!', '@', '#', '$', '%', '^', '&', '*', '(' }
 
-local function wezterm_exe()
-  local dir = wezterm.executable_dir
-  if dir and dir ~= '' then
-    return dir .. '\\wezterm.exe'
-  end
-  return 'wezterm.exe'
-end
-
-local function tab_active_pane(tab)
-  for _, info in ipairs(tab:panes_with_info()) do
-    if info.is_active then
-      return info.pane
-    end
-  end
-  local panes = tab:panes()
-  return panes and panes[1]
-end
-
 local function layout_overflows(infos, size)
   for _, info in ipairs(infos) do
     if info.left + info.width > size.cols + CELL_SLACK
@@ -1620,6 +1516,7 @@ local function split_action(direction, args)
 end
 
 -- 把目前 pane 移到指定 tab（1 起算）；該 tab 不存在則開新 tab。
+-- 移入的 pane 成為最右側一欄；欄寬依欄數重排，列高沿用目標 tab 原本的比例。
 local function move_pane_to_tab(index)
   return wezterm.action_callback(function(gui_win, pane)
     local mux_win = pane:window()
@@ -1639,35 +1536,26 @@ local function move_pane_to_tab(index)
       return
     end
 
-    local dest = tab_active_pane(target)
-    if not dest then
+    -- 不先 split 再讀位置：剛 split 完寬高常是舊值，pane 互相重疊，反推出的樹會錯。
+    -- 改用移入前的版面反推，接上移入的 pane 當最右側通高一欄，再依欄數重建。
+    target:set_zoomed(false)
+    local infos = target:panes_with_info()
+    if layout_overlaps(infos) then
+      gui_win:toast_notification('WezTerm', '目標 tab 的 pane 位置還在更新，請稍後再試', nil, 4000)
       return
     end
 
-    local ok, _, err = wezterm.run_child_process {
-      wezterm_exe(),
-      'cli',
-      'split-pane',
-      '--right',
-      '--top-level',
-      '--move-pane-id',
-      tostring(pane:pane_id()),
-      '--pane-id',
-      tostring(dest:pane_id()),
+    local tree = flatten_tree(build_split_tree(infos))
+    local incoming = {
+      kind = 'leaf',
+      info = { pane = pane, left = 0, top = 0, width = 0, height = 0 },
     }
-    if not ok then
-      gui_win:toast_notification(
-        'WezTerm',
-        tostring(err or '無法把 pane 移到指定 tab'),
-        nil,
-        4000
-      )
-      return
+    if tree.kind == 'vsplit' then
+      table.insert(tree.children, incoming)
+    else
+      tree = { kind = 'vsplit', children = { tree, incoming } }
     end
-
-    -- --top-level 之後原 pane 常仍佔滿整寬，移入的 pane 重疊而點不到、方向鍵也找不到。
-    equalize_panes(gui_win, pane, 'tab', 'width')
-    pane:activate()
+    rebuild_layout(gui_win, target, tree, { scope = 'tab', axis = 'width' }, pane)
   end)
 end
 

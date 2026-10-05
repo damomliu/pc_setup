@@ -20,7 +20,7 @@ Prefix 為 `Ctrl+B`（按下後有 2 秒可接下一鍵，期間右上角顯示 
 - `Prefix, W`：關閉目前 tab（會先確認）
 - `Prefix, N` / `Prefix, P`：下一個／上一個 tab
 - `Prefix, 1`～`Prefix, 9`：切換至指定 tab
-- `Prefix, Shift+1`～`Prefix, Shift+9`：把目前 pane 移到 tab 1～9；該 tab 不存在則開新 tab；移入後會均分欄寬，避免和原 pane 重疊而選不到
+- `Prefix, Shift+1`～`Prefix, Shift+9`：把目前 pane 移到 tab 1～9，成為最右側一欄；該 tab 不存在則開新 tab；移入時依欄數重排欄寬，列高沿用原比例
 - `Prefix, ,`：命名 tab；清空可恢復自動標題
 - `Prefix, Q`：在各 pane 上顯示編號，按數字直接切換至該 pane；若有 pane 被擠成 0 寬／高會先救回來再顯示
 - `Prefix, L`：開啟啟動選單
@@ -40,7 +40,10 @@ Ubuntu Prefix 為 `Ctrl+U`（按下後有 2 秒可接下一鍵）：
     - `RyokoTower Simulators (新視窗)`：開一個新視窗；等它最大化、格子尺寸跟上來源視窗後才切 pane，再均分欄寬與列高
   - 搜 `sync`：把目前 pane 的輸入列送到同 tab 其他 pane；若目前 pane 的指令尚未送出，也會在目前 pane 按 Enter；輸入列為空時跳出提示
   - 搜 `close`：關閉目前 tab
-  - 搜 `equal`：平均分配欄寬（僅同列／Tab）、列高（僅同欄／Tab）、或欄寬與列高（Tab）；寬依每一列（含通高 pane）、高依每一欄；移動的是相鄰 pane 真正共用的那條分割線；目標用這個 tab 的實際欄列，不用其他 tab 還停在舊寬度的 pane
+  - 搜 `equal`：平均分配欄寬（僅同列／Tab）、列高（僅同欄／Tab）、或欄寬與列高（Tab）
+    - 依分割結構按份數分配：通高的一欄算 1 份，旁邊上 2 下 3 的那塊算 3 份，所以下列 3 欄與通高欄同寬；「僅同列／同欄」只數目前 pane 那一路，其他部分沿用原比例
+    - 做法是把 pane 暫移到其他 tab，再按算好的格數移回，tab bar 會短暫閃過暫存 tab；已經均分就不動
+    - pane 位置還在更新（互相重疊）或視窗放不下時，只跳提示不重排
 - `Ctrl+Shift+U` / `Ctrl+Shift+D`：向上／向下翻頁
 - `Ctrl+Shift+F`：搜尋終端內容
 - `Ctrl+滑鼠左鍵`：開啟連結
