@@ -36,13 +36,7 @@
 - git 相關
     - git, git config
     - github cli, github ssh key
-- PowerShell
-    - PowerShell 7
-    - profile.ps1
-        - `Set-PSReadLineOption -EditMode Vi`
-        - $utf8
-    - Windows Terminal settings
-    - Vim
+- PowerShell：見 [power_shell.md](./power_shell/power_shell.md)
 - openssh-server
     - ~/.ssh/config (shared.conf)
 - usbipd-win
