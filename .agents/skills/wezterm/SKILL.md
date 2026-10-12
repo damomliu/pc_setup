@@ -39,7 +39,7 @@ description: >-
 改完 lua 與 md 之後，執行：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .claude/skills/wezterm/scripts/sync-wezterm.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .agents/skills/wezterm/scripts/sync-wezterm.ps1
 ```
 
 腳本把 `wezterm/wezterm.lua` 複製到 `%USERPROFILE%\.wezterm.lua`。正在跑的 WezTerm 盯的是家目錄這份，檔案一換掉就會重載，不需要另開視窗，也不要為了重載去按使用者的鍵盤。

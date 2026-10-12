@@ -1,2 +1,5 @@
 # 本機設定快照，不納入版本庫
 backup/
+
+# 本機 junction，指向 .agents/skills/ 的技能正本（git 不保留 junction，見 setup.md）
+.claude/skills/wezterm
