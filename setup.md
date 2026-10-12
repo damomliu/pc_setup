@@ -49,6 +49,9 @@
     - 要安裝已修復 IME 的版本
     - 設定見 `wezterm/`（`wezterm.md`；`wezterm.lua` 為 `~/.wezterm.lua` 副本）
 
+- Herdr
+
+
 ## 個人化
 - RGB（OpenRGB）：`rgb/Set-RgbMode.ps1`（off、on、dim、idle、cycle、wave）；桌面捷徑「RGB 模式」
 - AutoHotkey

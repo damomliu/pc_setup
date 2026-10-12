@@ -1,0 +1,14 @@
+# Herdr owns the inner panes; WezTerm uses Ctrl+G as its prefix.
+# Keep the default prefix bindings alongside direct Alt shortcuts.
+[keys]
+prefix = "ctrl+b"
+split_vertical = 'prefix+\'
+focus_pane_left = ["prefix+h", "alt+left"]
+focus_pane_down = ["prefix+j", "alt+down"]
+focus_pane_up = ["prefix+k", "alt+up"]
+focus_pane_right = ["prefix+l", "alt+right"]
+zoom = ["prefix+z", "alt+z"]
+resize_pane_left = "alt+shift+left"
+resize_pane_down = "alt+shift+down"
+resize_pane_up = "alt+shift+up"
+resize_pane_right = "alt+shift+right"

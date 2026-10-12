@@ -4,14 +4,19 @@
 
 ## 快速鍵設定
 
-- `Alt+Z`：切換 pane zoom
+已套用至 `.lua` 並同步至 `~/.wezterm.lua`。Prefix 使用 `Ctrl+G`；已解除 `Alt+Z`、`Alt+方向鍵`、`Alt+Shift+方向鍵` 的一般模式綁定，讓按鍵傳入 Herdr。
+
+主要 pane／tab 操作交給 Herdr，WezTerm 保留外層管理功能。Herdr 的配置共識見 [herdr.md](herdr.md)。`Ctrl+Space` 保留給中文輸入法，不作為 prefix。
+
+這三組 Alt 快速鍵還需要將 `herdr-config.toml` 的 `[keys]` 合併至 `%APPDATA%\herdr\config.toml`，再執行 `herdr server reload-config`；只解除 WezTerm 綁定不會自動建立 Herdr 綁定。
+
 - `Alt+]` / `Alt+[`：維持 zoom，切換下一個／上一個 pane
 - `Alt+1`～`Alt+9`：維持 zoom，切換至指定 pane
-- `Alt+方向鍵`：維持 zoom，切換至該方向的 pane
-- `Alt+Shift+方向鍵`：調整 pane 大小
 - `Ctrl+PageUp` / `Ctrl+PageDown`：上一個／下一個 tab
 
-Prefix 為 `Ctrl+B`（按下後有 2 秒可接下一鍵，期間右上角顯示 `LEADER`）：
+上述快捷鍵與 Ubuntu prefix `Ctrl+U` 暫時保留，尚未決定是否移交或改綁。這次也未決定為 WezTerm 的 pane 切換、zoom、調整大小新增替代快捷鍵。
+
+Prefix 為 `Ctrl+G`（按下後有 2 秒可接下一鍵，期間右上角顯示 `LEADER`）；以下既有 prefix 操作維持不變：
 
 - `Prefix, \`：左右分割 pane；若這一疊 pane 比視窗寬或高，會先收回再分割
 - `Prefix, -`：上下分割 pane；若這一疊 pane 比視窗寬或高，會先收回再分割
@@ -25,6 +30,9 @@ Prefix 為 `Ctrl+B`（按下後有 2 秒可接下一鍵，期間右上角顯示 
 - `Prefix, Q`：在各 pane 上顯示編號，按數字直接切換至該 pane；若有 pane 被擠成 0 寬／高會先救回來再顯示
 - `Prefix, L`：開啟啟動選單
 - `Prefix, S`：選 pane 並與目前 pane 對調位置；對調後 focus 跟著移到目標位置
+- `Prefix, ←`／`→`／`↑`／`↓`：依該方向的實際位置切換至相鄰 pane，切換後維持原本的 zoom 狀態
+- `Prefix, Z`：切換目前 pane 的 zoom
+- `Prefix, Shift+←`／`Shift+→`／`Shift+↑`／`Shift+↓`：往該方向調整目前 pane 的大小
 
 Ubuntu Prefix 為 `Ctrl+U`（按下後有 2 秒可接下一鍵）：
 
@@ -44,6 +52,8 @@ Ubuntu Prefix 為 `Ctrl+U`（按下後有 2 秒可接下一鍵）：
     - 依分割結構按份數分配：通高的一欄算 1 份，旁邊上 2 下 3 的那塊算 3 份，所以下列 3 欄與通高欄同寬；「僅同列／同欄」只數目前 pane 那一路，其他部分沿用原比例
     - 做法是把 pane 暫移到其他 tab，再按算好的格數移回，tab bar 會短暫閃過暫存 tab；已經均分就不動
     - pane 位置還在更新（互相重疊）或視窗放不下時，只跳提示不重排
+  - 搜 `Pane: 切換 zoom`：切換目前 pane 的 zoom 狀態
+  - 搜 `Pane: 調整大小`：往左／右／上／下調整目前 pane 的大小
 - `Ctrl+Shift+U` / `Ctrl+Shift+D`：向上／向下翻頁
 - `Ctrl+Shift+F`：搜尋終端內容
 - `Ctrl+滑鼠左鍵`：開啟連結

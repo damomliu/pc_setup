@@ -59,10 +59,10 @@ config.use_ime = true
 config.audible_bell = 'SystemBeep'
 config.window_close_confirmation = 'AlwaysPrompt'
 
--- Ctrl+B 作為 WezTerm prefix。
+-- Ctrl+G 作為 WezTerm prefix；Ctrl+B 留給 Herdr。
 local PREFIX_TIMEOUT_MS = 2000
 config.leader = {
-  key = 'b',
+  key = 'g',
   mods = 'CTRL',
   timeout_milliseconds = PREFIX_TIMEOUT_MS,
 }
@@ -1349,6 +1349,36 @@ wezterm.on('augment-command-palette', function()
       icon = 'md_view_dashboard',
       action = equalize_action('tab', 'both'),
     },
+    {
+      brief = 'Pane: 切換 zoom',
+      doc = '切換目前 pane 的 zoom 狀態',
+      icon = 'md_fullscreen',
+      action = act.TogglePaneZoomState,
+    },
+    {
+      brief = 'Pane: 調整大小 (左)',
+      doc = '把目前 pane 的邊界往左調整',
+      icon = 'md_arrow_expand_left',
+      action = act.AdjustPaneSize { 'Left', 4 },
+    },
+    {
+      brief = 'Pane: 調整大小 (右)',
+      doc = '把目前 pane 的邊界往右調整',
+      icon = 'md_arrow_expand_right',
+      action = act.AdjustPaneSize { 'Right', 4 },
+    },
+    {
+      brief = 'Pane: 調整大小 (上)',
+      doc = '把目前 pane 的邊界往上調整',
+      icon = 'md_arrow_expand_up',
+      action = act.AdjustPaneSize { 'Up', 4 },
+    },
+    {
+      brief = 'Pane: 調整大小 (下)',
+      doc = '把目前 pane 的邊界往下調整',
+      icon = 'md_arrow_expand_down',
+      action = act.AdjustPaneSize { 'Down', 4 },
+    },
   }
 end)
 
@@ -1560,20 +1590,10 @@ local function move_pane_to_tab(index)
 end
 
 config.keys = {
-  -- Pane 分割、zoom、切換。
-  { key = 'z', mods = 'ALT', action = act.TogglePaneZoomState },
+  -- 保留外層 pane 循環切換；Alt+方向鍵、Alt+Z、Alt+Shift+方向鍵留給 Herdr。
+  -- Herdr 綁定需另外合併到 %APPDATA%/herdr/config.toml，再 server reload-config。
   { key = ']', mods = 'ALT', action = activate_pane 'next' },
   { key = '[', mods = 'ALT', action = activate_pane 'previous' },
-  { key = 'LeftArrow', mods = 'ALT', action = activate_pane_direction 'Left' },
-  { key = 'RightArrow', mods = 'ALT', action = activate_pane_direction 'Right' },
-  { key = 'UpArrow', mods = 'ALT', action = activate_pane_direction 'Up' },
-  { key = 'DownArrow', mods = 'ALT', action = activate_pane_direction 'Down' },
-
-  -- Pane 大小。
-  { key = 'LeftArrow', mods = 'ALT|SHIFT', action = act.AdjustPaneSize { 'Left', 5 } },
-  { key = 'RightArrow', mods = 'ALT|SHIFT', action = act.AdjustPaneSize { 'Right', 5 } },
-  { key = 'UpArrow', mods = 'ALT|SHIFT', action = act.AdjustPaneSize { 'Up', 2 } },
-  { key = 'DownArrow', mods = 'ALT|SHIFT', action = act.AdjustPaneSize { 'Down', 2 } },
 
   -- Prefix 操作。
   { key = '\\', mods = 'LEADER', action = split_action 'Right' },
@@ -1598,6 +1618,15 @@ config.keys = {
     end),
   },
   { key = 's', mods = 'LEADER', action = act.PaneSelect { mode = 'SwapWithActiveKeepFocus' } },
+  { key = 'LeftArrow', mods = 'LEADER', action = activate_pane_direction 'Left' },
+  { key = 'RightArrow', mods = 'LEADER', action = activate_pane_direction 'Right' },
+  { key = 'UpArrow', mods = 'LEADER', action = activate_pane_direction 'Up' },
+  { key = 'DownArrow', mods = 'LEADER', action = activate_pane_direction 'Down' },
+  { key = 'z', mods = 'LEADER', action = act.TogglePaneZoomState },
+  { key = 'LeftArrow', mods = 'LEADER|SHIFT', action = act.AdjustPaneSize { 'Left', 4 } },
+  { key = 'RightArrow', mods = 'LEADER|SHIFT', action = act.AdjustPaneSize { 'Right', 4 } },
+  { key = 'UpArrow', mods = 'LEADER|SHIFT', action = act.AdjustPaneSize { 'Up', 4 } },
+  { key = 'DownArrow', mods = 'LEADER|SHIFT', action = act.AdjustPaneSize { 'Down', 4 } },
   { key = 'PageUp', mods = 'CTRL', action = act.ActivateTabRelative(-1) },
   { key = 'PageDown', mods = 'CTRL', action = act.ActivateTabRelative(1) },
   {
