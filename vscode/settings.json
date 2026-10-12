@@ -27,7 +27,7 @@
     "editor.suggestSelection": "first",
     "explorer.confirmDelete": false,
     "explorer.confirmDragAndDrop": false,
-    "extensions.autoUpdate": "onlyEnabledExtensions",
+    "extensions.autoUpdate": "on",
     "files.associations": {
         "**/*.html": "html",
         "**/requirements{/**,*}.{txt,in}": "pip-requirements",
@@ -106,7 +106,9 @@
     "window.customTitleBarVisibility": "auto",
     "workbench.editor.showTabs": "multiple",
     "workbench.editorAssociations": {
-        "*.ipynb": "jupyter-notebook"
+        "*.copilotmd": "vscode.markdown.preview.editor",
+        "*.ipynb": "jupyter-notebook",
+        "*.md": "vscode.markdown.editor"
     },
     "workbench.startupEditor": "newUntitledFile",
     "workbench.tree.indent": 12,
@@ -175,6 +177,7 @@
     "window.autoDetectColorScheme": false,
     "terminal.integrated.shellIntegration.decorationsEnabled": "never",
     "terminal.integrated.commandsToSkipShell": [
+        "workbench.action.reloadWindow",
         "workbench.action.toggleSidebarVisibility",
         "claude-vscode.focus",
         "workbench.action.togglePanel",
@@ -203,7 +206,7 @@
         "searchAndCompare": false,
         "launchpad": false
     },
-    "window.newWindowProfile": "Doc",
+    "window.newWindowProfile": "Default",
     "terminal.integrated.mouseWheelScrollSensitivity": 3,
     "terminal.integrated.gpuAcceleration": "off",
     "[dart]": {
@@ -238,5 +241,6 @@
     "settingsSync.ignoredSettings": [
         "window.zoomLevel",
         "terminal.integrated.gpuAcceleration"
-    ]
+    ],
+    "claudeCode.hideOnboarding": true
 }

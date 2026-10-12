@@ -7,6 +7,7 @@
 | 按鍵 | 動作 |
 |---|---|
 | `Ctrl+Q` | 關閉視窗 |
+| `Ctrl+Alt+R` | Reload Window（在 terminal 內也能用；取代 Run Recent Command） |
 | `Ctrl+Shift+W` | 關閉所有 editor |
 | `Ctrl+Shift+S` | 全部儲存 |
 | `Ctrl+K Z` | 全螢幕（取代 Zen Mode） |
@@ -19,6 +20,7 @@
 | `Ctrl+'` | 開關 terminal（已有 terminal 時） |
 | `Ctrl+Shift+'` | 最大化／還原面板 |
 | `Ctrl+M` | 開關右側欄（Claude Code／Codex；在 terminal 內也能用） |
+| `Ctrl+K Ctrl+M` | 最大化／還原右側欄（Secondary Side Bar；取代 Maximize Editor Group） |
 | `Ctrl+B`（terminal 內） | 開關側邊欄 |
 | `Ctrl+J`（terminal 內） | 開關面板 |
 | `Ctrl+R`（terminal 內） | 開啟最近的資料夾 |
@@ -31,7 +33,6 @@
 | `Ctrl+K ←/→/↑/↓` | 把目前 editor 移到左／右／上／下的群組 |
 | `Ctrl+K -` | 往垂直方向分割 |
 | `Ctrl+K N` | 把目前 editor 移到新視窗 |
-
 ## 編輯
 
 | 按鍵 | 動作 |
@@ -42,7 +43,6 @@
 | `Ctrl+Alt+J` | 合併行 |
 | `Shift+Enter` | 在下方插入新行（find／replace 輸入框內除外） |
 | `Ctrl+1` | Quick Fix |
-
 ## 導覽
 
 | 按鍵 | 動作 |
@@ -86,7 +86,7 @@
 
 | 按鍵 | 動作 |
 |---|---|
-| `Alt+B`／`Alt+I`／`Alt+M` | 粗體／斜體／數學式（Markdown All in One，只在 .NET、Doc profile） |
+| `Alt+B`／`Alt+I`／`Alt+M` | 粗體／斜體／數學式（Markdown All in One，所有 profile） |
 | `Ctrl+K Shift+V` | 在側邊開啟鎖定的 Markdown Preview Enhanced |
 | `Ctrl+Alt+M` | 開關 MPE 同步捲動 |
 | `F5`（Markdown 檔或 preview 內） | 重新整理 preview |
@@ -96,18 +96,41 @@
 | 按鍵 | 動作 |
 |---|---|
 | `Ctrl+L` | 焦點在 Claude Code 外時移到 Claude 輸入框（在 terminal 內也能用）；已經在 Claude 裡時回到 editor |
-| `Ctrl+Alt+I` | 在新 tab 開啟 Claude Code |
-| `Ctrl+Alt+K` | 把選取範圍以 @-mention 插入 Claude Code |
-| `Ctrl+Alt+F`（Claude Code 內） | 開關 Focus view |
-| `Ctrl+N`（Claude Code／Codex 內） | 開新對話 |
-| `Ctrl+Alt+L` | 開啟 Codex sidebar |
-| `Alt+Shift+K` | 把選取範圍加入 Codex thread |
+| `Ctrl+Shift+Alt+L` | 在新 tab 開啟 Claude Code（取代 Quick Chat） |
+| `Ctrl+Alt+L` | 把選取範圍以 @-mention 插入 Claude Code |
+| `Ctrl+Alt+F`（Claude Code 內） | 開關 Focus view（extension 預設，不在 `keybindings.json`） |
+| `Ctrl+N`（Codex 內） | 開新對話（extension 預設，不在 `keybindings.json`） |
+| `Ctrl+O` | 開啟 Codex sidebar（取代開啟檔案；terminal 內留給 CLI） |
+| `Ctrl+Alt+O` | 把選取範圍加入 Codex thread |
 
-Copilot 只保留 tab completion（`Tab` 接受建議），chat 相關的快速鍵都已移除。
+## 解除綁定
+
+只列解除後沒有改綁到別的動作的按鍵；改綁的已寫在各節的「取代」。
+
+| 按鍵 | 原本的動作 |
+|---|---|
+| ``Ctrl+` `` | 開關 terminal（已有 terminal 時；改用 `Ctrl+'`） |
+| `Ctrl+E` | Quick Open |
+| `Ctrl+Shift+PageUp`／`Ctrl+Shift+PageDown` | 在群組內左右移動 editor |
+| `Ctrl+Shift+K` | 刪除整行（已改用 `Ctrl+D`） |
+| `Ctrl+Shift+G` | Source Control 檢視（已改用 `Ctrl+Shift+J`） |
+| `Ctrl+Y`（偵錯以外） | Redo |
+| `Ctrl+U`（editor 內，偵錯以外） | Cursor Undo |
+| `Shift+F8` | 上一個問題（跨檔案） |
+| `Ctrl+F12` | 移至實作 |
+| `Ctrl+Shift+F12` | 預覽實作 |
+| `Ctrl+Shift+Alt+Y` | 開關 Debug Console |
+| `Ctrl+K V` | Markdown Preview 開在側邊（Markdown 檔） |
+| `Ctrl+Shift+Enter`／`Shift+Enter`（Markdown 檔） | MPE 執行 code chunk |
+| `Ctrl+K M` | Notebook cell 切換語言 |
+| `Ctrl+Shift+I` | Chat 開啟 Agent |
+| `Ctrl+Alt+I` | Chat 開啟 |
+| `Ctrl+I` | Inline Chat、Chat 提問、Notebook cell chat、Terminal chat |
+
+所有 profile 的 extension 清單都未包含 Copilot，所以 VS Code 內建 chat 指令的快速鍵一併解除。
 
 ## 其他
 
 | 按鍵 | 動作 |
 |---|---|
-| `Ctrl+K E` | 用 Edit CSV 開啟 |
-| `Shift+Alt+P` | Projects Explorer 我的最愛（Project Manager，只在 .NET、Doc profile） |
+| `Ctrl+K E` | 用 Edit CSV 開啟（`keybindings.json` 沒限制 profile，但只有 Python profile 裝了該 extension，其他 profile 按了沒作用） |

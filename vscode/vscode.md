@@ -27,35 +27,15 @@ pwsh vscode/sync-vscode.ps1 -Extensions -Prune  # 另外移除清單外的 exten
 
 ## Profiles
 
-照 Cursor 的 profile 重建。三個 profile 都共用 Default 的 settings、keybindings、snippets、tasks，只有 extensions 不同。新視窗預設用 Doc（`window.newWindowProfile`）。
+照 Cursor 的 profile 重建。所有 profile 都共用 Default 的 settings、keybindings、snippets、tasks，只有 extensions 不同。新視窗預設用 Default（`window.newWindowProfile`）。
 
 | profile | 用途 / workspace |
 |---|---|
-| Default | pc_setup、`.cursor`、aiont（WSL、stsp-05/07） |
+| Default | 新視窗預設；文件編輯、資料檢視與設定維護（原 Doc 已移除） |
+| Python | 由原 Default 複製，Python 開發 |
 | .NET | RyokoTower 與 worktree |
-| Doc | 新視窗、schedule、ubuntu_setup、WSL `.ssh`、aiont（ctky-a） |
 | Flutter | idt-siteeye |
-
-Cursor 把 remote-ssh / remote-wsl / remote-containers 設成套用到所有 profile；VS Code 這邊改成在每個 profile 都裝。remote-ssh 會連帶裝 pack 成員 remote-explorer、remote-ssh-edit，前者留著，後者移除。
-
-`gabemahoney.pycharm-dark-theme-for-python` 只在 OpenVSX 上架，VS Code Marketplace 裝不到，所以沒搬。
-
-## 與 Cursor 的對應
-
-| Cursor | VS Code |
-|---|---|
-| `anysphere.cursorpyright` | `ms-python.vscode-pylance`（`python.languageServer: Pylance`） |
-| `anysphere.remote-*` | `ms-vscode-remote.remote-*` |
-| `anysphere.csharp`、`muhammad-sammy.csharp` | `ms-dotnettools.csharp` |
-| `kylinideteam.gitlens` | `eamodio.gitlens` |
-| Cursor Tab（`cursor.cpp.*`） | Copilot（`github.copilot.enable`、`nextEditSuggestions`） |
-| 回答完成提示音 | `accessibility.signals.chatResponseReceived` |
-| `update.mode: silentlyApplyOnQuit` | `default` |
 
 ### 快速鍵
 
 見 [vscode-keybindings.md](vscode-keybindings.md)。
-
-## 不搬的 Cursor 設定
-
-`~\.cursor\cli-config.json`、Cursor 內建 skills、User Rules、`state.vscdb` 裡的對話紀錄。

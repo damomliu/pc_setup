@@ -4,6 +4,18 @@
 [
     // ========== 視窗 ==========
     {
+        "key": "ctrl+alt+r",
+        "command": "-workbench.action.terminal.runRecentCommand"
+    },
+    {
+        "key": "ctrl+alt+r",
+        "command": "-workbench.action.terminal.sendSequence"
+    },
+    {
+        "key": "ctrl+alt+r",
+        "command": "workbench.action.reloadWindow"
+    },
+    {
         "key": "ctrl+q",
         "command": "-workbench.action.quickOpenView"
     },
@@ -38,6 +50,14 @@
     },
 
     // ========== 終端機 / 面板 / 側邊欄 ==========
+    {
+        "key": "ctrl+k ctrl+m",
+        "command": "-workbench.action.toggleMaximizeEditorGroup"
+    },
+    {
+        "key": "ctrl+k ctrl+m",
+        "command": "workbench.action.toggleMaximizedAuxiliaryBar"
+    },
     {
         "key": "ctrl+'",
         "command": "workbench.action.terminal.toggleTerminal",
@@ -448,18 +468,18 @@
         "when": "(claude-vscode.sideBarActive && !editorFocus && !panelFocus && !sideBarFocus) || (activeWebviewPanelId == 'claudeVSCodePanel' && !panelFocus && !sideBarFocus && !auxiliaryBarFocus)"
     },
     {
-        // 取代內建 Ctrl+Shift+Esc（Windows 會攔去開工作管理員）；也蓋掉 Copilot 的 Ctrl+Alt+I（chat.open、panel.chat）
-        "key": "ctrl+alt+i",
+        // 取代內建 Ctrl+Shift+Esc（Windows 會攔去開工作管理員）
+        "key": "ctrl+shift+alt+l",
         "command": "claude-vscode.editor.open"
     },
     {
-        // 內建 Alt+K 被 AutoHotkey（damon.ahk 的 !k → ↑）攔走；Ctrl+Alt+K 原本是送到 terminal CLI 的 insertAtMentioned，不用
+        // 內建 Alt+K 被 AutoHotkey（damon.ahk 的 !k → ↑）攔走；Ctrl+Alt+K 原本是送到 terminal CLI 的 insertAtMentioned，不用；@-mention 改用 Ctrl+Alt+L
         "key": "ctrl+alt+k",
         "command": "-claude-code.insertAtMentioned",
         "when": "editorTextFocus"
     },
     {
-        "key": "ctrl+alt+k",
+        "key": "ctrl+alt+l",
         "command": "claude-vscode.insertAtMention",
         "when": "editorTextFocus"
     },
@@ -471,19 +491,28 @@
 
     // ========== Codex ==========
     {
-        "key": "ctrl+alt+l",
+        "key": "ctrl+o",
+        "command": "-workbench.action.files.openFile"
+    },
+    {
+        // 不加進 settings 的 commandsToSkipShell，terminal 內的 Ctrl+O 留給 Claude Code／Codex CLI（Claude CLI 用它開 transcript）
+        "key": "ctrl+o",
         "command": "chatgpt.openSidebar"
     },
     {
-        "key": "shift+alt+k",
+        "key": "ctrl+alt+o",
         "command": "chatgpt.addToThread",
         "when": "editorTextFocus"
     },
 
-    // ========== Copilot chat 解除綁定（只留 tab completion） ==========
+    // ========== VS Code 內建 chat 解除綁定 ==========
     {
         "key": "ctrl+shift+i",
         "command": "-workbench.action.chat.openagent"
+    },
+    {
+        "key": "ctrl+alt+i",
+        "command": "-workbench.action.chat.open"
     },
     {
         "key": "ctrl+shift+alt+l",
@@ -505,14 +534,6 @@
         "key": "ctrl+i",
         "command": "-workbench.action.terminal.chat.start"
     },
-    {
-        "key": "ctrl+alt+oem_period",
-        "command": "-github.copilot.chat.rerunWithCopilotDebug"
-    },
-    {
-        "key": "ctrl+shift+oem_period",
-        "command": "-github.copilot.chat.copilotCLI.addFileReference"
-    },
 
     // ========== 其他擴充 ==========
     {
@@ -523,13 +544,5 @@
         "key": "ctrl+k m",
         "command": "-notebook.cell.changeLanguage",
         "when": "notebookCellEditable && notebookEditable && notebookEditorFocused"
-    },
-    {
-        "key": "shift+alt+p",
-        "command": "-projectManager.listProjects"
-    },
-    {
-        "key": "shift+alt+p",
-        "command": "projectsExplorerFavorites.focus"
     }
 ]
