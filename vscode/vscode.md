@@ -36,6 +36,18 @@ pwsh vscode/sync-vscode.ps1 -Extensions -Prune  # 另外移除清單外的 exten
 | .NET | RyokoTower 與 worktree |
 | Flutter | idt-siteeye |
 
-### 快速鍵
+## Status Bar
 
-見 [vscode-keybindings.md](vscode-keybindings.md)。
+所有 Profile 統一隱藏以下 Status Bar 項目（不會停用功能或 extension）：
+
+- Problems：`status.problems`
+- Git Graph：`mhutchie.git-graph`
+- Claude Code for VS Code：`Anthropic.claude-code`
+
+這份清單儲存在各 Profile 的 `globalStorage/state.vscdb`，不屬於共用的 `settings.json`。使用以下腳本套用到 Default 與所有已登錄的 Profiles，保留其他已隱藏的項目：
+
+```powershell
+pwsh vscode/hide-statusbar-items.ps1
+```
+
+需要 `sqlite3` 在 PATH 中。建議先關閉 VS Code 再執行；若執行時 VS Code 已開啟，請重新開啟以載入，期間不要再修改 Status Bar 隱藏清單，以免記憶體中的舊狀態覆寫變更。腳本會將修改前的值備份到 `backup/vscode-statusbar-時間戳/`，並讀回確認。新建 Profile 後需再執行一次；一般 `sync-vscode.ps1` 不會同步這份內部狀態。
