@@ -8,13 +8,14 @@
 
 主要 pane／tab 操作交給 Herdr，WezTerm 保留外層管理功能。Herdr 的配置共識見 [herdr.md](herdr.md)。`Ctrl+Space` 保留給中文輸入法，不作為 prefix。
 
-這三組 Alt 快速鍵還需要將 `herdr-config.toml` 的 `[keys]` 合併至 `%APPDATA%\herdr\config.toml`，再執行 `herdr server reload-config`；只解除 WezTerm 綁定不會自動建立 Herdr 綁定。
+這些 Alt 快速鍵還需要將 `herdr-config.toml` 的 `[keys]` 合併至 `%APPDATA%\herdr\config.toml`，再執行 `herdr server reload-config`；只解除 WezTerm 綁定不會自動建立 Herdr 綁定。
 
 - `Alt+]` / `Alt+[`：維持 zoom，切換下一個／上一個 pane
 - `Alt+1`～`Alt+9`：維持 zoom，切換至指定 pane
-- `Ctrl+PageUp` / `Ctrl+PageDown`：上一個／下一個 tab
 
-上述快捷鍵與 Ubuntu prefix `Ctrl+U` 暫時保留，尚未決定是否移交或改綁。這次也未決定為 WezTerm 的 pane 切換、zoom、調整大小新增替代快捷鍵。
+上述快捷鍵尚未決定是否移交或改綁。
+
+- `Ctrl+PageUp` / `Ctrl+PageDown`：上一個／下一個 tab
 
 Prefix 為 `Ctrl+G`（按下後有 2 秒可接下一鍵，期間右上角顯示 `LEADER`）；以下既有 prefix 操作維持不變：
 

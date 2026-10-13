@@ -15,21 +15,11 @@
     - 右鍵選單
 - Snipaste (開機啟動 + 快速鍵設定)
 
-## 開發相關
+## 開發工具
 - font: Fira Code、MesloLGS NF
-- Cursor
-    - vscode settings: settings.json, keybindings.json
-    - cursor settings: state.vscdb (sqlite), cli-config.json, mcp.json
-    - terminal profile: None (不要 zsh)
-- VS Code（2026-10 起主力，設定以 Cursor 為主）
+- VS Code（2026-10 起主力）
     - 設定見 `vscode/`（`vscode.md`；`sync-vscode.ps1` 同步至 `%APPDATA%\Code\User`）
     - Settings Sync（GitHub），keybindings 依平台分開
-- Claude - Desktop, CLI
-    - settings.json, keybindings.json
-- Skills
-    - asana-ai-skill
-    - 本機技能正本放 `.agents/skills/`，`.claude/skills/` 底下用 junction 指過去（git 不會保留 junction，clone 後要重建）：
-      `New-Item -ItemType Junction -Path .claude\skills\wezterm -Target .agents\skills\wezterm`
 - 程式語言 (版本參考 `ssh nb`)
     - python (uv)
     - .net, dotnet-ef
@@ -48,8 +38,15 @@
 - WezTerm
     - 要安裝已修復 IME 的版本
     - 設定見 `wezterm/`（`wezterm.md`；`wezterm.lua` 為 `~/.wezterm.lua` 副本）
-
 - Herdr
+
+## AI Agent 相關
+- Claude - Desktop, CLI
+    - settings.json, keybindings.json
+- Skills
+    - asana-ai-skill
+    - 本機技能正本放 `.agents/skills/`，`.claude/skills/` 底下用 junction 指過去（git 不會保留 junction，clone 後要重建）：
+      `New-Item -ItemType Junction -Path .claude\skills\wezterm -Target .agents\skills\wezterm`
 
 
 ## 個人化
@@ -84,8 +81,9 @@
             - Viewer 是 Store 版，無 CLI 參數；需設定為開啟後自動連 PC
             - SSH 在 session 0，故啟動 Viewer 靠 NB 上的互動排程工作 `DualDisplay-StartViewer`（每次自動重建）
 
-## 其他
-- ~~review 開機啟動項目~~（已完成）
-    - 停用 Logitech Download Assistant ×2（HKLM StartupApproved）、AMD `StartCN` 排程工作
-    - `spacedeskService` 改手動（由 `dual_display.ps1` 啟停）
-    - 待確認：AnyDesk service（Auto）是否要改 Manual
+## 已不使用
+
+- Cursor
+    - vscode settings: settings.json, keybindings.json
+    - cursor settings: state.vscdb (sqlite), cli-config.json, mcp.json
+    - terminal profile: None (不要 zsh)

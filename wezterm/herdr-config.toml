@@ -1,3 +1,6 @@
+[theme]
+name = "one-dark"
+
 # Herdr owns the inner panes; WezTerm uses Ctrl+G as its prefix.
 # Keep the default prefix bindings alongside direct Alt shortcuts.
 [keys]
@@ -12,3 +15,7 @@ resize_pane_left = "alt+shift+left"
 resize_pane_down = "alt+shift+down"
 resize_pane_up = "alt+shift+up"
 resize_pane_right = "alt+shift+right"
+previous_tab = "ctrl+alt+left"
+next_tab = "ctrl+alt+right"
+previous_workspace = "ctrl+alt+up"
+next_workspace = "ctrl+alt+down"

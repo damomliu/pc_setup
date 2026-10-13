@@ -3,3 +3,15 @@ backup/
 
 # 本機 junction，指向 .agents/skills/ 的技能正本（git 不保留 junction，見 setup.md）
 .claude/skills/wezterm
+
+# Python 快取
+__pycache__/
+*.pyc
+
+# 環境變數與機密檔
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+secrets/
