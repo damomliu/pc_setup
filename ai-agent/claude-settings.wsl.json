@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(/home/damon/.claude/plans/**)",
+      "Read(/mnt/c/Users/user/.claude/plans/**)"
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "/home/damon/.claude/plugins/cache/claude-community/cc-usage/0.5.6/bin/run.sh"
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "^(startup|resume|clear|compact|fork)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/home/damon/.claude/hooks/herdr-agent-state.sh' session",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

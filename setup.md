@@ -41,8 +41,9 @@
 - Herdr
 
 ## AI Agent 相關
-- Claude - Desktop, CLI
-    - settings.json, keybindings.json
+
+參考 [ai-agent.md](./ai-agent/ai-agent.md)
+
 - Skills
     - asana-ai-skill
     - 本機技能正本放 `.agents/skills/`，`.claude/skills/` 底下用 junction 指過去（git 不會保留 junction，clone 後要重建）：

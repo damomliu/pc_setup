@@ -24,6 +24,18 @@ if (Test-Path $flutterBin) {
 }
 Set-Alias -Name f -Value flutter
 
+# claude：全域 remoteControlAtStartup 為 false（VS Code extension 不自動開 Remote Control），
+# 從 terminal 開的 claude 另外載入 settings.cli.json 打開它。
+function claude {
+    $exe = Get-Command claude -CommandType Application | Select-Object -First 1
+    $cliSettings = Join-Path $HOME '.claude\settings.cli.json'
+    if (Test-Path $cliSettings) {
+        & $exe --settings $cliSettings @args
+    } else {
+        & $exe @args
+    }
+}
+
 # claude：cl 當 claude
 Set-Alias -Name cl -Value claude
 
