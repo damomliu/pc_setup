@@ -100,8 +100,11 @@
 | `Ctrl+Alt+L` | 把選取範圍以 @-mention 插入 Claude Code |
 | `Ctrl+Alt+F`（Claude Code 內） | 開關 Focus view（extension 預設，不在 `keybindings.json`） |
 | `Ctrl+N`（Codex 內） | 開新對話（extension 預設，不在 `keybindings.json`） |
+| `Ctrl+Shift+M`（Codex 內） | 開啟 model picker（Codex 內建；解除 VS Code Problems 的同鍵綁定） |
 | `Ctrl+O` | 開啟 Codex sidebar（取代開啟檔案；terminal 內留給 CLI） |
 | `Ctrl+Alt+O` | 把選取範圍加入 Codex thread |
+
+Claude Code 切換 model：按 `Ctrl+L` 聚焦輸入框後，輸入 `/model` 開啟 picker。目前沒有可直接綁定的 model 切換 VS Code command。
 
 ## 解除綁定
 
@@ -110,6 +113,7 @@
 | 按鍵 | 原本的動作 |
 |---|---|
 | ``Ctrl+` `` | 開關 terminal（已有 terminal 時；改用 `Ctrl+'`） |
+| `Ctrl+Shift+M` | 開啟 Problems（按鍵留給 Codex；Problems 仍可透過 Command Palette 開啟） |
 | `Ctrl+E` | Quick Open |
 | `Ctrl+Shift+PageUp`／`Ctrl+Shift+PageDown` | 在群組內左右移動 editor |
 | `Ctrl+Shift+K` | 刪除整行（已改用 `Ctrl+D`） |

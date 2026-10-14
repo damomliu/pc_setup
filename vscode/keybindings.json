@@ -491,6 +491,11 @@
 
     // ========== Codex ==========
     {
+        // 留給 Codex webview 內建的 model picker
+        "key": "ctrl+shift+m",
+        "command": "-workbench.actions.view.problems"
+    },
+    {
         "key": "ctrl+o",
         "command": "-workbench.action.files.openFile"
     },

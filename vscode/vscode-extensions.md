@@ -23,7 +23,6 @@
 | `shd101wyy.markdown-preview-enhanced` | Markdown 預覽（`settings.json` 有設定它） |
 | `yzhang.markdown-all-in-one` | Markdown 編輯（Alt+B／I／M） |
 | `johnpapa.vscode-peacock` | 視窗配色 |
-| `ms-vscode.powershell` | PowerShell 編輯、debugging 與 PSScriptAnalyzer |
 | `iliazeus.vscode-ansi` | ANSI log 上色 |
 | `naumovs.color-highlight` | 色碼預覽 |
 
