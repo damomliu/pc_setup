@@ -32,7 +32,15 @@ config.launch_menu = {
 
 -- 外觀。
 config.color_scheme = 'Catppuccin Mocha'
-config.font = wezterm.font 'Sarasa Term TC Nerd Font'
+local default_font = wezterm.font_with_fallback {
+  'Maple Mono NF CN',
+  'Sarasa Term TC Nerd Font',
+}
+local alternate_font = wezterm.font_with_fallback {
+  'Sarasa Term TC Nerd Font',
+  'Maple Mono NF CN',
+}
+config.font = default_font
 config.font_size = 11
 config.default_cursor_style = 'SteadyBar'
 config.window_background_opacity = 1
@@ -1293,6 +1301,13 @@ local function spawn_simulators_window(gui_win, pane)
   end
 end
 
+-- 只覆寫目前視窗：Maple ⇄ Sarasa，重開 WezTerm 回到 Maple。
+local function toggle_default_font(window, _pane)
+  local overrides = window:get_config_overrides() or {}
+  overrides.font = (overrides.font == nil) and alternate_font or nil
+  window:set_config_overrides(overrides)
+end
+
 wezterm.on('augment-command-palette', function()
   return {
     {
@@ -1318,6 +1333,12 @@ wezterm.on('augment-command-palette', function()
       doc = '關閉目前的 tab',
       icon = 'md_tab_remove',
       action = act.CloseCurrentTab { confirm = true },
+    },
+    {
+      brief = '切換預設字型',
+      doc = '目前視窗的主字型在 Maple Mono NF CN 與 Sarasa Term TC Nerd Font 之間切換',
+      icon = 'md_format_font',
+      action = wezterm.action_callback(toggle_default_font),
     },
     {
       brief = 'Equalize: 平均分配欄寬 (僅同列)',

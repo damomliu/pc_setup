@@ -49,6 +49,7 @@ Ubuntu Prefix 為 `Ctrl+U`（按下後有 2 秒可接下一鍵）：
     - `RyokoTower Simulators (新視窗)`：開一個新視窗；等它最大化、格子尺寸跟上來源視窗後才切 pane，再均分欄寬與列高
   - 搜 `sync`：把目前 pane 的輸入列送到同 tab 其他 pane；若目前 pane 的指令尚未送出，也會在目前 pane 按 Enter；輸入列為空時跳出提示
   - 搜 `close`：關閉目前 tab
+  - 搜 `字型`：`切換預設字型`，目前視窗的主字型在 Maple Mono NF CN 與 Sarasa Term TC Nerd Font 之間切換；只影響目前視窗，重開 WezTerm 回到 Maple
   - 搜 `equal`：平均分配欄寬（僅同列／Tab）、列高（僅同欄／Tab）、或欄寬與列高（Tab）
     - 依分割結構按份數分配：通高的一欄算 1 份，旁邊上 2 下 3 的那塊算 3 份，所以下列 3 欄與通高欄同寬；「僅同列／同欄」只數目前 pane 那一路，其他部分沿用原比例
     - 做法是把 pane 暫移到其他 tab，再按算好的格數移回，tab bar 會短暫閃過暫存 tab；已經均分就不動
@@ -66,7 +67,7 @@ Ubuntu Prefix 為 `Ctrl+U`（按下後有 2 秒可接下一鍵）：
 - 預設 shell：PowerShell 7
 - 啟動選單：PowerShell 7、Ubuntu 24.04（進 Linux home）、Git Bash、Command Prompt、SSH `nb`
 - 配色：Catppuccin Mocha
-- 字型：Sarasa Term TC Nerd Font 11 pt
+- 字型：Maple Mono NF CN 11 pt（缺字時 fallback 到 Sarasa Term TC Nerd Font）
 - 啟動時最大化；永遠顯示 tab bar
 - 降低非作用中 pane 的亮度與飽和度
 - Tab 自動顯示編號、程序、資料夾與 pane 位置 `(目前/總數)`；zoom 時為 `(目前/總數Z)`

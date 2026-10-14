@@ -16,7 +16,7 @@
 - Snipaste (開機啟動 + 快速鍵設定)
 
 ## 開發工具
-- font: Fira Code、MesloLGS NF
+- font: Fira Code、MesloLGS NF、Maple Mono NF CN
 - VS Code（2026-10 起主力）
     - 設定見 `vscode/`（`vscode.md`；`sync-vscode.ps1` 同步至 `%APPDATA%\Code\User`）
     - Settings Sync（GitHub），keybindings 依平台分開
@@ -80,6 +80,8 @@
         - NB 端（`ssh nb`）
             - Viewer 是 Store 版，無 CLI 參數；需設定為開啟後自動連 PC
             - SSH 在 session 0，故啟動 Viewer 靠 NB 上的互動排程工作 `DualDisplay-StartViewer`（每次自動重建）
+- PowerToys
+  - 系統工具-快速鍵指南: "按住 Windows 鍵"
 
 ## 已不使用
 
