@@ -48,7 +48,7 @@
     - asana-ai-skill
     - herdr（Windows、WSL 各執行一次；裝到 `~/.agents/skills/herdr`，Codex 直接讀取，Claude Code 以 symlink 連結）：
       `npx skills add herdrdev/herdr --skill herdr -g -a claude-code -a codex -y`
-      更新：`npx skills update herdr -g`；WSL 的 npx 來自 nvm，非互動 shell 需先 `source ~/.nvm/nvm.sh`
+      更新：執行 `ai-agent/update.ps1`（含 `npx skills update -g`）；手動更新時 WSL 的 npx 來自 nvm，非互動 shell 需先 `source ~/.nvm/nvm.sh`
     - 本機技能正本放 `.agents/skills/`，`.claude/skills/` 底下用 junction 指過去（git 不會保留 junction，clone 後要重建）：
       `New-Item -ItemType Junction -Path .claude\skills\wezterm -Target .agents\skills\wezterm`
 

@@ -15,6 +15,8 @@ VSCode 使用哪份規則取決於 backend 實際執行環境；切換 terminal 
 
 [sync.ps1](sync.ps1) 一次執行 `sync-claude.ps1` 與 `sync-codex.ps1`（參數相同）；`-PullWin` / `-PullWsl` 會先確認來源的 `CLAUDE.md` 與 `AGENTS.md` 一致才收回。
 
+[update.ps1](update.ps1) 一次更新 Windows 與 WSL 的 Claude Code、Codex 及其 plugins / `npx skills` / asana skill（`-Distro`、`-SkipWin`、`-SkipWsl`、`-NoSync`）；單一步驟失敗只警告並繼續，最後彙整失敗清單。更新後若 `cc-usage` 版本變動，會改 `claude-settings.json` / `claude-settings.wsl.json` 的 statusLine 路徑並執行 `sync-claude.ps1 -Force`（`-NoSync` 只提示），記得 commit。請在沒有執行中的 claude / codex 的 terminal 執行；plugin 更新需重啟 session 才生效。
+
 ### ChatGPT Codex
 
 #### 佈署
