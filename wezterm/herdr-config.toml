@@ -33,3 +33,13 @@ command = 'powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%APP
 description = "move pane to tab"
 width = "70%"
 height = "70%"
+
+# Show current tab ID and draw its panes by layout; read-only. WSL: replace command with:
+# python3 "$HOME/.config/herdr/herdr-list-ids.py"
+[[keys.command]]
+key = "prefix+i"
+type = "popup"
+command = 'powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%APPDATA%\herdr\herdr-list-ids.ps1"'
+description = "show current tab pane layout"
+width = "35%"
+height = "35%"

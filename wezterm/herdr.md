@@ -28,6 +28,8 @@
 
 - `Ctrl+Alt+←` / `Ctrl+Alt+→` — 切換上一個／下一個 tab
 - `Ctrl+Alt+↑` / `Ctrl+Alt+↓` — 切換上一個／下一個 workspace
+- `Prefix, 1`～`Prefix, 9` — 依編號切換 tab（herdr 預設，不需設定）
+- `Prefix, I` — popup（35%×35%）顯示目前 tab ID，並以 Unicode 框線依版面畫出該 tab 所有 pane 的 ID；目前 pane 以 one-dark 選取列風格（淺灰底、白色粗體）顯示，標籤為「ID (已複製)」，其 ID 會自動複製到剪貼簿，按任意鍵關閉。配色在 helper 開頭的 `$highlight`／`HIGHLIGHT` 調整
 - `Ctrl+B, M` — popup 選擇目前 pane 的目的 tab：預設反白第一項「新增 tab」，其餘顯示同 workspace 的其他 tab（編號與名稱）。`↑` / `↓` 移動反白，首尾停止，Enter 確認；單按 Esc 或 Q 立即取消。
 - 可輸入多位選項編號，有效編號立即反白，Enter 確認；Backspace 刪除一位，方向鍵清空數字。無效編號按 Enter 只提示錯誤，不會執行先前反白項目。清單過長會捲動，長名稱依 popup 寬度截斷，resize 後重新排版。
 - 移至既有 tab 時在右側 split；成功後 focus 跟隨原 pane，保留原本執行中的程序。執行前會再次驗證來源與目的地；失敗顯示錯誤，按 Esc 或 Enter 關閉，不會改用新增 tab。helper 結束時還原 terminal mode、顏色及 cursor。
@@ -51,6 +53,12 @@ height = "70%"
 helper 使用 popup 注入的 `HERDR_ACTIVE_PANE_ID`、`HERDR_ACTIVE_WORKSPACE_ID`、`HERDR_ACTIVE_TAB_ID` 固定來源，並透過 `HERDR_BIN_PATH` 呼叫 CLI，沿用 socket 環境。合併時以 `prefix+m` 識別並更新這一筆 command，保留其他 command、`onboarding` 與 UI 設定，再分別執行 reload。
 
 Herdr 0.9.3 不允許移動 zoom 中 tab 的 pane（`zoomed_tab`）；請先用 `Alt+Z` 取消 zoom。helper 會將這類 `changed: false` 結果當成失敗顯示，不會悄悄視為成功。
+
+### pane 版面 popup 安裝
+
+Windows 使用 [herdr-list-ids.ps1](herdr-list-ids.ps1)，複製至 `%APPDATA%\herdr\herdr-list-ids.ps1`；repo 的 `[[keys.command]]`（`prefix+i`）可直接合併。
+
+WSL 使用 [herdr-list-ids.py](herdr-list-ids.py)，複製至 `~/.config/herdr/herdr-list-ids.py`（需要 Python 3），並將 `prefix+i` 的 command 改為 `python3 "$HOME/.config/herdr/herdr-list-ids.py"`。
 
 **note** `Ctrl+Space` 保留給中文輸入法，不可用作 prefix
 
