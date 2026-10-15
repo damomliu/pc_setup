@@ -1611,6 +1611,11 @@ local function move_pane_to_tab(index)
 end
 
 config.keys = {
+  -- 解除預設 resize，讓 Herdr 接收方向交換 pane 的快速鍵。
+  { key = 'LeftArrow', mods = 'CTRL|ALT|SHIFT', action = act.DisableDefaultAssignment },
+  { key = 'DownArrow', mods = 'CTRL|ALT|SHIFT', action = act.DisableDefaultAssignment },
+  { key = 'UpArrow', mods = 'CTRL|ALT|SHIFT', action = act.DisableDefaultAssignment },
+  { key = 'RightArrow', mods = 'CTRL|ALT|SHIFT', action = act.DisableDefaultAssignment },
   -- 保留外層 pane 循環切換；Alt+方向鍵、Alt+Z、Alt+Shift+方向鍵留給 Herdr。
   -- Herdr 綁定需另外合併到 %APPDATA%/herdr/config.toml，再 server reload-config。
   { key = ']', mods = 'ALT', action = activate_pane 'next' },

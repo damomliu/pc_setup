@@ -6,6 +6,8 @@
 
 已套用至 `.lua` 並同步至 `~/.wezterm.lua`。Prefix 使用 `Ctrl+G`；已解除 `Alt+Z`、`Alt+方向鍵`、`Alt+Shift+方向鍵` 的一般模式綁定，讓按鍵傳入 Herdr。
 
+已用 `DisableDefaultAssignment` 解除 `Ctrl+Alt+Shift+方向鍵` 的預設 `AdjustPaneSize`，讓 Herdr 接收並交換該方向的 pane 位置。
+
 主要 pane／tab 操作交給 Herdr，WezTerm 保留外層管理功能。Herdr 的配置共識見 [herdr.md](herdr.md)。`Ctrl+Space` 保留給中文輸入法，不作為 prefix。
 
 這些 Alt 快速鍵還需要將 `herdr-config.toml` 的 `[keys]` 合併至 `%APPDATA%\herdr\config.toml`，再執行 `herdr server reload-config`；只解除 WezTerm 綁定不會自動建立 Herdr 綁定。
