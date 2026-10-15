@@ -1,0 +1,1 @@
+- Commit title 使用 `[scope] brief`，scope 為模組或工具名稱，brief 簡潔描述變更且不加句號，例如 `[ai-agent] Claude Code 新增 next-steps MOD`。
