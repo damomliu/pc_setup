@@ -9,6 +9,7 @@
 | `Ctrl+Q` | 關閉視窗 |
 | `Ctrl+Alt+R` | Reload Window（在 terminal 內也能用；取代 Run Recent Command） |
 | `Ctrl+Shift+W` | 關閉所有 editor |
+| `Ctrl+K Shift+W` | 關閉同群組其他 editors（保留目前 editor 與 Sticky tabs） |
 | `Ctrl+Shift+S` | 全部儲存 |
 | `Ctrl+K Z` | 全螢幕（取代 Zen Mode） |
 | `Ctrl+0` | 重設縮放 |

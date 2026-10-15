@@ -32,6 +32,10 @@
         "command": "workbench.action.closeAllEditors"
     },
     {
+        "key": "ctrl+k shift+w",
+        "command": "workbench.action.closeOtherEditors"
+    },
+    {
         // 刻意不給 Save As 快速鍵
         "key": "ctrl+shift+s",
         "command": "-workbench.action.files.saveAs"
