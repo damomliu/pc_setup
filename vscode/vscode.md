@@ -15,9 +15,15 @@
 ```powershell
 pwsh vscode/sync-vscode.ps1                     # repo -> VS Code
 pwsh vscode/sync-vscode.ps1 -Pull               # VS Code -> repo（在 UI 改過設定後）
+pwsh vscode/sync-vscode.ps1 -Check              # 只比對 repo 與 VS Code 是否一致（有差異 exit 1）
 pwsh vscode/sync-vscode.ps1 -Extensions         # 依 extensions.json 補裝
 pwsh vscode/sync-vscode.ps1 -Extensions -Prune  # 另外移除清單外的 extension
 ```
+
+## Markdown Editor
+
+- `*.md` 預設使用內建 Markdown Editor（`vscode.markdown.editor`）。
+- 設定 `markdown.experimental.richLinks.enabled: false`，關閉連結的 Rich Links 與即時 metadata 解析（包含 GitHub 連結），保留一般連結呈現。
 
 ## Settings Sync
 

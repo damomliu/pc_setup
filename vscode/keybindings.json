@@ -550,6 +550,10 @@
         "command": "edit-csv.edit"
     },
     {
+        "key": "ctrl+k t",
+        "command": "workbench.action.reopenTextEditor"
+    },
+    {
         "key": "ctrl+k m",
         "command": "-notebook.cell.changeLanguage",
         "when": "notebookCellEditable && notebookEditable && notebookEditorFocused"

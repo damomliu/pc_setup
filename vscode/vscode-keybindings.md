@@ -139,3 +139,4 @@ Claude Code 切換 model：按 `Ctrl+L` 聚焦輸入框後，輸入 `/model` 開
 | 按鍵 | 動作 |
 |---|---|
 | `Ctrl+K E` | 用 Edit CSV 開啟（`keybindings.json` 沒限制 profile，但只有 Python profile 裝了該 extension，其他 profile 按了沒作用） |
+| `Ctrl+K T` | 用 Text editor 重新開啟目前檔案 |

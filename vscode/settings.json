@@ -190,6 +190,7 @@
     },
     "markdown-preview-enhanced.previewTheme": "atom-light.css",
     "workbench.editor.enablePreview": false,
+    "markdown.experimental.richLinks.enabled": false,
     "markdown.preview.scrollEditorWithPreview": false,
     "markdown.preview.scrollPreviewWithEditor": false,
     "markdown-preview-enhanced.scrollSync": true,
@@ -242,5 +243,6 @@
         "window.zoomLevel",
         "terminal.integrated.gpuAcceleration"
     ],
-    "claudeCode.hideOnboarding": true
+    "claudeCode.hideOnboarding": true,
+    "extensions.ignoreRecommendations": true
 }
