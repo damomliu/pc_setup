@@ -18,8 +18,8 @@
 - flutter：把 `C:\src\flutter\bin` 加入 PATH
 - `claude` function：包住 claude，存在 `~\.claude\settings.cli.json` 時加上 `--settings` 載入它
     - 全域 `~\.claude\settings.json` 的 `remoteControlAtStartup` 設為 `false`，VS Code extension 開的 session 不會自動啟用 Remote Control
-    - `settings.cli.json` 內容為 `{ "remoteControlAtStartup": true }`，從 terminal 開的 CLI 仍會自動啟用
-    - WSL 有獨立的 `~/.claude`，同樣做法：WSL 的 `settings.json` 設 `false`、建立 `settings.cli.json`，`~/.bashrc` 加同名 `claude` function（`command claude --settings ...`）
+    - Repo 的 `settings.cli.json` 將 `remoteControlAtStartup` 設為 `false`，從 terminal 開的 CLI 也不會自動啟用
+    - WSL 有獨立的 `~/.claude`；同步 `settings.cli.json` 後，`~/.bashrc` 的同名 `claude` function（`command claude --settings ...`）也會使用此設定
 
 ## Alias
 
