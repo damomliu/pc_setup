@@ -5,9 +5,10 @@
 .DESCRIPTION
     預設：repo -> Windows 與 WSL。
       AGENTS.md         -> ~/.codex/AGENTS.md（整檔覆寫）
-      codex-config.toml -> ~/.codex/config.toml（只合併 top-level key，其餘設定原樣保留）
-    config.toml 合併規則：repo 檔只能有 top-level 單行 key = value；
-      目標檔第一個 [table] 之前才算 top-level，同名 key 就地取代，缺的 key 插在 top-level 區段尾端。
+      codex-config.toml -> ~/.codex/config.toml（只合併 repo 列出的 key，其餘設定原樣保留）
+    config.toml 合併規則：repo 檔只能有 [section] header 與單行 key = value（不含 [[array]]、dotted key、多行值）；
+      key 依所屬 section 比對（第一個 [ header 之前為 top-level），同名 key 就地取代，缺的 key 插在該 section 尾端，
+      目標檔沒有該 section 就接在檔尾新增。
       沿用目標檔的換行字元，UTF-8 無 BOM；目標不存在則直接用 repo 內容建立。
     狀態：missing（目標不存在）、same（內容已一致）、update（只缺 key，直接補上不需 -Force）、
       differs（受管 key 已存在但值不同，例如在 Codex 用 /permissions 改過）。
@@ -35,21 +36,36 @@ $map = [ordered]@{
     'codex-config.toml' = '.codex\config.toml'
 }
 
-# 把 TOML 文字拆成：行陣列、換行字元、top-level 區段結束位置（第一個 [ header 的行號，沒有則為行數）
+# 把 TOML 文字拆成：行陣列與換行字元
 function Split-Toml([string]$text) {
     $nl = if ($text.Contains("`r`n")) { "`r`n" } else { "`n" }
     $lines = [System.Collections.Generic.List[string]]::new()
     $lines.AddRange([string[]]($text -split '\r?\n'))
-    $end = $lines.Count
-    for ($i = 0; $i -lt $lines.Count; $i++) {
-        if ($lines[$i] -match '^\s*\[') { $end = $i; break }
-    }
-    [pscustomobject]@{ Lines = $lines; Nl = $nl; End = $end }
+    [pscustomobject]@{ Lines = $lines; Nl = $nl }
 }
 
-# 讀 top-level 區段中 key 的行號與值；找不到回傳 $null
-function Find-Key($toml, [string]$key) {
-    for ($i = 0; $i -lt $toml.End; $i++) {
+# 取得 section 內容的行範圍 [Start, End)；section 為空字串代表 top-level（第一個 [ header 之前）；找不到回傳 $null
+function Get-Section($toml, [string]$section) {
+    $start = 0
+    if ($section) {
+        $start = -1
+        for ($i = 0; $i -lt $toml.Lines.Count; $i++) {
+            if ($toml.Lines[$i] -match ('^\s*\[\s*' + [regex]::Escape($section) + '\s*\]\s*(#.*)?$')) { $start = $i + 1; break }
+        }
+        if ($start -lt 0) { return $null }
+    }
+    $end = $toml.Lines.Count
+    for ($i = $start; $i -lt $toml.Lines.Count; $i++) {
+        if ($toml.Lines[$i] -match '^\s*\[') { $end = $i; break }
+    }
+    [pscustomobject]@{ Start = $start; End = $end }
+}
+
+# 讀 section 中 key 的行號與值；找不到回傳 $null
+function Find-Key($toml, [string]$section, [string]$key) {
+    $range = Get-Section $toml $section
+    if (-not $range) { return $null }
+    for ($i = $range.Start; $i -lt $range.End; $i++) {
         if ($toml.Lines[$i] -match ('^\s*' + [regex]::Escape($key) + '\s*=\s*(.*?)\s*$')) {
             return [pscustomobject]@{ Index = $i; Value = $Matches[1] }
         }
@@ -57,13 +73,15 @@ function Find-Key($toml, [string]$key) {
     $null
 }
 
-# 解析 repo 的 codex-config.toml：只允許 top-level 單行 key = value，其他一律 throw
+# 解析 repo 的 codex-config.toml：只允許 [section] header 與單行 key = value，其他一律 throw
 function Read-ManagedKeys([string]$file) {
+    $section = ''
     foreach ($raw in [System.IO.File]::ReadAllText($file) -split '\r?\n') {
         $line = $raw.Trim()
         if (-not $line -or $line.StartsWith('#')) { continue }
-        if ($line -notmatch '^([A-Za-z0-9_-]+)\s*=\s*(\S.*)$') { throw "無法解析 $file 的這一行（只支援 top-level 單行 key = value）：$line" }
-        [pscustomobject]@{ Key = $Matches[1]; Value = $Matches[2] }
+        if ($line -match '^\[([A-Za-z0-9_.-]+)\]$') { $section = $Matches[1]; continue }
+        if ($line -notmatch '^([A-Za-z0-9_-]+)\s*=\s*(\S.*)$') { throw "無法解析 $file 的這一行（只支援 [section] 與單行 key = value）：$line" }
+        [pscustomobject]@{ Section = $section; Key = $Matches[1]; Value = $Matches[2] }
     }
 }
 
@@ -72,7 +90,7 @@ function Merge-Toml([string]$text, $keys) {
     $toml = Split-Toml $text
     $state = 'same'
     foreach ($k in $keys) {
-        $hit = Find-Key $toml $k.Key
+        $hit = Find-Key $toml $k.Section $k.Key
         $line = "$($k.Key) = $($k.Value)"
         if ($hit) {
             if ($hit.Value -ne $k.Value) {
@@ -80,11 +98,20 @@ function Merge-Toml([string]$text, $keys) {
                 $state = 'differs'
             }
         } else {
-            # 插在 top-level 區段最後一個非空行之後
-            $at = $toml.End
-            while ($at -gt 0 -and -not $toml.Lines[$at - 1].Trim()) { $at-- }
-            $toml.Lines.Insert($at, $line)
-            $toml.End++
+            $range = Get-Section $toml $k.Section
+            if ($range) {
+                # 插在 section 最後一個非空行之後
+                $at = $range.End
+                while ($at -gt $range.Start -and -not $toml.Lines[$at - 1].Trim()) { $at-- }
+                $toml.Lines.Insert($at, $line)
+            } else {
+                # section 不存在：接在檔尾最後一個非空行之後
+                $at = $toml.Lines.Count
+                while ($at -gt 0 -and -not $toml.Lines[$at - 1].Trim()) { $at-- }
+                $new = @("[$($k.Section)]", $line)
+                if ($at -gt 0) { $new = @('') + $new }
+                $toml.Lines.InsertRange($at, [string[]]$new)
+            }
             if ($state -eq 'same') { $state = 'update' }
         }
     }
@@ -115,9 +142,10 @@ if ($PullWin -or $PullWsl) {
     $have = Split-Toml ([System.IO.File]::ReadAllText($cfgFrom))
     $want = Split-Toml ([System.IO.File]::ReadAllText($cfgTo))
     foreach ($k in Read-ManagedKeys $cfgTo) {
-        $src = Find-Key $have $k.Key
-        if (-not $src) { Write-Warning "$srcName config.toml 沒有 $($k.Key)，略過"; continue }
-        $dst = Find-Key $want $k.Key
+        $label = if ($k.Section) { "$($k.Section).$($k.Key)" } else { $k.Key }
+        $src = Find-Key $have $k.Section $k.Key
+        if (-not $src) { Write-Warning "$srcName config.toml 沒有 $label，略過"; continue }
+        $dst = Find-Key $want $k.Section $k.Key
         $want.Lines[$dst.Index] = "$($k.Key) = $($src.Value)"
     }
     [System.IO.File]::WriteAllBytes($cfgTo, $utf8.GetBytes($want.Lines -join $want.Nl))

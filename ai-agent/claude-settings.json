@@ -33,7 +33,7 @@
     ],
     "defaultMode": "auto"
   },
-  "model": "opus",
+  "model": "sonnet",
   "hooks": {
     "SessionStart": [
       {
@@ -73,7 +73,7 @@
   },
   "statusLine": {
     "type": "command",
-    "command": "C:/Users/user/.claude/plugins/cache/claude-community/cc-usage/0.5.6/bin/cc-usage-windows-amd64.exe"
+    "command": "python C:/Users/user/.claude/statusline.py"
   },
   "autoUpdatesChannel": "latest",
   "tui": "fullscreen",

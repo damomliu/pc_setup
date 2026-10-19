@@ -1,3 +1,7 @@
 approval_policy = "on-request"
 approvals_reviewer = "auto_review"
 sandbox_mode = "workspace-write"
+
+[tui]
+status_line = ["model-with-reasoning", "project-name", "thread-name", "five-hour-limit", "weekly-limit", "context-used", "used-tokens"]
+status_line_use_colors = true

@@ -9,11 +9,8 @@
       codex plugin marketplace upgrade
       npx skills update -g -y
       ~/.agent-skills/sources/asana-ai-skill 的 git pull --ff-only（工作目錄不乾淨則警告略過）
-    之後讀兩邊 cc-usage@claude-community 的新版本，若與 claude-settings.json / claude-settings.wsl.json
-    statusLine.command 內的 /cc-usage/<版本>/ 不同，就改 repo 檔並執行 sync-claude.ps1 -Force（-NoSync 時只提示）；
-    有改 repo 檔記得 commit。
     單一步驟失敗只記錄警告並繼續，最後彙整失敗清單，有失敗則 exit 1。
-    -SkipWin / -SkipWsl：略過該環境。-NoSync：不自動執行 sync-claude.ps1。
+    -SkipWin / -SkipWsl：略過該環境。
     請在沒有執行中的 claude / codex 的 terminal 執行（更新時 exe 可能被鎖）。
     plugin 更新需重啟 Claude Code session 才生效。
     需要 PowerShell 7。
@@ -21,8 +18,7 @@
 param(
     [string]$Distro = 'Ubuntu-24.04',
     [switch]$SkipWin,
-    [switch]$SkipWsl,
-    [switch]$NoSync
+    [switch]$SkipWsl
 )
 
 $ErrorActionPreference = 'Stop'
@@ -56,23 +52,6 @@ function Get-PluginIds {
     }
 }
 
-# 讀 installed_plugins.json 裡 cc-usage@claude-community 的版本
-function Get-CcUsageVersion([string]$root) {
-    $f = Join-Path $root '.claude\plugins\installed_plugins.json'
-    $j = Get-Content $f -Raw | ConvertFrom-Json -AsHashtable
-    $j.plugins['cc-usage@claude-community'][0].version
-}
-
-# 把 settings 檔中 /cc-usage/<版本>/ 換成新版本（純文字替換，保留排版與 UTF-8 無 BOM）；回傳是否有改
-function Update-CcUsageVersion([string]$file, [string]$ver) {
-    $text = [System.IO.File]::ReadAllText($file)
-    $new = [regex]::Replace($text, '(/cc-usage/)[^/"\\]+(/)', "`${1}$ver`${2}")
-    if ($new -ceq $text) { return $false }
-    [System.IO.File]::WriteAllText($file, $new, $utf8)
-    Write-Host "已更新 $file -> cc-usage $ver"
-    $true
-}
-
 # 執行 WSL bash script：寫到 WSL 的 /tmp 再以檔案執行，stdin 保留給 console，
 # 指令（例如 codex update）詢問時可直接回答
 function Invoke-WslBash([string]$script) {
@@ -81,13 +60,6 @@ function Invoke-WslBash([string]$script) {
     [System.IO.File]::WriteAllText($file, ($script -replace "`r", ''), $utf8)
     try { wsl -d $Distro -- bash -l "/tmp/$name" }
     finally { Remove-Item $file -ErrorAction SilentlyContinue }
-}
-
-# 取得 WSL 家目錄
-if (-not $SkipWsl) {
-    $wslHome = (wsl -d $Distro -- printenv HOME | Out-String).Trim()
-    if (-not $wslHome) { throw "讀不到 WSL ($Distro) 的 HOME" }
-    $wslRoot = "\\wsl.localhost\$Distro" + ($wslHome -replace '/', '\')
 }
 
 if (-not $SkipWin) {
@@ -168,38 +140,6 @@ exit ${#failed[@]}
         $failures.Add("WSL: $LASTEXITCODE 個步驟失敗")
     }
     $global:LASTEXITCODE = 0
-}
-
-# cc-usage 的 statusLine 路徑寫死版本，plugin 更新後同步 repo 設定
-Write-Host '== cc-usage statusLine =='
-$changed = $false
-$targets = @()
-if (-not $SkipWin) { $targets += [pscustomobject]@{ Name = 'Win'; Root = $HOME; File = 'claude-settings.json'; Exe = 'bin\cc-usage-windows-amd64.exe' } }
-if (-not $SkipWsl) { $targets += [pscustomobject]@{ Name = 'WSL'; Root = $wslRoot; File = 'claude-settings.wsl.json'; Exe = 'bin\run.sh' } }
-foreach ($t in $targets) {
-    try {
-        $ver = Get-CcUsageVersion $t.Root
-        $exe = Join-Path $t.Root ".claude\plugins\cache\claude-community\cc-usage\$ver\$($t.Exe)"
-        if (-not (Test-Path $exe)) { throw "找不到新路徑的執行檔：$exe" }
-        if (Update-CcUsageVersion (Join-Path $repo $t.File) $ver) { $changed = $true }
-        else { Write-Host "$($t.Name): cc-usage $ver 與 $($t.File) 相同" }
-    } catch {
-        Write-Warning "$($t.Name): cc-usage 路徑修正失敗：$($_.Exception.Message)"
-        $failures.Add("$($t.Name): cc-usage statusLine")
-    }
-}
-if ($changed) {
-    if ($NoSync) {
-        Write-Host 'repo 設定已變更；請執行 ai-agent\sync-claude.ps1 -Force 同步，並記得 commit。'
-    } else {
-        try {
-            & "$PSScriptRoot\sync-claude.ps1" -Force -Distro $Distro
-            Write-Host 'repo 設定已變更並已同步；記得 commit。'
-        } catch {
-            Write-Warning "sync-claude.ps1 失敗：$($_.Exception.Message)"
-            $failures.Add('sync-claude.ps1')
-        }
-    }
 }
 
 Write-Host '== 版本 =='

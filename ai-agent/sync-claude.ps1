@@ -7,6 +7,7 @@
       claude-settings.json      -> ~/.claude/settings.json（WSL 版先合併 claude-settings.wsl.json）
       claude-settings.cli.json  -> ~/.claude/settings.cli.json
       claude-keybindings.json   -> ~/.claude/keybindings.json
+      claude-statusline.py      -> ~/.claude/statusline.py
       AGENTS.md                 -> ~/.claude/CLAUDE.md
     任何目標內容與 repo 不同（Claude Code 自己會寫 settings.json）時整批中止，不寫入；
     確認要覆蓋加 -Force，要保留本機變更先用 -PullWin / -PullWsl 收回。
@@ -35,6 +36,7 @@ $map = [ordered]@{
     'claude-settings.json'     = @('.claude\settings.json')
     'claude-settings.cli.json' = @('.claude\settings.cli.json')
     'claude-keybindings.json'  = @('.claude\keybindings.json')
+    'claude-statusline.py'     = @('.claude\statusline.py')
     'AGENTS.md'                = @('.claude\CLAUDE.md')
 }
 
