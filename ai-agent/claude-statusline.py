@@ -4,20 +4,20 @@ import json
 import os
 import sys
 
-CYAN, GREEN, MAGENTA, YELLOW, RED, DIM, RESET = (f"\033[{c}m" for c in (36, 32, 35, 33, 31, 90, 0))
+CYAN, GREEN, YELLOW, RED, DIM, RESET = (f"\033[{c}m" for c in (36, 32, 33, 31, 90, 0))
 
 
 def paint(text, color):
     return f"{color}{text}{RESET}"
 
 
-def level_color(base, left):
-    # 剩餘 <=10% 紅、<=25% 黃，其餘用 base
-    if left <= 10:
+def level_color(left):
+    # 剩餘 <10% 紅、10–24% 黃，25% 以上灰
+    if left < 10:
         return RED
-    if left <= 25:
+    if left < 25:
         return YELLOW
-    return base
+    return DIM
 
 
 def pct(v):
@@ -48,11 +48,11 @@ def main():
         used = pct((limits.get(key) or {}).get("used_percentage"))
         if used is not None:
             left = 100 - used
-            segs.append(paint(f"{label} {left}% left", level_color(MAGENTA, left)))
+            segs.append(paint(f"{label} {left}% left", level_color(left)))
 
     used = pct((d.get("context_window") or {}).get("used_percentage"))
     if used is not None:
-        segs.append(paint(f"Context {used}% used", level_color(DIM, 100 - used)))
+        segs.append(paint(f"Context {used}% used", level_color(100 - used)))
 
     cost = (d.get("cost") or {}).get("total_cost_usd")
     if cost:
