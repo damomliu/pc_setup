@@ -1,13 +1,19 @@
 # AI Agent Config
 
+## 4 Agents
+
+| 名稱 | 執行環境 | Agent | Global 規則檔 | Repo 設定來源 |
+| --- | --- | --- | --- | --- |
+| Win-Claude | Windows | Claude Code | `$HOME/.claude/CLAUDE.md` | `claude-settings.json` |
+| Win-Codex | Windows | Codex | `$HOME/.codex/AGENTS.md` | `codex-config.toml` |
+| WSL-Claude | WSL | Claude Code | `$HOME/.claude/CLAUDE.md` | `claude-settings.json` + `claude-settings.wsl.json` |
+| WSL-Codex | WSL | Codex | `$HOME/.codex/AGENTS.md` | `codex-config.toml` |
+
+統稱：`Win-*`、`WSL-*` 指同一執行環境的兩個 agent；`*-Claude`、`*-Codex` 指同一 agent 的兩個環境；「4 Agents」指全部。
+
 ## Global 共用規則
 
-[AGENTS.md](AGENTS.md) 是 Codex 與 Claude Code 共用規則的唯一來源。
-
-| 執行環境 | Codex | Claude Code |
-| --- | --- | --- |
-| Windows | `$HOME/.codex/AGENTS.md` | `$HOME/.claude/CLAUDE.md` |
-| WSL | `$HOME/.codex/AGENTS.md` | `$HOME/.claude/CLAUDE.md` |
+[AGENTS.md](AGENTS.md) 是 4 Agents 共用規則的唯一來源，佈署位置見上表「Global 規則檔」。
 
 WSL 的 `$HOME` 屬於 Linux user；不同 user / distro 各自獨立。設定 `CODEX_HOME` 或 `CLAUDE_CONFIG_DIR` 時，對應檔案改由該目錄讀取。
 
