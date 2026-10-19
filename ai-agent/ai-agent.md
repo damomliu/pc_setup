@@ -32,7 +32,8 @@ VSCode 使用哪份規則取決於 backend 實際執行環境；切換 terminal 
 - Repo 副本：
   - [AGENTS.md](AGENTS.md)
   - [codex-config.toml](codex-config.toml)
-  保存 approval / sandbox 與 `[tui]` status line 設定
+  保存 approval / sandbox、`[tui]` status line 與 keymap 設定
+- `Ctrl+Enter` 換行：透過 `[tui.keymap.editor].insert_newline` 設定，保留預設換行按鍵；一般 `Enter` 仍由 composer 送出。Windows 與 WSL 共用，修改後重啟 Codex CLI 生效。
 - 啟用 Auto-Review（[OpenAI Docs](https://learn.chatgpt.com/docs/sandboxing/auto-review)）
   - CLI / 本機 config：repo 已設定 `approval_policy = "on-request"`、`approvals_reviewer = "auto_review"`、`sandbox_mode = "workspace-write"`。
 
