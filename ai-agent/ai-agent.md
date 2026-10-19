@@ -46,10 +46,8 @@ VSCode 使用哪份規則取決於 backend 實際執行環境；切換 terminal 
   - `AGENTS.md`
   - `claude-settings.json` - 母版、Windows 版
   - `claude-settings.wsl.json` - WSL 專屬變更
-  - `claude-settings.cli.json` - CLI session 覆寫設定，Remote Control 啟動值為 `false`
   - `claude-keybindings.json` 
   - [claude-statusline.py](claude-statusline.py) - status line script，sync 到 `~/.claude/statusline.py`
-- `claude` function 會載入 `settings.cli.json`；目前 CLI session 不會自動啟用 Remote Control
 
 ### 快速鍵
 - `Ctrl+P` 切換 model

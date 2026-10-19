@@ -16,10 +16,6 @@
 - `Ctrl+D`：空行送出 EOF 結束，有字元則刪除游標處字元
 - `Import-Module ZLocation`
 - flutter：把 `C:\src\flutter\bin` 加入 PATH
-- `claude` function：包住 claude，存在 `~\.claude\settings.cli.json` 時加上 `--settings` 載入它
-    - 全域 `~\.claude\settings.json` 的 `remoteControlAtStartup` 設為 `false`，VS Code extension 開的 session 不會自動啟用 Remote Control
-    - Repo 的 `settings.cli.json` 將 `remoteControlAtStartup` 設為 `false`，從 terminal 開的 CLI 也不會自動啟用
-    - WSL 有獨立的 `~/.claude`；同步 `settings.cli.json` 後，`~/.bashrc` 的同名 `claude` function（`command claude --settings ...`）也會使用此設定
 
 ## Alias
 

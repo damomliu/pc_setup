@@ -5,7 +5,6 @@
 .DESCRIPTION
     預設：repo -> Windows 與 WSL。
       claude-settings.json      -> ~/.claude/settings.json（WSL 版先合併 claude-settings.wsl.json）
-      claude-settings.cli.json  -> ~/.claude/settings.cli.json
       claude-keybindings.json   -> ~/.claude/keybindings.json
       claude-statusline.py      -> ~/.claude/statusline.py
       AGENTS.md                 -> ~/.claude/CLAUDE.md
@@ -34,7 +33,6 @@ if ($PullWin -and $PullWsl) { throw '-PullWin 與 -PullWsl 不能同時使用' }
 # repo 檔 -> 家目錄下的相對路徑
 $map = [ordered]@{
     'claude-settings.json'     = @('.claude\settings.json')
-    'claude-settings.cli.json' = @('.claude\settings.cli.json')
     'claude-keybindings.json'  = @('.claude\keybindings.json')
     'claude-statusline.py'     = @('.claude\statusline.py')
     'AGENTS.md'                = @('.claude\CLAUDE.md')
