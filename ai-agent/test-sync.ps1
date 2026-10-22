@@ -42,26 +42,14 @@ function Snap([string]$dir) {
     }) -join "`n"
 }
 
-$block = @'
-<!-- pstack-models:begin -->
-# pstack model configuration
-
-feature, refactoring: gpt-x
-arena runners: gpt-a, gpt-b
-
-default effort: session
-session hook: off
-<!-- pstack-models:end -->
-'@
-$block = $block -replace "`r`n", "`n"
 $fixtures = @{
     'claude-settings.json'     = '{"permissions":{"allow":["A","B"]},"model":"sonnet","effortLevel":"medium","modelSettings":{"m1":{"effortLevel":"medium"}},"theme":"dark","count":1,"nested":{"ok":"visible-repo"},"env":{"X":"REPOENV"},"myToken":"REPOTOK"}'
     'claude-settings.wsl.json' = '{"permissions":{"allow":["B","C"]},"statusLine":{"command":"wsl-status"}}'
     'claude-keybindings.json'  = '{"bindings":[{"action":"x"}]}'
     'claude-statusline.py'     = "print(1)`n"
-    'CLAUDE.md'                = "# rules`n`n@~/.claude/pstack-models.md`n"
+    'CLAUDE.md'                = "# rules`n"
     'claude-pstack-models.md'  = "# pstack`n`nfeature, refactoring: sonnet`n`ndefault effort: session`nsession hook: off`n"
-    'AGENTS.md'                = "# rules`n`n- be nice`n`n$block`n"
+    'AGENTS.md'                = "# rules`n`n- be nice`n"
     'codex-config.toml'        = "model = `"gpt-x`"`nmodel_reasoning_effort = `"medium`"`napproval_policy = `"on-request`"`n`n[tui]`nstatus_line = [`"a`", `"b`"]`n`n[tui.keymap.editor]`ninsert_newline = [`"ctrl-enter`"]`n`n[tools.env]`nA = `"REPOTOML`"`n"
 }
 
@@ -102,7 +90,7 @@ try {
         }
     }
 
-    Case '各工具自己的指引、pstack 配套檔與忽略欄位首次建立' {
+    Case '各工具自己的指引、Claude pstack 與忽略欄位首次建立' {
         $e = Pushed
         foreach ($h in $e.Win, $e.Wsl) {
             Assert ((ReadF "$h\.claude\CLAUDE.md") -ceq (ReadF "$($e.Repo)\CLAUDE.md")) 'Claude 指引內容'
@@ -110,13 +98,7 @@ try {
             Assert ((ReadF "$h\.claude\pstack-models.md") -ceq (ReadF "$($e.Repo)\claude-pstack-models.md")) 'Claude pstack 設定'
             Assert ((ReadF "$h\.codex\AGENTS.md") -ceq (ReadF "$($e.Repo)\AGENTS.md")) 'Codex 指引內容'
             Assert ((ReadF "$h\.codex\AGENTS.md") -cne (ReadF "$h\.claude\CLAUDE.md")) '兩工具指引各自獨立'
-            $derived = ReadF "$h\.codex\pstack-models.md"
-            $inner = ((ReadF "$($e.Repo)\AGENTS.md") -split "(?m)^<!-- pstack-models:(?:begin|end) -->\r?\n")[1]
-            Assert ($derived -ceq $inner) '配套檔等於 pstack 區塊內容'
-            foreach ($line in 'feature, refactoring: gpt-x', 'arena runners: gpt-a, gpt-b', 'default effort: session', 'session hook: off') {
-                Assert ($derived.Contains($line)) "配套檔含「$line」"
-            }
-            Assert ($derived -notmatch 'pstack-models:') '配套檔不含標記'
+            Assert (-not (Test-Path "$h\.codex\pstack-models.md")) '不產生 Codex pstack 檔案'
             $s = ReadF "$h\.claude\settings.json" | ConvertFrom-Json -AsHashtable
             Assert (-not $s.ContainsKey('model') -and -not $s.ContainsKey('effortLevel')) '忽略欄位首次建立不補入'
             Assert ($s.modelSettings.m1.effortLevel -eq 'medium') 'modelSettings effort 仍受管'
@@ -131,42 +113,20 @@ try {
         Assert (Untouched $e) '沒有呼叫 WSL'
     }
 
-    Case 'Codex pstack 區塊無法解析：推送不寫任何目標' {
-        $bad = @{
-            'missing end'  = ($fixtures['AGENTS.md'] -replace '<!-- pstack-models:end -->', '')
-            'missing hook' = ($fixtures['AGENTS.md'] -replace 'session hook: off', '')
-            'no roles'     = "# r`n<!-- pstack-models:begin -->`ndefault effort: session`nsession hook: off`n<!-- pstack-models:end -->`n"
-            'bad line'     = ($fixtures['AGENTS.md'] -replace 'gpt-a, gpt-b', 'gpt-a, gpt-b`nnot a setting line' -replace '`n', "`n")
-            'empty block'  = "<!-- pstack-models:begin -->`n<!-- pstack-models:end -->`n"
-            'hook typo'    = $fixtures['AGENTS.md'].Replace('session hook: off', 'session hook: of')
-            'hook spaced'  = $fixtures['AGENTS.md'].Replace('session hook: off', 'session hook : off')
-            'hook value'   = $fixtures['AGENTS.md'].Replace('session hook: off', 'session hook: maybe')
+    Case 'Codex 不管理既有 pstack 檔案，無區塊也可同步' {
+        $e = Pushed
+        foreach ($h in $e.Win, $e.Wsl) { W "$h\.codex\pstack-models.md" "LOCAL-PSTACK`n" }
+        $before = Snap $e.Root
+        $r = Run $e 'sync-codex.ps1' @('-CheckVerbose')
+        Assert ($r.Code -eq 0 -and $r.Out -notmatch 'pstack-models|LOCAL-PSTACK|differs') '檢查不讀取 pstack 檔案'
+        Assert ((Snap $e.Root) -ceq $before) '檢查維持唯讀'
+        W "$($e.Repo)\AGENTS.md" "# plain rules`n"
+        $r = Run $e 'sync-codex.ps1' @('-Force')
+        Assert ($r.Code -eq 0) "無 pstack 區塊可同步：$($r.Out)"
+        foreach ($h in $e.Win, $e.Wsl) {
+            Assert ((ReadF "$h\.codex\AGENTS.md") -ceq "# plain rules`n") '同步一般指引'
+            Assert ((ReadF "$h\.codex\pstack-models.md") -ceq "LOCAL-PSTACK`n") 'Force 不改寫或刪除非受管 pstack 檔案'
         }
-        $bad['bad line'] = $fixtures['AGENTS.md'].Replace("default effort: session", "just words`ndefault effort: session")
-        foreach ($k in $bad.Keys) {
-            $e = New-Env; W "$($e.Repo)\AGENTS.md" $bad[$k]
-            # 單獨的 Codex 同步器：本次所有目標都不變
-            $before = Snap $e.Root
-            $r = Run $e 'sync-codex.ps1'
-            Assert ($r.Code -ne 0) "[$k] sync-codex.ps1 應失敗"
-            Assert ((Snap $e.Root) -ceq $before) "[$k] 不得寫入任何目標"
-            Assert ($r.Out -notmatch 'just words') "[$k] 診斷不回顯內容"
-            # 總入口：Claude 先跑可能已寫入（不做跨工具 transaction），只要求 Codex 目標不寫
-            $r = Run $e 'sync.ps1'
-            Assert ($r.Code -ne 0) "[$k] sync.ps1 應失敗"
-            Assert (@(Get-ChildItem $e.Win, $e.Wsl -Recurse -File | Where-Object FullName -like '*\.codex\*').Count -eq 0) "[$k] 總入口不得寫入 Codex 目標"
-        }
-    }
-
-    Case 'pstack 區塊行正規化：前置空白不會讓 hook 讀不到整行' {
-        $e = New-Env
-        W "$($e.Repo)\AGENTS.md" ($fixtures['AGENTS.md'].Replace('session hook: off', '  session hook:   on').Replace('default effort: session', "`tdefault effort:  high  "))
-        $r = Run $e 'sync-codex.ps1'
-        Assert ($r.Code -eq 0) "可推送：$($r.Out)"
-        $d = ReadF "$($e.Win)\.codex\pstack-models.md"
-        Assert ($d -cmatch '(?m)^session hook: on$') '產物含精確整行 session hook: on'
-        Assert ($d -cmatch '(?m)^default effort: high$') '產物含精確整行 default effort'
-        Assert ($d -notmatch '(?m)^[ \t]+\S') '產物沒有前置空白行'
     }
 
     Case '字串大小寫有意義（JSON 與 TOML）' {
@@ -185,29 +145,24 @@ try {
         Assert ($r.Out -match 'status_line: \(missing\)') "[TUI] 與 [tui] 視為不同 section：$($r.Out)"
     }
 
-    Case 'Codex Pull：驗證來源區塊、不用配套檔反寫、失敗不動 repo' {
+    Case 'Codex Pull：一般指引與設定一起收回，不使用 pstack 檔案' {
         $e = Pushed
-        # 單獨修改配套檔
-        W "$($e.Win)\.codex\pstack-models.md" "DERIVED-EDIT`n"
-        $v = Run $e 'sync-codex.ps1' @('-CheckVerbose')
-        Assert ($v.Code -eq 0 -and $v.Out -match 'DERIVED-EDIT' -and $v.Out -match 'pstack-models\.md') 'CheckVerbose 顯示配套檔差異'
-        $agentsBefore = ReadF "$($e.Repo)\AGENTS.md"
-        $r = Run $e 'sync-codex.ps1' @('-PullWin')
-        Assert ($r.Code -eq 0) "Pull 成功：$($r.Out)"
-        Assert ((ReadF "$($e.Repo)\AGENTS.md") -ceq $agentsBefore) 'Pull 不用配套檔覆蓋指引'
-        # 來源指引改角色 -> repo 收回
-        W "$($e.Win)\.codex\AGENTS.md" ($agentsBefore.Replace('feature, refactoring: gpt-x', 'feature, refactoring: gpt-y'))
-        $r = Run $e 'sync-codex.ps1' @('-PullWin')
-        Assert ($r.Code -eq 0 -and (ReadF "$($e.Repo)\AGENTS.md").Contains('gpt-y')) 'Pull 以來源指引為準'
-        # 來源區塊缺少或無法解析
-        foreach ($bad in ($agentsBefore -replace '<!-- pstack-models:begin -->', ''), $agentsBefore.Replace('session hook: off', 'oops')) {
-            W "$($e.Wsl)\.codex\AGENTS.md" $bad
-            W "$($e.Wsl)\.codex\config.toml" ((ReadF "$($e.Wsl)\.codex\config.toml").Replace('on-request', 'never'))
-            $before = Snap $e.Repo
-            $r = Run $e 'sync-codex.ps1' @('-PullWsl')
-            Assert ($r.Code -ne 0) '來源區塊不合法時 Pull 失敗'
-            Assert ((Snap $e.Repo) -ceq $before) 'Pull 失敗時 repo 檔案全不變'
+        foreach ($spec in @($e.Win, '-PullWin'), @($e.Wsl, '-PullWsl')) {
+            $srcRoot = $spec[0]; $flag = $spec[1]
+            W "$srcRoot\.codex\pstack-models.md" "LOCAL-PSTACK`n"
+            W "$srcRoot\.codex\AGENTS.md" "# $flag rules`n"
+            W "$srcRoot\.codex\config.toml" ((ReadF "$srcRoot\.codex\config.toml").Replace('on-request', 'never'))
+            $r = Run $e 'sync-codex.ps1' @($flag)
+            Assert ($r.Code -eq 0) "Pull 成功：$($r.Out)"
+            Assert ((ReadF "$($e.Repo)\AGENTS.md") -ceq "# $flag rules`n") '收回無 pstack 區塊的指引'
+            Assert ((ReadF "$($e.Repo)\codex-config.toml").Contains('approval_policy = "never"')) '收回受管設定'
+            Assert ((ReadF "$srcRoot\.codex\pstack-models.md") -ceq "LOCAL-PSTACK`n") 'Pull 保留非受管檔案'
         }
+        W "$($e.Win)\.codex\AGENTS.md" "# should not be pulled`n"
+        W "$($e.Repo)\codex-config.toml" "invalid TOML`n"
+        $before = Snap $e.Repo
+        $r = Run $e 'sync-codex.ps1' @('-PullWin')
+        Assert ($r.Code -ne 0 -and (Snap $e.Repo) -ceq $before) '設定解析失敗時也不寫入指引'
     }
 
     Case '不同工具指引不同時 Pull 不再中止' {
@@ -415,7 +370,9 @@ try {
         Assert ($r.Code -eq 0) "推送：$($r.Out)"
         foreach ($h in $e.Win, $e.Wsl) {
             Assert ((ReadF "$h\.claude\CLAUDE.md") -notmatch 'C:|/home/') '實際 Claude 指引不含絕對路徑'
-            Assert ((ReadF "$h\.codex\pstack-models.md") -match '(?m)^session hook: off$' -and (ReadF "$h\.codex\pstack-models.md") -match '(?m)^default effort: session$') '實際配套檔含 default effort 與 hook'
+            Assert (-not (Test-Path "$h\.codex\pstack-models.md")) '實際來源不產生 Codex pstack 檔案'
+            Assert ((ReadF "$h\.codex\AGENTS.md") -notmatch 'pstack') '實際 Codex 指引不含 pstack'
+            Assert ((ReadF "$h\.claude\CLAUDE.md") -notmatch 'pstack') '實際 Claude 指引不含 pstack 引用'
             Assert ((ReadF "$h\.claude\pstack-models.md") -match '(?m)^session hook: off') '實際 Claude pstack 設定'
         }
         $r = Run $e 'sync.ps1' @('-Check')

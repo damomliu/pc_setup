@@ -33,7 +33,6 @@
     ],
     "defaultMode": "auto"
   },
-  "model": "sonnet",
   "hooks": {
     "SessionStart": [
       {
@@ -51,9 +50,16 @@
   "enabledPlugins": {
     "mattpocock-skills@claude-plugins-official": true,
     "next-steps@claude-community": true,
-    "cc-usage@claude-community": true
+    "cc-usage@claude-community": true,
+    "pstack@pstack-claude": false
   },
   "extraKnownMarketplaces": {
+    "pstack-claude": {
+      "source": {
+        "source": "github",
+        "repo": "michael-denyer/pstack-claude"
+      }
+    },
     "claude-community": {
       "source": {
         "source": "github",
@@ -61,8 +67,9 @@
       }
     }
   },
+  "model": "sonnet",
   "language": "TW-繁體中文",
-  "effortLevel": "xhigh",
+  "effortLevel": "medium",
   "modelSettings": {
     "claude-sonnet-5": {
       "effortLevel": "medium"
@@ -79,7 +86,7 @@
   "tui": "fullscreen",
   "theme": "dark",
   "editorMode": "normal",
-  "autoContinueAtUsageLimit": false,
+  "autoContinueAtUsageLimit": true,
   "remoteControlAtStartup": false,
   "agentPushNotifEnabled": true,
   "skipAutoPermissionPrompt": true

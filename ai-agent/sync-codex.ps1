@@ -5,11 +5,8 @@
 .DESCRIPTION
     預設：repo -> Windows 與 WSL。
       AGENTS.md         -> ~/.codex/AGENTS.md（整檔覆寫；Codex 完整指引）
-      AGENTS.md 的 pstack 區塊 -> ~/.codex/pstack-models.md（由 sync 產生的本機配套檔，供 pstack session hook 讀取）
       codex-config.toml -> ~/.codex/config.toml（只合併 repo 列出的 key，其餘設定原樣保留）
-    pstack 區塊以 <!-- pstack-models:begin --> / <!-- pstack-models:end --> 包住，內含標題、角色 mapping、
-      default effort 與 session hook；是唯一人工維護來源，區塊缺少或無法解析時，推送與 Pull 都在寫入任何檔案前中止。
-      配套檔被單獨修改時 -CheckVerbose 會顯示差異；Pull 以來源的 AGENTS.md 為準，不會用配套檔反向覆寫。
+    AGENTS.md 作為一般文字檔同步；不產生、比對或修改 pstack-models.md。
     忽略欄位：config.toml 頂層的 model、model_reasoning_effort。
       比對時排除；推送保留各目標原值、缺值不補入（含首次建立）；Pull 保留 repo 原值、不新增。
     config.toml 合併規則：repo 檔只能有 [section] header 與單行 key = value（不含 [[array]]、dotted key、多行值）；
@@ -19,7 +16,7 @@
     狀態：missing（目標不存在）、same（內容已一致）、update（只缺 key，直接補上不需 -Force）、
       differs（受管 key 已存在但值不同，例如在 Codex 用 /permissions 改過）。
     有 differs 時整批中止，不寫入；確認要覆蓋加 -Force，要保留本機變更先用 -PullWin / -PullWsl 收回。
-    -PullWin / -PullWsl：Windows 或 WSL -> repo（AGENTS.md 整檔複製，先驗證 pstack 區塊；codex-config.toml 只把已列出的 key 改為來源現值，不新增 key）。
+    -PullWin / -PullWsl：Windows 或 WSL -> repo（AGENTS.md 整檔複製；codex-config.toml 只把已列出的 key 改為來源現值，不新增 key）。
     -Check：只比對，列出每個目標的狀態，不寫入。
     -CheckVerbose：唯讀；在 -Check 之外列出受管 key 的「本機 → 預期」值與文字檔逐行 diff。
       敏感路徑（env 子樹，或路徑含 token / secret / password / auth / credential、key 類名稱）的值顯示 ***。
@@ -48,36 +45,8 @@ $map = [ordered]@{
     'AGENTS.md'         = '.codex\AGENTS.md'
     'codex-config.toml' = '.codex\config.toml'
 }
-# 由 AGENTS.md 的 pstack 區塊產生的配套檔
-$derivedRel = '.codex\pstack-models.md'
 # config.toml 的忽略欄位（僅頂層）
 $ignoreKeys = @('model', 'model_reasoning_effort')
-
-# 取出 AGENTS.md 的 pstack 區塊內容（即配套檔內容）；缺少或格式不符時 throw
-function Read-PstackBlock([string]$text, [string]$name) {
-    $lines = @($text -split '\r?\n')
-    $begin = @(0..($lines.Count - 1) | Where-Object { $lines[$_].Trim() -ceq '<!-- pstack-models:begin -->' })
-    $end = @(0..($lines.Count - 1) | Where-Object { $lines[$_].Trim() -ceq '<!-- pstack-models:end -->' })
-    if ($begin.Count -ne 1 -or $end.Count -ne 1 -or $begin[0] -ge $end[0]) {
-        throw "$name 的 pstack 區塊缺少或重複（需要恰好一組 begin / end 標記）"
-    }
-    $inner = if ($end[0] - $begin[0] -gt 1) { @($lines[($begin[0] + 1)..($end[0] - 1)]) } else { @() }
-    $roles = 0; $effort = 0; $hook = 0
-    for ($i = 0; $i -lt $inner.Count; $i++) {
-        $l = $inner[$i].Trim()
-        if (-not $l -or $l.StartsWith('#')) { continue }
-        if ($l -cmatch '^default effort:\s*\S') { $effort++ }
-        elseif ($l -cmatch '^session hook:\s*(on|off)$') { $hook++ }
-        elseif ($l -imatch '^session hook') { throw "$name 的 pstack 區塊 session hook 只接受 on 或 off（區塊內第 $($i + 1) 行）" }
-        elseif ($l -match '^[^:#][^:]*:\s*\S') { $roles++ }
-        else { throw "$name 的 pstack 區塊無法解析（區塊內第 $($i + 1) 行不是「名稱: 值」）" }
-    }
-    if ($roles -lt 1 -or $effort -ne 1 -or $hook -ne 1) {
-        throw "$name 的 pstack 區塊不完整（需要角色 mapping、恰好一行 default effort 與一行 session hook）"
-    }
-    # 每行去除前後空白，hook 才能精確讀到 "session hook: off" 這類整行
-    (($inner | ForEach-Object { $_.Trim() -replace '^(session hook|default effort):\s*', '$1: ' }) -join "`n").Trim("`n") + "`n"
-}
 
 # 把 TOML 文字拆成：行陣列與換行字元
 function Split-Toml([string]$text) {
@@ -182,10 +151,9 @@ $wslRoot = $roots.Wsl
 if ($PullWin -or $PullWsl) {
     $srcRoot = if ($PullWsl) { $wslRoot } else { $roots.Win }
     $srcName = if ($PullWsl) { 'WSL' } else { 'Windows' }
-    # 先驗證來源 AGENTS.md 的 pstack 區塊、算好 config.toml，全部成功才寫入 repo
+    # 先讀取 AGENTS.md、算好 config.toml，全部成功才寫入 repo
     $from = Join-Path $srcRoot $map['AGENTS.md']
     $agentsBytes = [System.IO.File]::ReadAllBytes($from)
-    Read-PstackBlock $utf8.GetString($agentsBytes) "$srcName AGENTS.md" | Out-Null
     $to = Join-Path $repo 'AGENTS.md'
 
     # codex-config.toml：只回收 repo 已列出的（非忽略）key 的值
@@ -210,10 +178,8 @@ if ($PullWin -or $PullWsl) {
 # 組出所有寫入計畫：Target、Bytes、State
 $keys = @(Read-ManagedKeys (Join-Path $repo 'codex-config.toml'))
 $agentsBytes = [System.IO.File]::ReadAllBytes((Join-Path $repo 'AGENTS.md'))
-$derivedBytes = $utf8.GetBytes((Read-PstackBlock $utf8.GetString($agentsBytes) 'repo AGENTS.md'))
 $plan = foreach ($root in $roots.Win, $wslRoot) {
     Get-TextItem (Join-Path $root $map['AGENTS.md']) $agentsBytes
-    Get-TextItem (Join-Path $root $derivedRel) $derivedBytes
     $target = Join-Path $root $map['codex-config.toml']
     $exists = Test-Path $target
     $m = Merge-Toml $(if ($exists) { [System.IO.File]::ReadAllText($target) } else { '' }) $keys

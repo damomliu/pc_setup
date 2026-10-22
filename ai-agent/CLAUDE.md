@@ -8,5 +8,3 @@ Project-level AGENTS.md / CLAUDE.md take precedence, except for the approval and
 - Run relevant tests, lint, or build; if skipped, say why.
 - Require explicit user approval before `git push`, destructive git ops (e.g. `reset --hard`, `clean`), deleting files or data, running DB migrations, or modifying credentials/.env. Not needed for writing migration files, removing your own temp files, or actions the user already authorized in this task (re-ask if scope grows).
 - Don't read secret files unless necessary; never print or commit secrets, tokens, or private keys.
-
-@~/.claude/pstack-models.md
