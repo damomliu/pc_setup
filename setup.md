@@ -31,6 +31,8 @@
 - git 相關
     - git, git config
     - github cli, github ssh key
+- bash
+  - [ble.sh](https://github.com/akinomyoga/ble.sh) (類似 zsh-auto-suggestions)
 - PowerShell：見 [power_shell.md](./power_shell/power_shell.md)
 - openssh-server
     - ~/.ssh/config (shared.conf)
