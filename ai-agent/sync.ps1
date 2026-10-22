@@ -5,36 +5,27 @@
 .DESCRIPTION
     參數與兩支腳本相同，原樣轉交：
       預設：repo -> Windows 與 WSL。第一支失敗（例如目標內容不同又沒加 -Force）即中止，不跑第二支。
-      -PullWin / -PullWsl：Windows 或 WSL -> repo。收回前先比對來源的 ~/.claude/CLAUDE.md 與 ~/.codex/AGENTS.md，
-        內容不同即中止，不收回任何檔案（兩者皆來自 repo 的 AGENTS.md，只能擇一）。
+      -PullWin / -PullWsl：Windows 或 WSL -> repo。Claude 與 Codex 各自收回自己的指引與設定（兩者不再要求內容一致）。
       -Check：只比對，不寫入。
-      -Force：覆蓋內容不同的目標。
+      -CheckVerbose：唯讀，並列出設定值與指引的差異（敏感值顯示 ***）。
+      -Force：覆蓋內容不同的目標（各工具的忽略欄位仍保留本機值）。
+    -Check / -CheckVerbose 與 -PullWin / -PullWsl / -Force 併用，或兩種 Pull 同時指定，會在任何 I/O 前拒絕。
     需要 PowerShell 7。
 #>
 param(
     [switch]$PullWin,
     [switch]$PullWsl,
     [switch]$Check,
+    [switch]$CheckVerbose,
     [switch]$Force,
-    [string]$Distro = 'Ubuntu-24.04'
+    [string]$Distro = 'Ubuntu-24.04',
+    [Parameter(DontShow)][string]$TestWinHome,
+    [Parameter(DontShow)][string]$TestWslRoot
 )
 
 $ErrorActionPreference = 'Stop'
-if ($PullWin -and $PullWsl) { throw '-PullWin 與 -PullWsl 不能同時使用' }
-
-if ($PullWin -or $PullWsl) {
-    $srcRoot = if ($PullWsl) {
-        $wslHome = (wsl -d $Distro -- printenv HOME | Out-String).Trim()
-        if (-not $wslHome) { throw "讀不到 WSL ($Distro) 的 HOME" }
-        "\\wsl.localhost\$Distro" + ($wslHome -replace '/', '\')
-    } else { $HOME }
-    $claudeMd = Join-Path $srcRoot '.claude\CLAUDE.md'
-    $codexMd = Join-Path $srcRoot '.codex\AGENTS.md'
-    $same = [System.Linq.Enumerable]::SequenceEqual([byte[]][System.IO.File]::ReadAllBytes($claudeMd), [byte[]][System.IO.File]::ReadAllBytes($codexMd))
-    if (-not $same) {
-        Write-Error "已中止，未收回任何檔案。CLAUDE.md 與 AGENTS.md 內容不同：`n  $claudeMd`n  $codexMd"
-    }
-}
+. "$PSScriptRoot\sync-common.ps1"
+Assert-SyncArgs $PSBoundParameters
 
 Write-Host '== Claude =='
 & "$PSScriptRoot\sync-claude.ps1" @PSBoundParameters

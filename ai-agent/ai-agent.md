@@ -4,22 +4,58 @@
 
 | 名稱 | 執行環境 | Agent | Global 規則檔 | Repo 設定來源 |
 | --- | --- | --- | --- | --- |
-| Win-Claude | Windows | Claude Code | `$HOME/.claude/CLAUDE.md` | `claude-settings.json` |
-| Win-Codex | Windows | Codex | `$HOME/.codex/AGENTS.md` | `codex-config.toml` |
-| WSL-Claude | WSL | Claude Code | `$HOME/.claude/CLAUDE.md` | `claude-settings.json` + `claude-settings.wsl.json` |
-| WSL-Codex | WSL | Codex | `$HOME/.codex/AGENTS.md` | `codex-config.toml` |
+| Win-Claude | Windows | Claude Code | `$HOME/.claude/CLAUDE.md`、`pstack-models.md` | `claude-settings.json` |
+| Win-Codex | Windows | Codex | `$HOME/.codex/AGENTS.md`、`pstack-models.md`（由 sync 產生） | `codex-config.toml` |
+| WSL-Claude | WSL | Claude Code | `$HOME/.claude/CLAUDE.md`、`pstack-models.md` | `claude-settings.json` + `claude-settings.wsl.json` |
+| WSL-Codex | WSL | Codex | `$HOME/.codex/AGENTS.md`、`pstack-models.md`（由 sync 產生） | `codex-config.toml` |
 
 統稱：`Win-*`、`WSL-*` 指同一執行環境的兩個 agent；`*-Claude`、`*-Codex` 指同一 agent 的兩個環境；「4 Agents」指全部。
 
-## Global 共用規則
+## Global 規則
 
-[AGENTS.md](AGENTS.md) 是 4 Agents 共用規則的唯一來源，佈署位置見上表「Global 規則檔」。
+Claude 與 Codex 各自維護一份完整的 global 指引，同工具的 Win／WSL 共用同一份來源；共同規則允許在兩份重複，不抽共用模板，也不要求兩份內容一致。
 
-WSL 的 `$HOME` 屬於 Linux user；不同 user / distro 各自獨立。設定 `CODEX_HOME` 或 `CLAUDE_CONFIG_DIR` 時，對應檔案改由該目錄讀取。
+| Repo 來源 | 佈署目標（Win／WSL） | 說明 |
+| --- | --- | --- |
+| [CLAUDE.md](CLAUDE.md) | `~/.claude/CLAUDE.md` | Claude 完整指引，以 `@~/.claude/pstack-models.md` 引用 pstack 設定（不含環境專屬絕對路徑） |
+| [claude-pstack-models.md](claude-pstack-models.md) | `~/.claude/pstack-models.md` | Claude pstack 角色 model、default effort、session hook |
+| [AGENTS.md](AGENTS.md) | `~/.codex/AGENTS.md` | Codex 完整指引，內含全部 pstack 設定 |
+| `AGENTS.md` 的 pstack 區塊 | `~/.codex/pstack-models.md` | sync 產生的本機配套檔（供 pstack hook 讀取），不是 repo 來源 |
+
+Codex 的 pstack 設定只在 `AGENTS.md` 的 `<!-- pstack-models:begin -->` … `<!-- pstack-models:end -->` 區塊維護（標題、角色 mapping、`default effort`、`session hook`）。推送時由該區塊產生配套檔（每行去除前後空白；`session hook` 只接受 `on` / `off`）；區塊缺少或無法解析時，該同步器在寫入任何檔案前中止（Pull 也先驗證來源的 `AGENTS.md`）。配套檔被單獨修改時 `-CheckVerbose` 會顯示差異，`-Pull*` 以來源的 `AGENTS.md` 為準，不會用配套檔反寫。
+
+WSL 的 `$HOME` 屬於 Linux user；不同 user / distro 各自獨立。設定 `CODEX_HOME` 或 `CLAUDE_CONFIG_DIR` 時，對應檔案改由該目錄讀取（同步腳本尚不支援這兩個變數）。
 
 VSCode 使用哪份規則取決於 backend 實際執行環境；切換 terminal 不等於切換 backend。
 
-[sync.ps1](sync.ps1) 一次執行 `sync-claude.ps1` 與 `sync-codex.ps1`（參數相同）；`-PullWin` / `-PullWsl` 會先確認來源的 `CLAUDE.md` 與 `AGENTS.md` 一致才收回。
+### 忽略欄位
+
+各環境自己選擇的 model、effort 不參與同步，只限下列設定檔的頂層 key（不遞迴到同名巢狀 key）：
+
+| 工具 | 忽略欄位 | 仍受管 |
+| --- | --- | --- |
+| Claude（`settings.json`） | `model`、`effortLevel` | `modelSettings.*.effortLevel`、pstack 設定 |
+| Codex（`config.toml`） | `model`、`model_reasoning_effort` | `AGENTS.md` 內的 pstack 角色、`default effort`、`session hook` |
+
+比對時排除；推送與 `-Force` 保留各目標原值，目標缺值不補入（含首次建立）；Pull 保留 repo 原值、repo 沒有的不新增。只有忽略欄位不同時視為 same，不改寫檔案。
+
+### sync 用法
+
+[sync.ps1](sync.ps1) 一次執行 [sync-claude.ps1](sync-claude.ps1) 與 [sync-codex.ps1](sync-codex.ps1)（參數相同，第一支失敗即不跑第二支；兩者沒有跨工具 transaction）。共用邏輯在 [sync-common.ps1](sync-common.ps1)。
+
+- 預設：repo → Windows 與 WSL；目標內容不同需 `-Force`。
+- `-PullWin` / `-PullWsl`：收回 repo；兩者互斥，Claude 與 Codex 各自收回自己的指引，不再要求兩者一致。
+- `-Check`：唯讀，只列出每個目標的 `missing` / `same` / `differs`（Codex config 另有 `update`）。
+- `-CheckVerbose`：唯讀，單獨使用即包含 `-Check`，另列出設定路徑與「本機 → repo 預期」值（WSL 為合併後結果）及指引／pstack 文字的逐行 diff。忽略欄位不出現；env 子樹與路徑含 token / secret / password / auth / credential、或為 key 類名稱（`key`、`apiKey`、`api_key`…）的值顯示 `***`。
+- `-Check` / `-CheckVerbose` 不能與 `-PullWin` / `-PullWsl` / `-Force` 併用，會在任何 I/O 前拒絕。
+- JSON 比對忽略 object key 順序與排版（array 順序、值與型別、字串大小寫都有意義）；TOML 依 section／key 查找，忽略排列順序。
+- 隱藏參數 `-TestWinHome` / `-TestWslRoot` 供測試使用，必須成對指定，指定後不呼叫 WSL。
+
+### 測試
+
+[test-sync.ps1](test-sync.ps1) 以暫存 repo / Windows home / WSL home 執行同步腳本 CLI，不碰真實設定、不需外部套件：`pwsh -NoProfile -File ai-agent/test-sync.ps1`（`-Only '<情境名稱萬用字元>'` 可只跑部分情境）。實機驗證請另外對真實 4 Agents 執行唯讀 `.\sync.ps1 -CheckVerbose`。
+
+## 更新
 
 [update.ps1](update.ps1) 一次更新 Windows 與 WSL 的 Claude Code、Codex 及其 plugins / `npx skills` / asana skill（`-Distro`、`-SkipWin`、`-SkipWsl`）；單一步驟失敗只警告並繼續，最後彙整失敗清單。請在沒有執行中的 claude / codex 的 terminal 執行；plugin 更新需重啟 session 才生效。
 
@@ -27,12 +63,12 @@ VSCode 使用哪份規則取決於 backend 實際執行環境；切換 terminal 
 
 ### 佈署
 
-用 [sync-codex.ps1](sync-codex.ps1) 同步到 Windows 與 WSL（`-PullWin` / `-PullWsl` 可從 Windows 或 WSL 收回 repo）：`AGENTS.md` 整檔覆寫；`codex-config.toml` 列出的 key（含 `[tui]` 這類 section）合併至各自的 `$HOME/.codex/config.toml`，保留既有 model、MCP 等設定（用法見檔頭）。
+用 [sync-codex.ps1](sync-codex.ps1) 同步到 Windows 與 WSL（`-PullWin` / `-PullWsl` 可從 Windows 或 WSL 收回 repo）：`AGENTS.md` 整檔覆寫並產生 `~/.codex/pstack-models.md`；`codex-config.toml` 列出的 key（含 `[tui]` 這類 section，頂層 `model` / `model_reasoning_effort` 除外）合併至各自的 `$HOME/.codex/config.toml`，保留既有 model、MCP 等設定（用法見檔頭）。
 
 - Repo 副本：
   - [AGENTS.md](AGENTS.md)
   - [codex-config.toml](codex-config.toml)
-  保存 approval / sandbox、`[tui]` status line 與 keymap 設定
+  保存 approval / sandbox、`[tui]` status line 與 keymap 設定；`AGENTS.md` 同時是 Codex pstack 設定的唯一來源
 - `Ctrl+Enter` 換行：透過 `[tui.keymap.editor].insert_newline` 設定，保留預設換行按鍵；一般 `Enter` 仍由 composer 送出。Windows 與 WSL 共用，修改後重啟 Codex CLI 生效。
 - 啟用 Auto-Review（[OpenAI Docs](https://learn.chatgpt.com/docs/sandboxing/auto-review)）
   - CLI / 本機 config：repo 已設定 `approval_policy = "on-request"`、`approvals_reviewer = "auto_review"`、`sandbox_mode = "workspace-write"`。
@@ -41,10 +77,10 @@ VSCode 使用哪份規則取決於 backend 實際執行環境；切換 terminal 
 
 ### 佈署
 
-用 [sync-claude.ps1](sync-claude.ps1) 同步到 Windows 與 WSL（`-PullWin` / `-PullWsl` 可從 Windows 或 WSL 收回 repo；`-PullWsl` 要求 WSL settings.json 等於 repo 合併結果）
+用 [sync-claude.ps1](sync-claude.ps1) 同步到 Windows 與 WSL（`-PullWin` / `-PullWsl` 可從 Windows 或 WSL 收回 repo；`-PullWsl` 要求 WSL settings.json 等於 repo 合併結果，忽略欄位除外）
 
 - Repo 副本：
-  - `AGENTS.md`
+  - `CLAUDE.md`、`claude-pstack-models.md`
   - `claude-settings.json` - 母版、Windows 版
   - `claude-settings.wsl.json` - WSL 專屬變更
   - `claude-keybindings.json` 
@@ -79,7 +115,7 @@ Claude Code 另外依剩餘比例變色（5h／weekly 剩餘或 Context 剩餘 �
 - 本機技能正本放 `.agents/skills/`，`.claude/skills/` 底下用 junction 指過去（git 不會保留 junction，clone 後要重建）：
   `New-Item -ItemType Junction -Path .claude\skills\wezterm -Target .agents\skills\wezterm`
 - [pstack](https://github.com/michael-denyer/pstack-claude)
-  - 用 `setup-pstack` 開關 session-start-hook (自動載入 pstack:poteto)
+  - 用 `setup-pstack` 開關 session-start-hook (自動載入 pstack:poteto)；Claude 的設定放 `claude-pstack-models.md`，Codex 的設定放 `AGENTS.md` pstack 區塊，改完再 sync
 
 
 ## Project 初始化慣例
