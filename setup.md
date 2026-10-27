@@ -18,7 +18,7 @@
 ## 開發工具
 - font: Fira Code、MesloLGS NF、Maple Mono NF CN
 - VS Code（2026-10 起主力）
-    - 設定見 `vscode/`（`vscode.md`；`sync_vscode.py` 同步至 `%APPDATA%\Code\User`）
+    - 設定見 `vscode/`（`vscode.md`；`sync.py` 同步至 `%APPDATA%\Code\User`）
     - Settings Sync（GitHub），keybindings 依平台分開
 - 程式語言 (版本參考 `ssh nb`)
     - python (uv)
@@ -39,7 +39,7 @@
 - usbipd-win
 - WezTerm
     - 要安裝已修復 IME 的版本
-    - 設定見 `wezterm/`（`wezterm.md`；`wezterm.lua` 為 `~/.wezterm.lua` 副本）
+    - 設定見 `wezterm/`（`wezterm.md`；`config/wezterm.lua` 為 `~/.wezterm.lua` 副本）
 - Herdr
 
 ## AI Agent 相關

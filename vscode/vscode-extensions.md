@@ -1,6 +1,6 @@
 # VS Code Extensions
 
-清單檔：`vscode/extensions.json`，用 `python vscode/sync_vscode.py --extensions [--prune]` 同步。所有 profile 共用 Default 的 settings，所以 theme 以 `settings.json` 的 `workbench.colorTheme`（JetBrains Darcula）為準，沒被選用的 theme／icon theme 不裝。不裝 Docker 相關套件。
+清單檔：`vscode/config/extensions.json`，用 `python vscode/sync.py --extensions [--prune]` 同步。所有 profile 共用 Default 的 settings，所以 theme 以 `config/settings.json` 的 `workbench.colorTheme`（JetBrains Darcula）為準，沒被選用的 theme／icon theme 不裝。不裝 Docker 相關套件。
 
 `-Prune` 會移除清單沒列的 extension，所以 extension pack 與相依會一起帶進來的成員（例如 `ms-python.python` → `debugpy`、`vscode-pylance`、`vscode-python-envs`）也要列出來。
 

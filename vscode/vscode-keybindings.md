@@ -1,6 +1,6 @@
 # VS Code 快速鍵（Windows／macOS）
 
-設定檔：Windows 為 `vscode/keybindings.json`，macOS 為 `vscode/keybindings.macos.json`；以 VS Code 預設為基礎，不使用 keymap extension。下面只列跟 VS Code 預設不同的按鍵。
+設定檔：Windows 為 `vscode/config/keybindings.json`，macOS 為 `vscode/config/keybindings.macos.json`；以 VS Code 預設為基礎，不使用 keymap extension。下面只列跟 VS Code 預設不同的按鍵。
 
 各節以 Windows 寫法列出；macOS 把 `Ctrl` 換成 `Cmd`、`Alt` 即 `Option` 就是同一組按鍵。macOS 不同或沒有的按鍵另列在 [macOS 差異](#macos-差異)。
 

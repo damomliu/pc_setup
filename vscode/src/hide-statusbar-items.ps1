@@ -14,7 +14,7 @@ $targets = @('status.problems', 'mhutchie.git-graph', 'Anthropic.claude-code')
 $profiles = @([pscustomobject]@{ name = 'Default'; location = $null })
 $storage = Get-Content (Join-Path $userRoot 'globalStorage\storage.json') -Raw | ConvertFrom-Json
 $profiles += @($storage.userDataProfiles)
-$backupRoot = Join-Path $PSScriptRoot "..\backup\vscode-statusbar-$(Get-Date -Format 'yyyyMMdd-HHmmss-fff')"
+$backupRoot = Join-Path $PSScriptRoot "..\..\backup\vscode-statusbar-$(Get-Date -Format 'yyyyMMdd-HHmmss-fff')"
 New-Item -ItemType Directory -Path $backupRoot -Force | Out-Null
 
 foreach ($profile in $profiles) {

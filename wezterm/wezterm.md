@@ -1,6 +1,6 @@
 # WezTerm 設定
 
-實際載入的設定是 `~/.wezterm.lua`；本資料夾的 `wezterm.lua` 為副本。
+實際載入的設定是 `~/.wezterm.lua`；`config/wezterm.lua` 為 repo 副本。
 
 ## 快速鍵設定
 
@@ -10,7 +10,7 @@
 
 主要 pane／tab 操作交給 Herdr，WezTerm 保留外層管理功能。Herdr 的配置共識見 [herdr.md](herdr.md)。`Ctrl+Space` 保留給中文輸入法，不作為 prefix。
 
-這些 Alt 快速鍵還需要將 `herdr-config.toml` 的 `[keys]` 合併至 `%APPDATA%\herdr\config.toml`，再執行 `herdr server reload-config`；只解除 WezTerm 綁定不會自動建立 Herdr 綁定。
+這些 Alt 快速鍵還需要將 `config/herdr-config.toml` 的 `[keys]` 合併至 `%APPDATA%\herdr\config.toml`，再執行 `herdr server reload-config`；只解除 WezTerm 綁定不會自動建立 Herdr 綁定。
 
 - `Alt+]` / `Alt+[`：維持 zoom，切換下一個／上一個 pane
 - `Alt+1`～`Alt+9`：維持 zoom，切換至指定 pane

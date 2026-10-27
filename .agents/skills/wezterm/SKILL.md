@@ -12,7 +12,7 @@ description: >-
 
 | 角色 | 路徑 |
 |---|---|
-| 編輯用的設定 | `wezterm/wezterm.lua` |
+| 編輯用的設定 | `wezterm/config/wezterm.lua` |
 | 給人看的說明 | `wezterm/wezterm.md` |
 | 實際載入 | `%USERPROFILE%\.wezterm.lua` |
 
@@ -30,7 +30,7 @@ description: >-
 
 ## 改設定
 
-1. 改 `wezterm/wezterm.lua`。命令的 `brief` 用使用者給的完整名稱，不要自行縮短或改寫。
+1. 改 `wezterm/config/wezterm.lua`。命令的 `brief` 用使用者給的完整名稱，不要自行縮短或改寫。
 2. 把同一項變更寫進 `wezterm/wezterm.md` 的對應段落。
 3. 啟動外部程式時用該程式的完整路徑，工作目錄用 `cwd`。不要用相對的 `cmd.exe` 再串一條命令列；WezTerm 會在 `cwd` 底下找那個執行檔，路徑不存在或引號不對時，pane 會出現「系統找不到指定的路徑」或「檔案名稱、目錄名稱或磁碟區標籤語法錯誤」。
 
@@ -42,6 +42,6 @@ description: >-
 powershell -NoProfile -ExecutionPolicy Bypass -File .agents/skills/wezterm/scripts/sync-wezterm.ps1
 ```
 
-腳本把 `wezterm/wezterm.lua` 複製到 `%USERPROFILE%\.wezterm.lua`。正在跑的 WezTerm 盯的是家目錄這份，檔案一換掉就會重載，不需要另開視窗，也不要為了重載去按使用者的鍵盤。
+腳本把 `wezterm/config/wezterm.lua` 複製到 `%USERPROFILE%\.wezterm.lua`。正在跑的 WezTerm 盯的是家目錄這份，檔案一換掉就會重載，不需要另開視窗，也不要為了重載去按使用者的鍵盤。
 
-複製後用 `wezterm show-keys` 確認設定檔載得起來。若輸出有 Lua 錯誤，先修 `wezterm/wezterm.lua`，再重跑同步腳本。
+複製後用 `wezterm show-keys` 確認設定檔載得起來。若輸出有 Lua 錯誤，先修 `wezterm/config/wezterm.lua`，再重跑同步腳本。

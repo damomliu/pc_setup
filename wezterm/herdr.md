@@ -2,10 +2,10 @@
 
 ## 配置狀態
 
-- Repo 副本：[herdr-config.toml](herdr-config.toml)。
+- Repo 副本：[herdr-config.toml](config/herdr-config.toml)。
 - Windows 實際載入：`%APPDATA%\herdr\config.toml`。
 - WSL Ubuntu-24.04 實際載入：`/home/damon/.config/herdr/config.toml`，套用相同的 theme 與 `[keys]` 快速鍵。
-- `herdr-config.toml` 是 theme 與快速鍵片段，需合併至上述實際設定；只修改 repo 副本不會生效。保留原本的 `onboarding`、`[ui.toast]` 等設定，不要整份覆蓋。
+- `config/herdr-config.toml` 是 theme 與快速鍵片段，需合併至上述實際設定；只修改 repo 副本不會生效。保留原本的 `onboarding`、`[ui.toast]` 等設定，不要整份覆蓋。
 - 修改後執行 `herdr server reload-config`，確認回傳 `status: applied` 且 `diagnostics` 為空。
 - Windows 與 WSL 的 Herdr 設定各自獨立，需分別合併並在各自環境執行 reload。
 - 以已安裝的 Herdr 0.9.3 為準；下次啟動 Herdr 時載入。已開啟的 client 可用 `Ctrl+B, Shift+R` reload config。
@@ -36,9 +36,9 @@
 
 ### Pane 移動 popup 安裝
 
-Windows 使用 [herdr-move-pane.ps1](herdr-move-pane.ps1)，複製至 `%APPDATA%\herdr\herdr-move-pane.ps1`；repo 的 `[[keys.command]]` 可直接合併。
+Windows 使用 [herdr-move-pane.ps1](src/herdr-move-pane.ps1)，複製至 `%APPDATA%\herdr\herdr-move-pane.ps1`；repo 的 `[[keys.command]]` 可直接合併。
 
-WSL 使用 [herdr-move-pane.py](herdr-move-pane.py)，複製至 `~/.config/herdr/herdr-move-pane.py`，將該 command 改為以下設定（需要 Python 3）：
+WSL 使用 [herdr-move-pane.py](src/herdr-move-pane.py)，複製至 `~/.config/herdr/herdr-move-pane.py`，將該 command 改為以下設定（需要 Python 3）：
 
 ```toml
 [[keys.command]]
@@ -56,9 +56,9 @@ Herdr 0.9.3 不允許移動 zoom 中 tab 的 pane（`zoomed_tab`）；請先用 
 
 ### pane 版面 popup 安裝
 
-Windows 使用 [herdr-list-ids.ps1](herdr-list-ids.ps1)，複製至 `%APPDATA%\herdr\herdr-list-ids.ps1`；repo 的 `[[keys.command]]`（`prefix+i`）可直接合併。
+Windows 使用 [herdr-list-ids.ps1](src/herdr-list-ids.ps1)，複製至 `%APPDATA%\herdr\herdr-list-ids.ps1`；repo 的 `[[keys.command]]`（`prefix+i`）可直接合併。
 
-WSL 使用 [herdr-list-ids.py](herdr-list-ids.py)，複製至 `~/.config/herdr/herdr-list-ids.py`（需要 Python 3），並將 `prefix+i` 的 command 改為 `python3 "$HOME/.config/herdr/herdr-list-ids.py"`。
+WSL 使用 [herdr-list-ids.py](src/herdr-list-ids.py)，複製至 `~/.config/herdr/herdr-list-ids.py`（需要 Python 3），並將 `prefix+i` 的 command 改為 `python3 "$HOME/.config/herdr/herdr-list-ids.py"`。
 
 **note** `Ctrl+Space` 保留給中文輸入法，不可用作 prefix
 

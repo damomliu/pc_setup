@@ -1,7 +1,7 @@
-"""在 repo 的 vscode/ 與 Windows／macOS 的 VS Code 使用者目錄之間同步設定。
+"""在 repo 的 vscode/config/ 與 Windows／macOS 的 VS Code 使用者目錄之間同步設定。
 
 用法：
-    python3 vscode/sync_vscode.py [選項]
+    python3 vscode/sync.py [選項]
 
 選項：
     預設              repo -> VS Code（settings.json、keybindings.json、mcp.json）。
@@ -34,6 +34,7 @@ import subprocess
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent
+CONFIG = REPO / "config"
 USER: Path
 CODE: Path | None = None
 FILES: tuple[tuple[str, str], ...]
@@ -82,7 +83,7 @@ def configure_stdio() -> None:
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="同步 repo 的 vscode/ 與 VS Code 使用者設定。", allow_abbrev=False
+        description="同步 repo 的 vscode/config/ 與 VS Code 使用者設定。", allow_abbrev=False
     )
     parser.add_argument("--pull", action="store_true", help="VS Code -> repo")
     parser.add_argument("--check", action="store_true", help="唯讀比對設定檔與 extension")
@@ -129,7 +130,7 @@ def ext_diff(profile: str, wanted: list[str]) -> tuple[list[str], list[str]]:
 
 
 def load_wanted() -> dict[str, list[str]]:
-    return json.loads((REPO / "extensions.json").read_text(encoding="utf-8"))
+    return json.loads((CONFIG / "extensions.json").read_text(encoding="utf-8"))
 
 
 def load_jsonc(path: Path) -> object:
@@ -197,7 +198,7 @@ def normalized(obj: object) -> list[str]:
 def check(verbose: bool) -> int:
     diff = 0
     for repo_name, user_name in FILES:
-        a, b = REPO / repo_name, USER / user_name
+        a, b = CONFIG / repo_name, USER / user_name
         ja = jb = None
         if not a.exists() or not b.exists():
             state = "missing"
@@ -227,7 +228,7 @@ def check(verbose: bool) -> int:
 
 def copy_files(pull: bool) -> None:
     pairs = [
-        (USER / user_name, REPO / repo_name) if pull else (REPO / repo_name, USER / user_name)
+        (USER / user_name, CONFIG / repo_name) if pull else (CONFIG / repo_name, USER / user_name)
         for repo_name, user_name in FILES
     ]
     # 先確認全部來源，避免缺檔時只同步一部分。
