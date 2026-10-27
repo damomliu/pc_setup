@@ -16,5 +16,5 @@ __pycache__/
 *.pem
 secrets/
 
-# ai-agent 同步器各平台的 Python 環境與本機工具
-ai-agent/.venv/
+# agent 同步器各平台的 Python 環境與本機工具
+agent/.venv/

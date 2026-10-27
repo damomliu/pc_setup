@@ -1,4 +1,4 @@
-"""在 repo 的 ai-agent/ 與 Windows、WSL、macOS 之間同步 Codex 設定與規則。
+"""在 repo 的 agent/ 與 Windows、WSL、macOS 之間同步 Codex 設定與規則。
 
 預設：repo -> Windows 與 WSL（Windows 執行；--win-only 只同步 Windows）。WSL、macOS 執行時只同步本機。
   AGENTS.md         -> ~/.codex/AGENTS.md（整檔覆寫；Codex 完整指引）
@@ -41,10 +41,10 @@ _AoT = None
 
 def install_hint() -> str:
     if c.detect_platform() == "windows":
-        return r"ai-agent\.venv\windows\Scripts\python.exe -m pip install -r ai-agent\requirements.txt"
+        return r"agent\.venv\windows\Scripts\python.exe -m pip install -r agent\requirements.txt"
     if c.detect_platform() == "macos":
-        return "ai-agent/.venv/macos/bin/python -m pip install -r ai-agent/requirements.txt"
-    return "ai-agent/.venv/wsl/bin/python -m pip install -r ai-agent/requirements.txt"
+        return "agent/.venv/macos/bin/python -m pip install -r agent/requirements.txt"
+    return "agent/.venv/wsl/bin/python -m pip install -r agent/requirements.txt"
 
 
 def load_tomlkit() -> None:

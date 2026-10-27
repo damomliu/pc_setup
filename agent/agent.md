@@ -17,9 +17,9 @@ Claude 與 Codex 各自維護一份完整的 global 指引，同工具的 Win／
 
 | Repo 來源 | 佈署目標（Win／WSL） | 說明 |
 | --- | --- | --- |
-| [CLAUDE.md](CLAUDE.md) | `~/.claude/CLAUDE.md` | Claude 完整指引，不引用 pstack 設定 |
-| [claude-pstack-models.md](claude-pstack-models.md) | `~/.claude/pstack-models.md` | Claude pstack 角色 model、default effort、session hook |
-| [AGENTS.md](AGENTS.md) | `~/.codex/AGENTS.md` | Codex 完整指引，不含 pstack 設定 |
+| [CLAUDE.md](config/CLAUDE.md) | `~/.claude/CLAUDE.md` | Claude 完整指引，不引用 pstack 設定 |
+| [claude-pstack-models.md](config/claude-pstack-models.md) | `~/.claude/pstack-models.md` | Claude pstack 角色 model、default effort、session hook |
+| [AGENTS.md](config/AGENTS.md) | `~/.codex/AGENTS.md` | Codex 完整指引，不含 pstack 設定 |
 
 Codex 同步器將 `AGENTS.md` 當作一般文字檔，不要求 pstack 區塊，也不產生、比對或修改 `~/.codex/pstack-models.md`；既有非受管檔案需另行清理。Claude 仍同步獨立的 `pstack-models.md`，但 `CLAUDE.md` 不再引用它。
 
@@ -41,13 +41,13 @@ VSCode 使用哪份規則取決於 backend 實際執行環境；切換 terminal 
 ### 同步
 
 Windows:
-`ai-agent\\.venv\\windows\\Scripts\\python.exe ai-agent\\sync.py --check-verbose`
+`agent\\.venv\\windows\\Scripts\\python.exe agent\\sync.py --check-verbose`
 
 WSL/Linux:
-`ai-agent/.venv/wsl/bin/python ai-agent/sync.py --check-verbose`
+`agent/.venv/wsl/bin/python agent/sync.py --check-verbose`
 
 macOS:
-`ai-agent/.venv/macos/bin/python ai-agent/sync.py --check-verbose`
+`agent/.venv/macos/bin/python agent/sync.py --check-verbose`
 
 ### 更新
 
@@ -59,11 +59,11 @@ macOS:
 
 ### 佈署
 
-用 [sync_codex.py](sync_codex.py) 同步到 Windows 與 WSL（`--pull-win` / `--pull-wsl` 可從 Windows 或 WSL 收回 repo）：`AGENTS.md` 整檔覆寫；`codex-config.toml` 列出的 key（含 `[tui]` 這類 section，頂層 `model` / `model_reasoning_effort` 除外）合併至各自的 `$HOME/.codex/config.toml`，保留既有 model、MCP 等設定（用法見 sync 用法）。
+用 [sync_codex.py](src/sync_codex.py) 同步到 Windows 與 WSL（`--pull-win` / `--pull-wsl` 可從 Windows 或 WSL 收回 repo）：`AGENTS.md` 整檔覆寫；`codex-config.toml` 列出的 key（含 `[tui]` 這類 section，頂層 `model` / `model_reasoning_effort` 除外）合併至各自的 `$HOME/.codex/config.toml`，保留既有 model、MCP 等設定（用法見 sync 用法）。
 
 - Repo 副本：
-  - [AGENTS.md](AGENTS.md)
-  - [codex-config.toml](codex-config.toml)
+  - [AGENTS.md](config/AGENTS.md)
+  - [codex-config.toml](config/codex-config.toml)
   保存 approval / sandbox、`[tui]` status line 與 keymap 設定；`AGENTS.md` 保存 Codex global 指引
 - `Ctrl+Enter` 換行：透過 `[tui.keymap.editor].insert_newline` 設定，保留預設換行按鍵；一般 `Enter` 仍由 composer 送出。Windows 與 WSL 共用，修改後重啟 Codex CLI 生效。
 - 啟用 Auto-Review（[OpenAI Docs](https://learn.chatgpt.com/docs/sandboxing/auto-review)）
@@ -73,7 +73,7 @@ macOS:
 
 ### 佈署
 
-用 [sync_claude.py](sync_claude.py) 同步到 Windows 與 WSL（`--pull-win` / `--pull-wsl` 可從 Windows 或 WSL 收回 repo；`--pull-wsl` 要求 WSL settings.json 等於 repo 合併結果，忽略欄位除外）
+用 [sync_claude.py](src/sync_claude.py) 同步到 Windows 與 WSL（`--pull-win` / `--pull-wsl` 可從 Windows 或 WSL 收回 repo；`--pull-wsl` 要求 WSL settings.json 等於 repo 合併結果，忽略欄位除外）
 
 - Repo 副本：
   - `CLAUDE.md`、`claude-pstack-models.md`
@@ -81,7 +81,7 @@ macOS:
   - `claude-settings.wsl.json` - WSL 專屬變更
   - `claude-settings.macos.json` - macOS 專屬變更
   - `claude-keybindings.json` 
-  - [claude-statusline.py](claude-statusline.py) - status line script，sync 到 `~/.claude/statusline.py`
+  - [claude-statusline.py](config/claude-statusline.py) - status line script，sync 到 `~/.claude/statusline.py`
 
 ### 快速鍵
 - `Ctrl+P` 切換 model
@@ -95,7 +95,7 @@ macOS 不在上方「4 Agents」內，比照 WSL 本機模式：只同步本機 
 
 - Claude settings：`claude-settings.json` + `claude-settings.macos.json`（statusLine 用 `/usr/bin/python3`，避開 pyenv shim）；Codex 與 Windows／WSL 共用 `AGENTS.md`、`codex-config.toml`。
 - `--pull-mac` 收回 repo，要求 `~/.claude/settings.json` 等於 repo 合併結果（忽略欄位除外），相同則略過 settings.json；`--pull-win`、`--pull-wsl`、`--win-only` 在 macOS 不可用。
-- venv 放 `ai-agent/.venv/macos/`（見 [sync.py](sync.py) 的 Python 環境）。
+- venv 放 `agent/.venv/macos/`（見 [sync.py](sync.py) 的 Python 環境）。
 - 更新：執行 [update.sh](update.sh)（Claude Code、Codex 及其 plugins / skills）。
 
 ## Global 共同項目
@@ -103,7 +103,7 @@ macOS 不在上方「4 Agents」內，比照 WSL 本機模式：只同步本機 
 ### Status line
 Codex 與 Claude Code 共用 `Model · Workspace · 5h · weekly · Context · 用量` 的格式，Claude Code 向 Codex 的外觀對齊（Codex 只能挑內建 item，不能自訂）：
 
-| | Codex（`tui.status_line`） | Claude Code（[claude-statusline.py](claude-statusline.py)） |
+| | Codex（`tui.status_line`） | Claude Code（[claude-statusline.py](config/claude-statusline.py)） |
 |---|---|---|
 | Model | `model-with-reasoning` | `model.display_name` ＋ effort |
 | Workspace | `project-name`、`thread-name` | 專案資料夾名稱（無 thread title） |
@@ -117,7 +117,7 @@ Claude Code 另外依剩餘比例變色（5h／weekly 剩餘或 Context 剩餘 �
 - asana-ai-skill
 - herdr（Windows、WSL 各執行一次；裝到 `~/.agents/skills/herdr`，Codex 直接讀取，Claude Code 以 symlink 連結）：
   `npx skills add herdrdev/herdr --skill herdr -g -a claude-code -a codex -y`
-  更新：Windows／WSL 執行 `ai-agent/update.ps1`，macOS 執行 `ai-agent/update.sh`（含 `npx skills update -g`）；手動更新時 WSL 的 npx 來自 nvm，非互動 shell 需先 `source ~/.nvm/nvm.sh`
+  更新：Windows／WSL 執行 `agent/update.ps1`，macOS 執行 `agent/update.sh`（含 `npx skills update -g`）；手動更新時 WSL 的 npx 來自 nvm，非互動 shell 需先 `source ~/.nvm/nvm.sh`
 - 本機技能正本放 `.agents/skills/`，`.claude/skills/` 底下用 junction 指過去（git 不會保留 junction，clone 後要重建）：
   `New-Item -ItemType Junction -Path .claude\skills\wezterm -Target .agents\skills\wezterm`
 - [pstack](https://github.com/michael-denyer/pstack-claude)

@@ -1,2 +1,2 @@
-- Commit title 使用 `[scope] brief`，scope 為模組或工具名稱，brief 簡潔描述變更且不加句號，例如 `[ai-agent] Claude Code 新增 next-steps MOD`。
-- 「4 Agents」（Win-Claude、Win-Codex、WSL-Claude、WSL-Codex）的定義見 [ai-agent/ai-agent.md](ai-agent/ai-agent.md#4-agents)。
+- Commit title 使用 `[scope] brief`，scope 為模組或工具名稱，brief 簡潔描述變更且不加句號，例如 `[agent] Claude Code 新增 next-steps MOD`。
+- 「4 Agents」（Win-Claude、Win-Codex、WSL-Claude、WSL-Codex）的定義見 [agent/agent.md](agent/agent.md#4-agents)。

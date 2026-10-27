@@ -6,23 +6,23 @@
 
 Python 環境：
 Windows 與 WSL 經 /mnt/c 共用同一份 checkout 時，兩邊各用自己的 venv，不共用 interpreter 或
-site-packages（macOS 同樣用自己的 venv）；ai-agent/.venv/ 已列入 .gitignore。
+site-packages（macOS 同樣用自己的 venv）；agent/.venv/ 已列入 .gitignore。
 **不要對 .venv/ 容器遞迴刪除或使用 --clear**（會刪到另一個平台的環境）。
-    Windows: ai-agent/.venv/windows/
-        建立：<python 3.13.15>\\python.exe -m venv ai-agent\\.venv\\windows
-        安裝依賴：ai-agent\\.venv\\windows\\Scripts\\python.exe -m pip install -r ai-agent\\requirements.txt
-    WSL: ai-agent/.venv/wsl/
-        建立：python3 -m venv ai-agent/.venv/wsl
-        安裝依賴：ai-agent/.venv/wsl/bin/python -m pip install -r ai-agent/requirements.txt
-    macOS: ai-agent/.venv/macos/
-        建立：python3 -m venv ai-agent/.venv/macos，或 uv venv ai-agent/.venv/macos --python 3.13.15
-        安裝依賴：ai-agent/.venv/macos/bin/python -m pip install -r ai-agent/requirements.txt
+    Windows: agent/.venv/windows/
+        建立：<python 3.13.15>\\python.exe -m venv agent\\.venv\\windows
+        安裝依賴：agent\\.venv\\windows\\Scripts\\python.exe -m pip install -r agent\\requirements.txt
+    WSL: agent/.venv/wsl/
+        建立：python3 -m venv agent/.venv/wsl
+        安裝依賴：agent/.venv/wsl/bin/python -m pip install -r agent/requirements.txt
+    macOS: agent/.venv/macos/
+        建立：python3 -m venv agent/.venv/macos，或 uv venv agent/.venv/macos --python 3.13.15
+        安裝依賴：agent/.venv/macos/bin/python -m pip install -r agent/requirements.txt
     （安裝依賴時都明確指定該平台 venv 的 interpreter）
 
 用法（明確指定各平台 venv 的 interpreter）：
-    Windows: ai-agent\\.venv\\windows\\Scripts\\python.exe ai-agent\\sync.py --check-verbose
-    WSL:     ai-agent/.venv/wsl/bin/python ai-agent/sync.py --check-verbose
-    macOS:   ai-agent/.venv/macos/bin/python ai-agent/sync.py --check-verbose
+    Windows: agent\\.venv\\windows\\Scripts\\python.exe agent\\sync.py --check-verbose
+    WSL:     agent/.venv/wsl/bin/python agent/sync.py --check-verbose
+    macOS:   agent/.venv/macos/bin/python agent/sync.py --check-verbose
 
 選項：
     預設              repo → 目標；目標內容不同需 --force。
@@ -49,8 +49,10 @@ site-packages（macOS 同樣用自己的 venv）；ai-agent/.venv/ 已列入 .gi
       true 與 1、1 與 1.0 為不同）。
 """
 import sys
+from pathlib import Path
 
 sys.dont_write_bytecode = True
+sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 
 import sync_claude  # noqa: E402
 import sync_codex  # noqa: E402

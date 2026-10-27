@@ -16,12 +16,12 @@
 
 | Repo 來源 | Windows／WSL 部署目標 | 管理方式 |
 | --- | --- | --- |
-| `ai-agent/CLAUDE.md` | `~/.claude/CLAUDE.md` | Claude 完整指引 |
-| `ai-agent/claude-pstack-models.md` | `~/.claude/pstack-models.md` | Claude pstack 設定，供指引引用與 hook 讀取 |
-| `ai-agent/AGENTS.md` | `~/.codex/AGENTS.md` | Codex 完整指引，直接包含全部 pstack 設定 |
-| `ai-agent/AGENTS.md` 的 pstack 區塊 | `~/.codex/pstack-models.md` | sync 產生的本機配套檔；不是另一份 repo 來源 |
-| `ai-agent/claude-settings.json` | `~/.claude/settings.json` | WSL 先合併既有 `claude-settings.wsl.json`；保留各目標的忽略欄位 |
-| `ai-agent/codex-config.toml` | `~/.codex/config.toml` | 沿用受管 key 合併方式，排除忽略欄位 |
+| `agent/config/CLAUDE.md` | `~/.claude/CLAUDE.md` | Claude 完整指引 |
+| `agent/config/claude-pstack-models.md` | `~/.claude/pstack-models.md` | Claude pstack 設定，供指引引用與 hook 讀取 |
+| `agent/config/AGENTS.md` | `~/.codex/AGENTS.md` | Codex 完整指引，直接包含全部 pstack 設定 |
+| `agent/config/AGENTS.md` 的 pstack 區塊 | `~/.codex/pstack-models.md` | sync 產生的本機配套檔；不是另一份 repo 來源 |
+| `agent/config/claude-settings.json` | `~/.claude/settings.json` | WSL 先合併既有 `claude-settings.wsl.json`；保留各目標的忽略欄位 |
+| `agent/config/codex-config.toml` | `~/.codex/config.toml` | 沿用受管 key 合併方式，排除忽略欄位 |
 
 Claude 指引使用 `@~/.claude/pstack-models.md`，移除 Windows／WSL 各自的絕對引用路徑。
 

@@ -1,4 +1,4 @@
-"""在 repo 的 ai-agent/ 與 Windows、WSL、macOS 之間同步 Claude Code 設定與規則。
+"""在 repo 的 agent/ 與 Windows、WSL、macOS 之間同步 Claude Code 設定與規則。
 
 預設：repo -> Windows 與 WSL（Windows 執行；--win-only 只同步 Windows）。WSL、macOS 執行時只同步本機。
   claude-settings.json      -> ~/.claude/settings.json（WSL、macOS 版先合併 claude-settings.wsl.json、claude-settings.macos.json）

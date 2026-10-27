@@ -44,7 +44,7 @@
 
 ## AI Agent 相關
 
-參考 [ai-agent.md](./ai-agent/ai-agent.md)
+參考 [agent.md](./agent/agent.md)
 
 ## 個人化
 - RGB（OpenRGB）：`rgb/Set-RgbMode.ps1`（off、on、dim、idle、cycle、wave）；桌面捷徑「RGB 模式」

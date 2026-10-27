@@ -5,7 +5,7 @@ CLI 整合情境以 subprocess 執行並使用隱藏參數 --test-win-home / --t
 平台模式以 in-process main(argv) 搭配 mock.patch 驗證。不碰真實 home、不呼叫真實 WSL、不執行真實同步；
 "real sources" 情境只把 repo 內的來源檔複製到暫存環境。
 
-用法：python ai-agent/test_sync.py（或 python -m unittest discover -s ai-agent -p "test_*.py"）
+用法：python agent/src/test_sync.py（或 python -m unittest discover -s agent/src -p "test_*.py"）
 """
 import sys
 
@@ -27,13 +27,15 @@ from unittest import mock  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
+sys.path.insert(0, str(HERE.parent))
 
 import sync  # noqa: E402
 import sync_claude  # noqa: E402
 import sync_codex  # noqa: E402
 import sync_common as c  # noqa: E402
 
-SCRIPTS = ("sync.py", "sync_claude.py", "sync_codex.py", "sync_common.py")
+ENTRY = "sync.py"  # 入口，位於 agent/
+MODULES = ("sync_claude.py", "sync_codex.py", "sync_common.py")  # 位於 agent/src/
 ON_WINDOWS = os.name == "nt"
 WSL_FAKE_HOME = "/home/fake"
 
@@ -99,14 +101,17 @@ def write_fake_wsl(bindir, fail):
 class Env:
     def __init__(self, real_sources=False):
         self.root = Path(tempfile.mkdtemp(prefix="sync-test-")) / uuid.uuid4().hex[:8]
-        self.repo, self.win, self.wsl, self.bin = (self.root / n for n in ("repo", "win", "wsl", "bin"))
-        for d in (self.repo, self.win, self.wsl, self.bin):
+        self.base = self.root / "base"  # 對應實際結構：base/sync.py、base/src/、base/config/
+        self.repo = self.base / "config"
+        self.win, self.wsl, self.bin = (self.root / n for n in ("win", "wsl", "bin"))
+        for d in (self.repo, self.base / "src", self.win, self.wsl, self.bin):
             d.mkdir(parents=True)
-        for s in SCRIPTS:
-            shutil.copy(HERE / s, self.repo)
+        shutil.copy(HERE.parent / ENTRY, self.base)
+        for s in MODULES:
+            shutil.copy(HERE / s, self.base / "src")
         for name, text in FIXTURES.items():
             if real_sources:
-                shutil.copy(HERE / name, self.repo)
+                shutil.copy(HERE.parent / "config" / name, self.repo)
             else:
                 w(self.repo / name, text)
         write_fake_wsl(self.bin, fail=True)
@@ -128,7 +133,8 @@ class Result:
 
 def run(e, script, args=(), test_paths=True):
     """以 CLI 執行；預設附上成對的測試路徑。PATH 前面放假 wsl，偵測是否被呼叫。"""
-    cmd = [sys.executable, "-B", str(e.repo / script), *args]
+    script_dir = e.base if script == ENTRY else e.base / "src"
+    cmd = [sys.executable, "-B", str(script_dir / script), *args]
     if test_paths:
         cmd += ["--test-win-home", str(e.win), "--test-wsl-root", str(e.wsl)]
     env = dict(os.environ, PATH=str(e.bin) + os.pathsep + os.environ.get("PATH", ""), PYTHONIOENCODING="cp1252")
@@ -175,8 +181,9 @@ class EnvTestCase(unittest.TestCase):
 
 class SyntaxAndUnits(unittest.TestCase):
     def test_syntax(self):
-        for f in (*SCRIPTS, "test_sync.py"):
-            compile((HERE / f).read_text(encoding="utf-8"), f, "exec")
+        paths = [HERE.parent / ENTRY, *(HERE / f for f in (*MODULES, "test_sync.py"))]
+        for p in paths:
+            compile(p.read_text(encoding="utf-8"), p.name, "exec")
 
     def test_canonical_json_distinguishes_types(self):
         self.assertNotEqual(c.canonical({"a": True}), c.canonical({"a": 1}))

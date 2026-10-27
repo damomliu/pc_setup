@@ -86,7 +86,7 @@ class _Parser(argparse.ArgumentParser):
 
 def build_parser(prog: str) -> argparse.ArgumentParser:
     p = _Parser(prog=prog, allow_abbrev=False,
-                description="在 repo 的 ai-agent/ 與 Windows、WSL、macOS 之間同步設定與規則。")
+                description="在 repo 的 agent/ 與 Windows、WSL、macOS 之間同步設定與規則。")
     p.add_argument("--pull-win", action="store_true", help="Windows -> repo")
     p.add_argument("--pull-wsl", action="store_true", help="WSL -> repo")
     p.add_argument("--pull-mac", action="store_true", help="macOS -> repo")
@@ -370,7 +370,7 @@ def apply_plan(plan) -> None:
 def run_main(func, argv, repo) -> int:
     """入口共用的外殼：UTF-8 輸出、預期內錯誤轉為訊息與非零結束。"""
     configure_stdio()
-    repo = Path(repo) if repo is not None else Path(__file__).resolve().parent
+    repo = Path(repo) if repo is not None else Path(__file__).resolve().parent.parent / "config"
     try:
         func(argv, repo)
     except SyncError as e:
