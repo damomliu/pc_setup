@@ -1,7 +1,7 @@
-"""在 repo 的 vscode/ 與 %APPDATA%\\Code\\User 之間同步 VS Code 設定。
+"""在 repo 的 vscode/ 與 Windows／macOS 的 VS Code 使用者目錄之間同步設定。
 
 用法：
-    python vscode/sync_vscode.py [選項]
+    python3 vscode/sync_vscode.py [選項]
 
 選項：
     預設              repo -> VS Code（settings.json、keybindings.json、mcp.json）。
@@ -13,6 +13,9 @@
     --check-verbose   隱含 --check；另印出差異檔案的 unified diff，以及各 profile 缺少／多出的 extension。
     --extensions      依 extensions.json 補裝各 profile 缺少的 extension。
     --prune           搭配 --extensions，另外移除 extensions.json 沒列的 extension。
+
+macOS 使用 keybindings.macos.json，Windows 使用 keybindings.json；本機檔名皆為 keybindings.json。
+只有 --check、--check-verbose、--extensions 需要 VS Code CLI。
 
 --check / --check-verbose 不能與 --pull、--extensions 並用；--prune 必須搭配 --extensions。
 """
@@ -31,9 +34,42 @@ import subprocess
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent
-USER = Path(os.environ.get("APPDATA", "")) / "Code" / "User"
-CODE = Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "Microsoft VS Code" / "bin" / "code.cmd"
-FILES = ("settings.json", "keybindings.json", "mcp.json")
+USER: Path
+CODE: Path | None = None
+FILES: tuple[tuple[str, str], ...]
+
+
+def configure_platform() -> None:
+    """依平台選擇使用者目錄與 repo 檔名；不支援的平台在寫入前拒絕。"""
+    global USER, FILES
+    if sys.platform == "win32":
+        USER = Path(os.environ.get("APPDATA", "")) / "Code" / "User"
+        keybindings = "keybindings.json"
+    elif sys.platform == "darwin":
+        USER = Path.home() / "Library" / "Application Support" / "Code" / "User"
+        keybindings = "keybindings.macos.json"
+    else:
+        raise RuntimeError(f"不支援的平台: {sys.platform}（僅支援 Windows 與 macOS）")
+    FILES = (("settings.json", "settings.json"), (keybindings, "keybindings.json"), ("mcp.json", "mcp.json"))
+
+
+def find_code() -> Path:
+    """僅 extension 操作需要 CLI；macOS 優先使用應用程式內附的 code。"""
+    if sys.platform == "win32":
+        candidates = [Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "Microsoft VS Code" / "bin" / "code.cmd"]
+    elif sys.platform == "darwin":
+        app_cli = Path("Visual Studio Code.app/Contents/Resources/app/bin/code")
+        candidates = [Path("/Applications") / app_cli, Path.home() / "Applications" / app_cli]
+    else:
+        raise RuntimeError(f"不支援的平台: {sys.platform}")
+    for candidate in candidates:
+        if candidate.is_file():
+            return candidate
+    if sys.platform == "darwin":
+        code = shutil.which("code")
+        if code:
+            return Path(code)
+    raise RuntimeError("找不到 VS Code CLI；請安裝 VS Code，或在 macOS 將 code 加入 PATH")
 
 
 def configure_stdio() -> None:
@@ -69,9 +105,9 @@ def profile_args(name: str) -> list[str]:
 
 
 def run_code(*args: str) -> str:
-    """執行 code.cmd 並回傳 stdout；失敗時丟出 RuntimeError。"""
+    """執行 VS Code CLI 並回傳 stdout；失敗時丟出 RuntimeError。"""
     proc = subprocess.run(
-        [str(CODE), *args], capture_output=True, text=True, encoding="utf-8", errors="replace"
+        [str(CODE if CODE is not None else find_code()), *args], capture_output=True, text=True, encoding="utf-8", errors="replace"
     )
     if proc.returncode != 0:
         raise RuntimeError(f"code {' '.join(args)} 失敗 (exit {proc.returncode}): {proc.stderr.strip()}")
@@ -160,17 +196,17 @@ def normalized(obj: object) -> list[str]:
 
 def check(verbose: bool) -> int:
     diff = 0
-    for f in FILES:
-        a, b = REPO / f, USER / f
+    for repo_name, user_name in FILES:
+        a, b = REPO / repo_name, USER / user_name
         ja = jb = None
-        if not b.exists():
+        if not a.exists() or not b.exists():
             state = "missing"
         else:
             ja, jb = load_jsonc(a), load_jsonc(b)
             state = "differ" if ja != jb else "same"
         if state != "same":
             diff += 1
-        print(f"{state:<8} {f}")
+        print(f"{state:<8} {repo_name}")
         if verbose and state == "differ":
             sys.stdout.writelines(difflib.unified_diff(normalized(ja), normalized(jb), str(a), str(b)))
             print()
@@ -190,8 +226,16 @@ def check(verbose: bool) -> int:
 
 
 def copy_files(pull: bool) -> None:
-    for f in FILES:
-        src, dst = (USER / f, REPO / f) if pull else (REPO / f, USER / f)
+    pairs = [
+        (USER / user_name, REPO / repo_name) if pull else (REPO / repo_name, USER / user_name)
+        for repo_name, user_name in FILES
+    ]
+    # 先確認全部來源，避免缺檔時只同步一部分。
+    for src, _ in pairs:
+        if not src.is_file():
+            raise FileNotFoundError(f"找不到來源檔案: {src}")
+    for src, dst in pairs:
+        dst.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(src, dst)
         print(f"{src} -> {dst}")
 
@@ -211,7 +255,10 @@ def install_extensions(prune: bool) -> None:
 def main(argv: list[str] | None = None) -> int:
     configure_stdio()
     args = parse_args(argv)
+    global CODE
     try:
+        configure_platform()
+        CODE = find_code() if args.check or args.extensions else None
         if args.check:
             return check(args.check_verbose)
         copy_files(args.pull)
