@@ -3,21 +3,6 @@
         "Context7": {
             "type": "http",
             "url": "https://mcp.context7.com/mcp"
-        },
-        "pdf-reader": {
-            "type": "stdio",
-            "command": "npx",
-            "args": [
-                "@sylphx/pdf-reader-mcp"
-            ]
-        },
-        "openpets": {
-            "type": "stdio",
-            "command": "npx",
-            "args": [
-                "-y",
-                "@open-pets/mcp@3.3.0"
-            ]
         }
     }
 }
