@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(/Users/yuenlungliu/.claude/plans/**)"
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "/usr/bin/python3 /Users/yuenlungliu/.claude/statusline.py"
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "^(startup|resume|clear|compact|fork)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/Users/yuenlungliu/.claude/hooks/herdr-agent-state.sh' session",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

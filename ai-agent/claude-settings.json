@@ -50,7 +50,6 @@
   "enabledPlugins": {
     "mattpocock-skills@claude-plugins-official": true,
     "next-steps@claude-community": true,
-    "cc-usage@claude-community": true,
     "pstack@pstack-claude": false
   },
   "extraKnownMarketplaces": {

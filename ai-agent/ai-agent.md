@@ -46,6 +46,9 @@ Windows:
 WSL/Linux:
 `ai-agent/.venv/wsl/bin/python ai-agent/sync.py --check-verbose`
 
+macOS:
+`ai-agent/.venv/macos/bin/python ai-agent/sync.py --check-verbose`
+
 ### 更新
 
 [update.ps1](update.ps1) 一次更新 Windows 與 WSL 的 Claude Code、Codex 及其 plugins / `npx skills` / asana skill（`-Distro`、`-SkipWin`、`-SkipWsl`）；單一步驟失敗只警告並繼續，最後彙整失敗清單。請在沒有執行中的 claude / codex 的 terminal 執行；plugin 更新需重啟 session 才生效。
@@ -74,6 +77,7 @@ WSL/Linux:
   - `CLAUDE.md`、`claude-pstack-models.md`
   - `claude-settings.json` - 母版、Windows 版
   - `claude-settings.wsl.json` - WSL 專屬變更
+  - `claude-settings.macos.json` - macOS 專屬變更
   - `claude-keybindings.json` 
   - [claude-statusline.py](claude-statusline.py) - status line script，sync 到 `~/.claude/statusline.py`
 
@@ -82,6 +86,14 @@ WSL/Linux:
 
 ### Mods (Plugins)
 - [next-steps](https://github.com/anthropics/claude-plugins-community/tree/main/next-steps)
+
+## macOS
+
+macOS 不在上方「4 Agents」內，比照 WSL 本機模式：只同步本機 `~/.claude`、`~/.codex`，不查詢 Windows 或 WSL。
+
+- Claude settings：`claude-settings.json` + `claude-settings.macos.json`（statusLine 用 `/usr/bin/python3`，避開 pyenv shim）；Codex 與 Windows／WSL 共用 `AGENTS.md`、`codex-config.toml`。
+- `--pull-mac` 收回 repo，要求 `~/.claude/settings.json` 等於 repo 合併結果（忽略欄位除外），相同則略過 settings.json；`--pull-win`、`--pull-wsl`、`--win-only` 在 macOS 不可用。
+- venv 放 `ai-agent/.venv/macos/`（見 [sync.py](sync.py) 的 Python 環境）。
 
 ## Global 共同項目
 

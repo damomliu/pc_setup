@@ -1,15 +1,15 @@
-"""在 repo 的 ai-agent/ 與 Windows、WSL 之間同步 Claude Code 設定與規則。
+"""在 repo 的 ai-agent/ 與 Windows、WSL、macOS 之間同步 Claude Code 設定與規則。
 
-預設：repo -> Windows 與 WSL（Windows 執行；--win-only 只同步 Windows）。WSL 執行時只同步本機。
-  claude-settings.json      -> ~/.claude/settings.json（WSL 版先合併 claude-settings.wsl.json）
+預設：repo -> Windows 與 WSL（Windows 執行；--win-only 只同步 Windows）。WSL、macOS 執行時只同步本機。
+  claude-settings.json      -> ~/.claude/settings.json（WSL、macOS 版先合併 claude-settings.wsl.json、claude-settings.macos.json）
   claude-keybindings.json   -> ~/.claude/keybindings.json
   claude-statusline.py      -> ~/.claude/statusline.py
   CLAUDE.md                 -> ~/.claude/CLAUDE.md
   claude-pstack-models.md   -> ~/.claude/pstack-models.md
 忽略欄位：settings.json 頂層的 model、effortLevel（modelSettings.*.effortLevel 仍受管）。
   比對時排除；推送保留各目標原值、缺值不補入（含首次建立）；Pull 保留 repo 原值、不新增。
-任何目標內容與 repo 不同時整批中止，不寫入；確認要覆蓋加 --force，要保留本機變更先用 --pull-win / --pull-wsl 收回。
---pull-wsl 要求 WSL settings.json 等於 repo 合併結果（忽略欄位除外），相同則略過 settings.json，其餘檔案收回。
+任何目標內容與 repo 不同時整批中止，不寫入；確認要覆蓋加 --force，要保留本機變更先用 --pull-win / --pull-wsl / --pull-mac 收回。
+--pull-wsl、--pull-mac 要求來源 settings.json 等於 repo 合併結果（忽略欄位除外），相同則略過 settings.json，其餘檔案收回。
 """
 import sys
 
@@ -29,7 +29,7 @@ FILE_MAP = {
     "claude-pstack-models.md": ".claude/pstack-models.md",
 }
 SETTINGS = "claude-settings.json"
-OVERLAY = "claude-settings.wsl.json"
+OVERLAYS = {"wsl": "claude-settings.wsl.json", "macos": "claude-settings.macos.json"}
 # settings.json 的忽略欄位（僅頂層）
 IGNORE_KEYS = ("model", "effortLevel")
 
@@ -58,19 +58,19 @@ def merge_settings(base: dict, over: dict, path: str = "") -> dict:
     return base
 
 
-def merged_wsl_settings(repo) -> dict:
-    return merge_settings(copy.deepcopy(c.read_json(repo / SETTINGS)), c.read_json(repo / OVERLAY))
+def merged_settings(repo, overlay: str) -> dict:
+    return merge_settings(copy.deepcopy(c.read_json(repo / SETTINGS)), c.read_json(repo / overlay))
 
 
-def new_plan_item(repo, src: str, root, is_wsl: bool) -> PlanItem:
-    target = root / FILE_MAP[src]
+def new_plan_item(repo, src: str, target_info) -> PlanItem:
+    target = target_info.root / FILE_MAP[src]
     exists = target.exists()
     src_path = repo / src
     if src.endswith(".json"):
         ignore = IGNORE_KEYS if src == SETTINGS else ()
         base = c.read_json(src_path)
-        if is_wsl and src == SETTINGS:
-            base = merge_settings(base, c.read_json(repo / OVERLAY))
+        if src == SETTINGS and target_info.kind in OVERLAYS:
+            base = merge_settings(base, c.read_json(repo / OVERLAYS[target_info.kind]))
         local = c.read_json(target) if exists else {}
         same = exists and c.json_same(local, base, ignore)
         data = c.to_json_bytes(c.join_ignored(base, base, local, ignore)) if ignore else c.read_bytes(src_path)
@@ -88,12 +88,13 @@ def new_plan_item(repo, src: str, root, is_wsl: bool) -> PlanItem:
 def pull(ctx, repo) -> None:
     src = ctx.pull
     skip = ()
-    if ctx.args.pull_wsl:
-        # WSL settings.json 須等於 repo 合併結果（忽略欄位除外），否則無法判斷該回收到母版還是 WSL 專屬檔
-        wsl_settings = src.root / FILE_MAP[SETTINGS]
-        if not c.json_same(c.read_json(wsl_settings), merged_wsl_settings(repo), IGNORE_KEYS):
-            raise SyncError(f"已中止，未收回任何檔案。WSL settings.json 與 repo 合併結果不同：{wsl_settings}\n"
-                            f"請手動編輯 {SETTINGS} 或 {OVERLAY}。")
+    overlay = OVERLAYS.get(src.kind)
+    if overlay:
+        # WSL／macOS settings.json 須等於 repo 合併結果（忽略欄位除外），否則無法判斷該回收到母版還是專屬檔
+        src_settings = src.root / FILE_MAP[SETTINGS]
+        if not c.json_same(c.read_json(src_settings), merged_settings(repo, overlay), IGNORE_KEYS):
+            raise SyncError(f"已中止，未收回任何檔案。{src.name} settings.json 與 repo 合併結果不同：{src_settings}\n"
+                            f"請手動編輯 {SETTINGS} 或 {overlay}。")
         skip = (SETTINGS,)
     # 先讀完所有來源、算好內容，再一次寫入
     writes = []
@@ -119,7 +120,7 @@ def sync(argv, repo, prog="sync_claude.py") -> None:
     ctx = c.build_context(argv, prog)
     if ctx.pull:
         return pull(ctx, repo)
-    plan = [new_plan_item(repo, name, t.root, t.is_wsl) for name in FILE_MAP for t in ctx.targets]
+    plan = [new_plan_item(repo, name, t) for name in FILE_MAP for t in ctx.targets]
     if ctx.args.check or ctx.args.check_verbose:
         c.write_plan_overview(plan)
         if ctx.args.check_verbose:

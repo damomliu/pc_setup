@@ -40,6 +40,7 @@ WSL_FAKE_HOME = "/home/fake"
 FIXTURES = {
     "claude-settings.json": '{"permissions":{"allow":["A","B"]},"model":"sonnet","effortLevel":"medium","modelSettings":{"m1":{"effortLevel":"medium"}},"theme":"dark","count":1,"nested":{"ok":"visible-repo"},"env":{"X":"REPOENV"},"myToken":"REPOTOK"}',
     "claude-settings.wsl.json": '{"permissions":{"allow":["B","C"]},"statusLine":{"command":"wsl-status"}}',
+    "claude-settings.macos.json": '{"permissions":{"allow":["B","D"]},"statusLine":{"command":"mac-status"}}',
     "claude-keybindings.json": '{"bindings":[{"action":"x"}]}',
     "claude-statusline.py": "print(1)\n",
     "CLAUDE.md": "# rules\n",
@@ -664,6 +665,67 @@ class PlatformTests(EnvTestCase):
             self.assertNotEqual(inproc(e, sync_claude, ["--pull-wsl"], "wsl", local=e.wsl).code, 0)
         self.assertFalse(e.wsl_called())
 
+    def test_macos_local_push_overlay_and_pull(self):
+        e = self.env()
+        mac = e.root / "mac"
+        mac.mkdir()
+        with forbid_wsl():
+            for module in (sync_claude, sync_codex):
+                r = inproc(e, module, ["--distro", "Bogus"], "macos", local=mac)  # --distro 在 macOS 被忽略
+                self.assertEqual(r.code, 0, r.out)
+            self.assertEqual(list(e.win.iterdir()) + list(e.wsl.iterdir()), [], "不存取 win / wsl home")
+            s = rj(mac / ".claude/settings.json")
+            self.assertEqual(s["statusLine"]["command"], "mac-status")
+            self.assertEqual(s["permissions"]["allow"], ["A", "B", "D"])
+            self.assertNotIn("model", s)
+            self.assertIn('approval_policy = "on-request"', rd(mac / ".codex/config.toml"))
+            self.assertRegex(inproc(e, sync, ["--check"], "macos", local=mac).out, r"(?m)^same +")
+            self.assertNotRegex(inproc(e, sync, ["--check"], "macos", local=mac).out, r"differs|missing|update")
+            edit_json(mac / ".claude/settings.json", lambda o: o.update(model="MACMODEL"))
+            before = e.hashes()
+            self.assertEqual(inproc(e, sync, ["--pull-mac"], "macos", local=mac).code, 0)
+            self.assertEqual(e.hashes(), before)
+            edit_json(mac / ".claude/settings.json", lambda o: o.update(theme="light"))
+            r = inproc(e, sync_claude, ["--pull-mac"], "macos", local=mac)
+            self.assertNotEqual(r.code, 0)
+            self.assertIn("macOS", r.out)
+        self.assertFalse(e.wsl_called())
+
+    def test_macos_rejects_other_platform_options(self):
+        e = self.env()
+        for args in (["--pull-win"], ["--pull-wsl"], ["--win-only"],
+                     ["--test-win-home", str(e.win), "--test-wsl-root", str(e.wsl)]):
+            for module in (sync, sync_claude, sync_codex):
+                with self.subTest(args=args, module=module.__name__):
+                    before = snap(e.root)
+                    with forbid_wsl():
+                        r = inproc(e, module, args, "macos", local=e.win)
+                    self.assertNotEqual(r.code, 0)
+                    self.assertEqual(snap(e.root), before)
+
+    def test_pull_mac_rejected_on_windows_and_wsl(self):
+        e = self.env()
+        for plat in ("windows", "wsl"):
+            for module in (sync, sync_claude, sync_codex):
+                with self.subTest(plat=plat, module=module.__name__):
+                    before = snap(e.root)
+                    with forbid_wsl():
+                        r = inproc(e, module, ["--pull-mac"], plat, local=e.wsl)
+                    self.assertNotEqual(r.code, 0)
+                    self.assertIn("--pull-mac", r.out)
+                    self.assertEqual(snap(e.root), before)
+
+    def test_pull_mac_conflicts(self):
+        e = self.env()
+        for args in (["--pull-mac", "--pull-win"], ["--pull-mac", "--pull-wsl"],
+                     ["--check", "--pull-mac"], ["--check-verbose", "--pull-mac"]):
+            for module in (sync, sync_claude, sync_codex):
+                with self.subTest(args=args, module=module.__name__):
+                    before = snap(e.root)
+                    r = inproc(e, module, args, "macos", local=e.win)
+                    self.assertNotEqual(r.code, 0)
+                    self.assertEqual(snap(e.root), before)
+
     def test_wsl_local_with_test_root_ignores_test_win_home(self):
         e = self.env()
         nope = e.root / "never-created"
@@ -687,7 +749,7 @@ class PlatformTests(EnvTestCase):
     def test_unsupported_platforms_abort_without_io(self):
         e = self.env()
         before = snap(e.root)
-        for plat in ("macos", "linux", "other"):
+        for plat in ("linux", "other"):
             for module in (sync, sync_claude, sync_codex):
                 for args in ([], ["--force"], ["--pull-win"], ["--pull-wsl"], ["--check"], ["--win-only"]):
                     with self.subTest(plat=plat, module=module.__name__, args=args), forbid_wsl():
@@ -699,7 +761,7 @@ class PlatformTests(EnvTestCase):
 
     def test_unsupported_platform_with_test_paths_still_refuses(self):
         e = self.env()
-        r = inproc(e, sync_claude, ["--test-win-home", str(e.win), "--test-wsl-root", str(e.wsl)], "macos")
+        r = inproc(e, sync_claude, ["--test-win-home", str(e.win), "--test-wsl-root", str(e.wsl)], "linux")
         self.assertNotEqual(r.code, 0)
         self.assertEqual(list(e.win.iterdir()) + list(e.wsl.iterdir()), [])
 
@@ -1145,7 +1207,7 @@ class TomlTests(EnvTestCase):
                 r = inproc(e, module, ["--check", "--force"], "windows", local=e.win)
                 self.assertNotEqual(r.code, 0)
                 self.assertIn("不能與", r.out)
-            r = inproc(e, sync_codex, [], "macos", local=e.win)
+            r = inproc(e, sync_codex, [], "linux", local=e.win)
             self.assertNotEqual(r.code, 0)
             self.assertIn("尚未支援", r.out)
 

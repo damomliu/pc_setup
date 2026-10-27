@@ -86,9 +86,10 @@ class _Parser(argparse.ArgumentParser):
 
 def build_parser(prog: str) -> argparse.ArgumentParser:
     p = _Parser(prog=prog, allow_abbrev=False,
-                description="在 repo 的 ai-agent/ 與 Windows、WSL 之間同步設定與規則。")
+                description="在 repo 的 ai-agent/ 與 Windows、WSL、macOS 之間同步設定與規則。")
     p.add_argument("--pull-win", action="store_true", help="Windows -> repo")
     p.add_argument("--pull-wsl", action="store_true", help="WSL -> repo")
+    p.add_argument("--pull-mac", action="store_true", help="macOS -> repo")
     p.add_argument("--check", action="store_true", help="唯讀，只列出每個目標的狀態")
     p.add_argument("--check-verbose", action="store_true", help="唯讀，另列出差異")
     p.add_argument("--force", action="store_true", help="覆蓋內容不同的目標")
@@ -102,11 +103,11 @@ def build_parser(prog: str) -> argparse.ArgumentParser:
 def parse_args(argv, prog: str) -> argparse.Namespace:
     """解析並檢查參數；衝突一律在任何檔案 I/O 與 WSL 呼叫前拒絕。"""
     a = build_parser(prog).parse_args(argv)
-    pull = a.pull_win or a.pull_wsl
-    if a.pull_win and a.pull_wsl:
-        raise SyncError("--pull-win 與 --pull-wsl 不能同時使用")
+    pull = a.pull_win or a.pull_wsl or a.pull_mac
+    if a.pull_win + a.pull_wsl + a.pull_mac > 1:
+        raise SyncError("--pull-win、--pull-wsl 與 --pull-mac 不能同時使用")
     if (a.check or a.check_verbose) and (pull or a.force):
-        raise SyncError("--check / --check-verbose 只能唯讀檢查，不能與 --pull-win / --pull-wsl / --force 併用")
+        raise SyncError("--check / --check-verbose 只能唯讀檢查，不能與 --pull-win / --pull-wsl / --pull-mac / --force 併用")
     if a.win_only and a.pull_wsl:
         raise SyncError("--win-only 不能與 --pull-wsl 併用")
     if (a.test_win_home is None) != (a.test_wsl_root is None):
@@ -118,9 +119,9 @@ def parse_args(argv, prog: str) -> argparse.Namespace:
 
 @dataclass
 class Target:
-    name: str  # Windows / WSL
+    name: str  # Windows / WSL / macOS
     root: Path
-    is_wsl: bool
+    kind: str  # windows / wsl / macos
 
 
 @dataclass
@@ -136,8 +137,15 @@ def validate_platform(a) -> str:
     if plat == "wsl":
         if a.pull_win or a.win_only:
             raise SyncError("WSL 本機執行只同步目前 Linux user，不接受 --pull-win 或 --win-only")
+    elif plat == "macos":
+        if a.pull_win or a.pull_wsl or a.win_only:
+            raise SyncError("macOS 本機執行只同步目前 user，不接受 --pull-win、--pull-wsl 或 --win-only")
+        if a.test_win_home is not None:
+            raise SyncError("macOS 本機執行不接受 --test-win-home / --test-wsl-root")
     elif plat != "windows":
-        raise SyncError(f"尚未支援此平台（{plat}）；目前僅支援 Windows 與 WSL，未讀寫任何設定")
+        raise SyncError(f"尚未支援此平台（{plat}）；目前僅支援 Windows、WSL 與 macOS，未讀寫任何設定")
+    if plat in ("windows", "wsl") and a.pull_mac:
+        raise SyncError("--pull-mac 只能在 macOS 使用")
     return plat
 
 
@@ -149,16 +157,19 @@ def build_context(argv, prog: str, preflight=None) -> Context:
         preflight()
     if plat == "wsl":
         home = Path(a.test_wsl_root) if a.test_wsl_root is not None else local_home()
-        t = Target("WSL", home, True)
+        t = Target("WSL", home, "wsl")
         return Context(a, [t], t if a.pull_wsl else None)
+    if plat == "macos":
+        t = Target("macOS", local_home(), "macos")
+        return Context(a, [t], t if a.pull_mac else None)
 
     def win() -> Target:
-        return Target("Windows", Path(a.test_win_home) if a.test_win_home is not None else local_home(), False)
+        return Target("Windows", Path(a.test_win_home) if a.test_win_home is not None else local_home(), "windows")
 
     def wsl() -> Target:
         if a.test_wsl_root is not None:
-            return Target("WSL", Path(a.test_wsl_root), True)
-        return Target("WSL", wsl_unc_root(a.distro, query_wsl_home(a.distro)), True)
+            return Target("WSL", Path(a.test_wsl_root), "wsl")
+        return Target("WSL", wsl_unc_root(a.distro, query_wsl_home(a.distro)), "wsl")
 
     if a.pull_win:
         t = win()
@@ -344,7 +355,7 @@ def report_plan_and_stop(plan, force: bool) -> None:
     if differs and not force:
         for p in differs:
             warn(f"內容與 repo 不同：{p.target}")
-        raise SyncError("已中止，未寫入任何檔案。要覆蓋加 --force；要保留本機變更先跑 --pull-win / --pull-wsl。")
+        raise SyncError("已中止，未寫入任何檔案。要覆蓋加 --force；要保留本機變更先跑 --pull-win / --pull-wsl / --pull-mac。")
 
 
 def apply_plan(plan) -> None:
