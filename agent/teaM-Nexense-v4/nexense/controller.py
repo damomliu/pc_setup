@@ -21,6 +21,9 @@ class WorkflowError(Exception):
 ID_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{1,39}$")
 MODES = {"quick", "standard", "deep"}
 MAX_REVIEW_ROUNDS = 2
+BUILDERS = {"implementer", "shifu", "pro", "slave", "pro2", "slave2"}
+TEAM_B_BUILDERS = {"pro2", "slave2"}
+ROLES = ("pm", "misswu", "qa", "shifu", "pro", "slave", "qa2", "pro2", "slave2", "secretary", "implementer")
 
 
 def run(*args: str, cwd: Path | None = None, timeout: int = 90) -> str:
@@ -101,7 +104,7 @@ class Controller:
             "id": task_id, "mode": mode, "state": "planning", "review_rounds": 0,
             "max_review_rounds": MAX_REVIEW_ROUNDS, "approval": {"plan": False, "tickets": False},
             "agents": {}, "worktree": None, "branch": None, "commit": None,
-            "checks": {"qa": None, "pm": None}, "history": [],
+            "code_reviewer": "qa", "checks": {"qa": None, "pm": None}, "history": [],
         }
         self.event(data, "Task created")
         self.save(data)
@@ -121,7 +124,7 @@ class Controller:
         self.require(d, "planning")
         if not self.substantive(task_id, "plan.md"):
             raise WorkflowError("Fill in plan.md before submitting")
-        d["state"] = "plan_review" if d["mode"] != "quick" else "awaiting_plan_approval"
+        d["state"] = "plan_review"
         self.event(d, "Plan submitted")
         self.save(d)
         return d
@@ -211,7 +214,7 @@ class Controller:
         if not self.substantive(task_id, "implementation.md"):
             raise WorkflowError("Write an implementation report before finishing")
         d["commit"] = full
-        d["checks"] = {"qa": None, "pm": None}
+        d["checks"] = {d.get("code_reviewer", "qa"): None, "pm": None}
         d["state"] = "verifying"
         self.event(d, f"Implementation submitted: {full}")
         self.save(d)
@@ -220,46 +223,55 @@ class Controller:
     def verify(self, task_id: str, role: str, outcome: str) -> dict[str, Any]:
         d = self.load(task_id)
         self.require(d, "verifying")
-        if role not in ("qa", "pm") or outcome not in ("pass", "fail"):
-            raise WorkflowError("Usage: verify <task> qa|pm pass|fail")
-        if role == "pm" and d["checks"]["qa"] != "pass":
-            raise WorkflowError("QA must pass before PM acceptance")
+        reviewer = d.get("code_reviewer", "qa")
+        if role not in (reviewer, "pm") or outcome not in ("pass", "fail"):
+            raise WorkflowError(f"Usage: verify <task> {reviewer}|pm pass|fail")
+        if role == "pm" and d["checks"][reviewer] != "pass":
+            raise WorkflowError(f"{reviewer.upper()} must pass before PM acceptance")
         if not self.substantive(task_id, "verification.md"):
             raise WorkflowError("Fill in verification.md with actual evidence first")
         d["checks"][role] = outcome
         if outcome == "fail":
             d["state"] = "implementing"
-            d["checks"] = {"qa": None, "pm": None}
+            d["checks"] = {reviewer: None, "pm": None}
             d["commit"] = None
-        elif d["checks"]["qa"] == "pass" and d["checks"]["pm"] == "pass":
+        elif d["checks"][reviewer] == "pass" and d["checks"]["pm"] == "pass":
             d["state"] = "ready_to_merge"
         self.event(d, f"{role.upper()} verification: {outcome}")
         self.save(d)
         return d
 
-    def dispatch(self, task_id: str, role: str, *, dry_run: bool = False) -> dict[str, Any]:
-        d = self.load(task_id)
-        roles = self.config["roles"]
-        if role not in roles:
-            raise WorkflowError(f"Unknown role '{role}'; available: {', '.join(roles)}")
+    def require_role(self, d: dict[str, Any], role: str) -> None:
+        if role not in ROLES or role not in self.config["roles"]:
+            raise WorkflowError(f"Unknown role '{role}'; available: {', '.join(self.config['roles'])}")
         if role == "pm":
-            self.require(d, "planning", "tickets_draft", "verifying")
+            self.require(d, "planning", "awaiting_plan_approval", "tickets_draft", "verifying", "blocked")
         elif role == "qa":
             self.require(d, "plan_review", "verifying")
-        elif role in ("implementer", "pro2"):
+        elif role == "qa2":
+            self.require(d, "verifying")
+        elif role in BUILDERS:
             self.require(d, "tickets_approved", "implementing")
             if not d["approval"]["tickets"] or not d["worktree"]:
                 raise WorkflowError("Need approved tickets and a worktree before implementation")
-        else:
-            raise WorkflowError("Role dispatch not implemented in this MVP")
+        if role in ("qa", "qa2") and d["state"] == "verifying" and role != d.get("code_reviewer", "qa"):
+            raise WorkflowError(f"Code review is assigned to {d.get('code_reviewer', 'qa')}")
+
+    def dispatch(self, task_id: str, role: str, *, dry_run: bool = False, human_approved: bool = False) -> dict[str, Any]:
+        d = self.load(task_id)
+        self.require_role(d, role)
+        if role == "misswu" and not dry_run and not human_approved:
+            raise WorkflowError("Each MissWu launch requires explicit human approval (--human-approved)")
         if role in d["agents"]:
             raise WorkflowError(f"Role '{role}' already has an assigned pane; use send/read")
+        if role in BUILDERS and any(builder in d["agents"] for builder in BUILDERS):
+            raise WorkflowError("One primary implementer per task/worktree; use separate tasks for multiple builders")
         workspace = os.environ.get("HERDR_WORKSPACE_ID")
         if not dry_run and (os.environ.get("HERDR_ENV") != "1" or not workspace):
             raise WorkflowError("Dispatch must run inside a Herdr pane (HERDR_ENV=1)")
-        cwd = d["worktree"] if role in ("implementer", "pro2") else str(self.repo)
+        cwd = d["worktree"] if role in BUILDERS else str(self.repo)
         alias = f"{role}-{task_id}".lower().replace("_", "-")[:32]
-        entry = roles[role]
+        entry = self.config["roles"][role]
         kind = entry["kind"]
         if kind not in ("claude", "codex"):
             raise WorkflowError("Only native claude/codex are allowed in v4")
@@ -279,6 +291,8 @@ class Controller:
             raise WorkflowError(f"Tab created but pane/tab ID missing: {tab_result}")
         # Record before agent start: a failed start must not silently create duplicates.
         d["agents"][role] = {"name": alias, "kind": kind, "tab": tab, "pane": pane, "started": False}
+        if role == "misswu":
+            self.event(d, "Human approved this MissWu launch")
         self.event(d, f"Tab reserved for {role}: {tab}")
         self.save(d)
         args = ["herdr", "agent", "start", alias, "--kind", kind, "--pane", pane]
@@ -286,7 +300,8 @@ class Controller:
             args += ["--", *native_args]
         json_command(*args, timeout=150)
         d["agents"][role]["started"] = True
-        if role in ("implementer", "pro2"):
+        if role in BUILDERS:
+            d["code_reviewer"] = "qa2" if role in TEAM_B_BUILDERS else "qa"
             d["state"] = "implementing"
         self.event(d, f"Started {role} in Herdr: {alias}")
         self.save(d)
@@ -298,18 +313,27 @@ class Controller:
 
     def prompt(self, task_id: str, role: str) -> str:
         d = self.load(task_id)
+        self.require_role(d, role)
         task = self.path(task_id)
         rules = (self.repo / "roles" / f"{role}.md").read_text(encoding="utf-8")
+        if role in BUILDERS and role != "implementer":
+            rules += "\n" + (self.repo / "roles" / "implementer.md").read_text(encoding="utf-8")
         stage = d["state"]
         if role == "pm":
             focus = {"planning": "Prepare or revise requirements.md and plan.md; do not implement.",
-                     "tickets_draft": "Propose tickets in tickets.md using the approved plan. No implementation.",
-                     "verifying": "Check acceptance criteria at the pinned commit, write verification.md."}.get(stage)
-        elif role == "qa":
+                     "awaiting_plan_approval": "Present the plan and recommend roles, headcount, models and effort. Ask for confirmation before writing ticket content.",
+                     "tickets_draft": "Human confirmed plan and staffing. Use to-tickets when installed and invocation is allowed; otherwise ask the user how to proceed. Write tickets.md only within that confirmation. No implementation.",
+                     "verifying": "Check acceptance criteria at the pinned commit, append PM evidence to verification.md.",
+                     "blocked": "Report unresolved PM-QA findings after two rounds. Wait for human resolution; propose MissWu only if useful and obtain separate launch approval."}.get(stage)
+        elif role in ("qa", "qa2"):
             focus = {"plan_review": "Independently review plan.md; document findings in review.md, do not change plan.md.",
                      "verifying": "Review only the pinned commit, tests, and regression risks; document results in verification.md."}.get(stage)
-        else:
+        elif role in BUILDERS:
             focus = "Implement only approved tickets in your assigned worktree. Test, commit, and record evidence in implementation.md."
+        elif role == "misswu":
+            focus = "Analyze the escalated difficult or complex issue; report options to PM and the human. Do not approve gates or implement tickets."
+        else:
+            focus = "Handle assigned miscellaneous work, including model/effort research when requested. Report to PM; do not implement tickets or approve gates."
         if not focus:
             raise WorkflowError(f"Cannot prompt {role} in {stage}")
         return (

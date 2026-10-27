@@ -3,7 +3,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from .controller import Controller, WorkflowError
+from .controller import Controller, ROLES, WorkflowError
 
 
 def parser() -> argparse.ArgumentParser:
@@ -24,14 +24,15 @@ def parser() -> argparse.ArgumentParser:
     a = task("approve")
     a.add_argument("stage", choices=["plan", "tickets"])
     a = task("verify")
-    a.add_argument("role", choices=["qa", "pm"])
+    a.add_argument("role", choices=["qa", "qa2", "pm"])
     a.add_argument("outcome", choices=["pass", "fail"])
     a = task("dispatch")
-    a.add_argument("role", choices=["pm", "qa", "implementer", "pro2"])
+    a.add_argument("role", choices=ROLES)
     a.add_argument("--dry-run", action="store_true")
+    a.add_argument("--human-approved", action="store_true", help="Human confirms this MissWu launch only")
     for name in ("send", "read", "prompt"):
         a = task(name)
-        a.add_argument("role", choices=["pm", "qa", "implementer", "pro2"])
+        a.add_argument("role", choices=ROLES)
     return p
 
 
@@ -50,7 +51,7 @@ def main():
         elif command == "finish": obj = c.finish(args.id, args.commit)
         elif command == "verify": obj = c.verify(args.id, args.role, args.outcome)
         elif command == "resolve": obj = c.resolve(args.id)
-        elif command == "dispatch": obj = c.dispatch(args.id, args.role, dry_run=args.dry_run)
+        elif command == "dispatch": obj = c.dispatch(args.id, args.role, dry_run=args.dry_run, human_approved=args.human_approved)
         elif command == "send": obj = c.send(args.id, args.role)
         elif command == "read": obj = c.read(args.id, args.role)
         elif command == "prompt": obj = c.prompt(args.id, args.role)
