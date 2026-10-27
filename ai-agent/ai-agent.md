@@ -23,38 +23,30 @@ Claude 與 Codex 各自維護一份完整的 global 指引，同工具的 Win／
 
 Codex 同步器將 `AGENTS.md` 當作一般文字檔，不要求 pstack 區塊，也不產生、比對或修改 `~/.codex/pstack-models.md`；既有非受管檔案需另行清理。Claude 仍同步獨立的 `pstack-models.md`，但 `CLAUDE.md` 不再引用它。
 
-WSL 的 `$HOME` 屬於 Linux user；不同 user / distro 各自獨立。設定 `CODEX_HOME` 或 `CLAUDE_CONFIG_DIR` 時，對應檔案改由該目錄讀取（同步腳本尚不支援這兩個變數）。
-
 VSCode 使用哪份規則取決於 backend 實際執行環境；切換 terminal 不等於切換 backend。
 
 ### 忽略欄位
 
-各環境自己選擇的 model、effort 不參與同步，只限下列設定檔的頂層 key（不遞迴到同名巢狀 key）：
+- Claude（`settings.json`）
+  - 忽略欄位：`model`、`effortLevel`
+  - 仍受管：`modelSettings.*.effortLevel`、pstack 設定
+- Codex（`config.toml`）
+  - 忽略欄位：`model`、`model_reasoning_effort`
+  - 仍受管：repo 列出的其他 key（含 section）
 
-| 工具 | 忽略欄位 | 仍受管 |
-| --- | --- | --- |
-| Claude（`settings.json`） | `model`、`effortLevel` | `modelSettings.*.effortLevel`、pstack 設定 |
-| Codex（`config.toml`） | `model`、`model_reasoning_effort` | repo 列出的其他 key（含 section） |
+比對時排除；推送與 `--force` 保留各目標原值，目標缺值不補入（含首次建立）；Pull 保留 repo 原值、repo 沒有的不新增。只有忽略欄位不同時視為 same，不改寫檔案。
 
-比對時排除；推送與 `-Force` 保留各目標原值，目標缺值不補入（含首次建立）；Pull 保留 repo 原值、repo 沒有的不新增。只有忽略欄位不同時視為 same，不改寫檔案。
+## 腳本
 
-### sync 用法
+### 同步
 
-[sync.ps1](sync.ps1) 一次執行 [sync-claude.ps1](sync-claude.ps1) 與 [sync-codex.ps1](sync-codex.ps1)（參數相同，第一支失敗即不跑第二支；兩者沒有跨工具 transaction）。共用邏輯在 [sync-common.ps1](sync-common.ps1)。
+Windows:
+`ai-agent\\.venv\\windows\\Scripts\\python.exe ai-agent\\sync.py --check-verbose`
 
-- 預設：repo → Windows 與 WSL；目標內容不同需 `-Force`。
-- `-PullWin` / `-PullWsl`：收回 repo；兩者互斥，Claude 與 Codex 各自收回自己的指引，不再要求兩者一致。
-- `-Check`：唯讀，只列出每個目標的 `missing` / `same` / `differs`（Codex config 另有 `update`）。
-- `-CheckVerbose`：唯讀，單獨使用即包含 `-Check`，另列出設定路徑與「本機 → repo 預期」值（WSL 為合併後結果）及指引／pstack 文字的逐行 diff。忽略欄位不出現；env 子樹與路徑含 token / secret / password / auth / credential、或為 key 類名稱（`key`、`apiKey`、`api_key`…）的值顯示 `***`。
-- `-Check` / `-CheckVerbose` 不能與 `-PullWin` / `-PullWsl` / `-Force` 併用，會在任何 I/O 前拒絕。
-- JSON 比對忽略 object key 順序與排版（array 順序、值與型別、字串大小寫都有意義）；TOML 依 section／key 查找，忽略排列順序。
-- 隱藏參數 `-TestWinHome` / `-TestWslRoot` 供測試使用，必須成對指定，指定後不呼叫 WSL。
+WSL/Linux:
+`ai-agent/.venv/wsl/bin/python ai-agent/sync.py --check-verbose`
 
-### 測試
-
-[test-sync.ps1](test-sync.ps1) 以暫存 repo / Windows home / WSL home 執行同步腳本 CLI，不碰真實設定、不需外部套件：`pwsh -NoProfile -File ai-agent/test-sync.ps1`（`-Only '<情境名稱萬用字元>'` 可只跑部分情境）。實機驗證請另外對真實 4 Agents 執行唯讀 `.\sync.ps1 -CheckVerbose`。
-
-## 更新
+### 更新
 
 [update.ps1](update.ps1) 一次更新 Windows 與 WSL 的 Claude Code、Codex 及其 plugins / `npx skills` / asana skill（`-Distro`、`-SkipWin`、`-SkipWsl`）；單一步驟失敗只警告並繼續，最後彙整失敗清單。請在沒有執行中的 claude / codex 的 terminal 執行；plugin 更新需重啟 session 才生效。
 
@@ -62,7 +54,7 @@ VSCode 使用哪份規則取決於 backend 實際執行環境；切換 terminal 
 
 ### 佈署
 
-用 [sync-codex.ps1](sync-codex.ps1) 同步到 Windows 與 WSL（`-PullWin` / `-PullWsl` 可從 Windows 或 WSL 收回 repo）：`AGENTS.md` 整檔覆寫；`codex-config.toml` 列出的 key（含 `[tui]` 這類 section，頂層 `model` / `model_reasoning_effort` 除外）合併至各自的 `$HOME/.codex/config.toml`，保留既有 model、MCP 等設定（用法見檔頭）。
+用 [sync_codex.py](sync_codex.py) 同步到 Windows 與 WSL（`--pull-win` / `--pull-wsl` 可從 Windows 或 WSL 收回 repo）：`AGENTS.md` 整檔覆寫；`codex-config.toml` 列出的 key（含 `[tui]` 這類 section，頂層 `model` / `model_reasoning_effort` 除外）合併至各自的 `$HOME/.codex/config.toml`，保留既有 model、MCP 等設定（用法見 sync 用法）。
 
 - Repo 副本：
   - [AGENTS.md](AGENTS.md)
@@ -76,7 +68,7 @@ VSCode 使用哪份規則取決於 backend 實際執行環境；切換 terminal 
 
 ### 佈署
 
-用 [sync-claude.ps1](sync-claude.ps1) 同步到 Windows 與 WSL（`-PullWin` / `-PullWsl` 可從 Windows 或 WSL 收回 repo；`-PullWsl` 要求 WSL settings.json 等於 repo 合併結果，忽略欄位除外）
+用 [sync_claude.py](sync_claude.py) 同步到 Windows 與 WSL（`--pull-win` / `--pull-wsl` 可從 Windows 或 WSL 收回 repo；`--pull-wsl` 要求 WSL settings.json 等於 repo 合併結果，忽略欄位除外）
 
 - Repo 副本：
   - `CLAUDE.md`、`claude-pstack-models.md`
