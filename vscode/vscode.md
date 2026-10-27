@@ -2,7 +2,7 @@
 
 2026-10-04 從 Cursor 轉回 VS Code，設定以 Cursor 為主。舊的 VS Code 設定備份在 `backup/vscode-20261004/`（不進版本庫）。
 
-## 檔案
+## Repo 複本
 
 | repo | 實際載入 | 說明 |
 |---|---|---|
@@ -10,20 +10,18 @@
 | `vscode/keybindings.json` | `%APPDATA%\Code\User\keybindings.json` | Windows 用；所有 profile 共用。按鍵說明見 `vscode-keybindings.md` |
 | `vscode/mcp.json` | `%APPDATA%\Code\User\mcp.json` | 由 `~\.cursor\mcp.json` 轉換 |
 | `vscode/extensions.json` | — | 各 profile 的 extension 清單 |
-| `vscode/sync-vscode.ps1` | — | 同步腳本 |
 
-```powershell
-pwsh vscode/sync-vscode.ps1                     # repo -> VS Code
-pwsh vscode/sync-vscode.ps1 -Pull               # VS Code -> repo（在 UI 改過設定後）
-pwsh vscode/sync-vscode.ps1 -Check              # 只比對 repo 與 VS Code 是否一致（有差異 exit 1）
-pwsh vscode/sync-vscode.ps1 -Extensions         # 依 extensions.json 補裝
-pwsh vscode/sync-vscode.ps1 -Extensions -Prune  # 另外移除清單外的 extension
+## 同步腳本
+| `vscode/sync_vscode.py` | — | 同步腳本 |
+
+```bash
+python vscode/sync_vscode.py                       # repo -> VS Code (settings/keybindings/mcp)
+python vscode/sync_vscode.py --pull                # VS Code -> repo（在 UI 改過設定後）
+python vscode/sync_vscode.py --check               # 只比對設定檔與 extension 是否一致（有差異 exit 1；JSON 依語意比對，忽略 key 順序／註解／格式）
+python vscode/sync_vscode.py --check-verbose       # 同 --check，另列出 diff 與缺少／多出的 extension
+python vscode/sync_vscode.py --extensions          # 依 extensions.json 補裝
+python vscode/sync_vscode.py --extensions --prune   # 另外移除清單外的 extension
 ```
-
-## Markdown Editor
-
-- `*.md` 預設使用內建 Markdown Editor（`vscode.markdown.editor`）。
-- 設定 `markdown.experimental.richLinks.enabled: false`，關閉連結的 Rich Links 與即時 metadata 解析（包含 GitHub 連結），保留一般連結呈現。
 
 ## Settings Sync
 
@@ -56,4 +54,4 @@ pwsh vscode/sync-vscode.ps1 -Extensions -Prune  # 另外移除清單外的 exten
 pwsh vscode/hide-statusbar-items.ps1
 ```
 
-需要 `sqlite3` 在 PATH 中。建議先關閉 VS Code 再執行；若執行時 VS Code 已開啟，請重新開啟以載入，期間不要再修改 Status Bar 隱藏清單，以免記憶體中的舊狀態覆寫變更。腳本會將修改前的值備份到 `backup/vscode-statusbar-時間戳/`，並讀回確認。新建 Profile 後需再執行一次；一般 `sync-vscode.ps1` 不會同步這份內部狀態。
+需要 `sqlite3` 在 PATH 中。建議先關閉 VS Code 再執行；若執行時 VS Code 已開啟，請重新開啟以載入，期間不要再修改 Status Bar 隱藏清單，以免記憶體中的舊狀態覆寫變更。腳本會將修改前的值備份到 `backup/vscode-statusbar-時間戳/`，並讀回確認。新建 Profile 後需再執行一次；一般 `sync_vscode.py` 不會同步這份內部狀態。
