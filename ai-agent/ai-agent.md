@@ -53,6 +53,8 @@ macOS:
 
 [update.ps1](update.ps1) 一次更新 Windows 與 WSL 的 Claude Code、Codex 及其 plugins / `npx skills` / asana skill（`-Distro`、`-SkipWin`、`-SkipWsl`）；單一步驟失敗只警告並繼續，最後彙整失敗清單。請在沒有執行中的 claude / codex 的 terminal 執行；plugin 更新需重啟 session 才生效。
 
+[update.sh](update.sh) 為 macOS 版，步驟相同（claude 為 Homebrew 安裝時改用 `brew upgrade --cask claude-code`）。
+
 ## ChatGPT Codex
 
 ### 佈署
@@ -94,6 +96,7 @@ macOS 不在上方「4 Agents」內，比照 WSL 本機模式：只同步本機 
 - Claude settings：`claude-settings.json` + `claude-settings.macos.json`（statusLine 用 `/usr/bin/python3`，避開 pyenv shim）；Codex 與 Windows／WSL 共用 `AGENTS.md`、`codex-config.toml`。
 - `--pull-mac` 收回 repo，要求 `~/.claude/settings.json` 等於 repo 合併結果（忽略欄位除外），相同則略過 settings.json；`--pull-win`、`--pull-wsl`、`--win-only` 在 macOS 不可用。
 - venv 放 `ai-agent/.venv/macos/`（見 [sync.py](sync.py) 的 Python 環境）。
+- 更新：執行 [update.sh](update.sh)（Claude Code、Codex 及其 plugins / skills）。
 
 ## Global 共同項目
 
@@ -114,7 +117,7 @@ Claude Code 另外依剩餘比例變色（5h／weekly 剩餘或 Context 剩餘 �
 - asana-ai-skill
 - herdr（Windows、WSL 各執行一次；裝到 `~/.agents/skills/herdr`，Codex 直接讀取，Claude Code 以 symlink 連結）：
   `npx skills add herdrdev/herdr --skill herdr -g -a claude-code -a codex -y`
-  更新：執行 `ai-agent/update.ps1`（含 `npx skills update -g`）；手動更新時 WSL 的 npx 來自 nvm，非互動 shell 需先 `source ~/.nvm/nvm.sh`
+  更新：Windows／WSL 執行 `ai-agent/update.ps1`，macOS 執行 `ai-agent/update.sh`（含 `npx skills update -g`）；手動更新時 WSL 的 npx 來自 nvm，非互動 shell 需先 `source ~/.nvm/nvm.sh`
 - 本機技能正本放 `.agents/skills/`，`.claude/skills/` 底下用 junction 指過去（git 不會保留 junction，clone 後要重建）：
   `New-Item -ItemType Junction -Path .claude\skills\wezterm -Target .agents\skills\wezterm`
 - [pstack](https://github.com/michael-denyer/pstack-claude)

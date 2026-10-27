@@ -1,23 +1,37 @@
 <#
 .SYNOPSIS
     一次更新 Windows 與 WSL 的 Claude Code、Codex 及其 plugins / skills。
+    需要 PowerShell 7。
 
 .DESCRIPTION
-    每個環境依序執行：
-      claude update、codex update（各自依安裝方式更新；WSL 的 codex 來自 nvm，先 source ~/.nvm/nvm.sh）
-      claude plugin marketplace update、claude plugin update <id> --scope user（Windows 與 WSL 的 plugins 各自獨立，兩邊都更新）
-      codex plugin marketplace upgrade
-      npx skills update -g -y
-      ~/.agent-skills/sources/asana-ai-skill 的 git pull --ff-only（工作目錄不乾淨則警告略過）
-    單一步驟失敗只記錄警告並繼續，最後彙整失敗清單，有失敗則 exit 1。
-    -SkipWin / -SkipWsl：略過該環境。
-    請在沒有執行中的 claude / codex 的 terminal 執行（更新時 exe 可能被鎖）。
+    請在沒有執行中的 claude / codex 的 terminal 執行（更新時可能被鎖）。
     plugin 更新需重啟 Claude Code session 才生效。
-    需要 PowerShell 7。
+
+    Windows 與 WSL 兩個環境各自獨立，依序執行：
+      - claude update
+      - codex update（WSL 的 codex 來自 nvm，先 source ~/.nvm/nvm.sh）
+      - claude plugin marketplace update
+      - 對每個已安裝的 plugin 執行 claude plugin update <id> --scope user
+        （plugin id 來自 claude plugin list --json，失敗時改讀 ~/.claude/plugins/installed_plugins.json）
+      - codex plugin marketplace upgrade
+      - npx -y skills update -g -y
+      - ~/.agent-skills/sources/asana-ai-skill 的 git pull --ff-only
+        （目錄不存在則略過，工作目錄不乾淨則警告略過）
+    WSL 以 wsl -d <distro> -- bash -l 執行暫存在 /tmp 的 bash script，完成後刪除。
+    最後印出 Windows 與 WSL 的 claude / codex 版本。
+    單一步驟失敗只記錄警告並繼續，最後彙整失敗清單，有失敗則 exit 1。
+
+.EXAMPLE
+    .\update.ps1            # 更新 Windows 與 WSL
+    .\update.ps1 -SkipWsl   # 只更新 Windows
+    .\update.ps1 -SkipWin   # 只更新 WSL
 #>
 param(
+    # WSL distro 名稱
     [string]$Distro = 'Ubuntu-24.04',
+    # 略過 Windows 環境
     [switch]$SkipWin,
+    # 略過 WSL 環境
     [switch]$SkipWsl
 )
 
