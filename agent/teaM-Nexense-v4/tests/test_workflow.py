@@ -109,8 +109,16 @@ class WorkflowTests(unittest.TestCase):
         self.c.verify("TASK-001", "pm", "pass")
         self.assertEqual(self.c.load("TASK-001")["state"], "ready_to_merge")
 
-    def test_all_modes_require_plan_review_and_approvals(self):
-        for mode in ("quick", "standard", "deep"):
+    def test_quick_skips_plan_review_not_approvals(self):
+        self.c.start("TASK-quick", "quick")
+        (self.c.path("TASK-quick") / "plan.md").write_text("Small UI text change\n")
+        self.c.submit_plan("TASK-quick")
+        self.assertEqual(self.c.load("TASK-quick")["state"], "awaiting_plan_approval")
+        self.assertEqual(self.c.approve("TASK-quick", "plan")["state"], "tickets_draft")
+        with self.assertRaises(WorkflowError): self.c.create_worktree("TASK-quick")
+
+    def test_standard_and_deep_require_plan_review_and_approvals(self):
+        for mode in ("standard", "deep"):
             task_id = f"TASK-{mode}"
             with self.subTest(mode=mode):
                 self.c.start(task_id, mode)
@@ -152,12 +160,12 @@ class WorkflowTests(unittest.TestCase):
     def test_role_config_and_cli(self):
         roles = self.c.config["roles"]
         self.assertEqual(set(roles), set(ROLES))
-        self.assertEqual(roles["pm"]["model"], "gpt-6.1-sol")
+        self.assertEqual(roles["pm"]["model"], "claude-opus-5-5")
         self.assertEqual(roles["qa"]["effort"], "high")
         self.assertEqual(roles["misswu"]["model"], "gpt-6-astra")
         self.assertEqual(roles["slave2"]["model"], "gpt-6-luna")
         self.assertEqual({(x["model"], x["effort"]) for x in roles["pm"]["alternatives"]},
-                         {("claude-opus-5-5", "medium"), ("gpt-6-astra", "medium")})
+                         {("gpt-6.1-sol", "high"), ("gpt-6-astra", "medium")})
         for role in ROLES:
             with self.subTest(role=role):
                 self.assertTrue((self.repo / "roles" / f"{role}.md").is_file())

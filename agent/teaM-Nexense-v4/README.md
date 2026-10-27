@@ -63,7 +63,7 @@ Requirements: Python **3.11+**, `git`, `herdr`, `claude`, `codex`, shell. Python
    codex --version
    printf '%s %s\n' "$HERDR_ENV" "$HERDR_WORKSPACE_ID"
    ```
-5. Edit `.nexense/team.json` to map roles to `kind` (`claude` / `codex`) and **validated** native CLI `args`. The `model`, `effort` and PM `alternatives` fields record team preferences; they are **not** automatically passed as CLI flags. Set verified native arguments for the selected model/effort before dispatch, or confirm them in the reused session. PM defaults to the gpt-6.1-sol/high preference; choosing a Claude alternative also requires changing `kind`.
+5. Edit `.nexense/team.json` to map roles to `kind` (`claude` / `codex`) and **validated** native CLI `args`. The `model`, `effort` and PM `alternatives` fields record team preferences; they are **not** automatically passed as CLI flags. Set verified native arguments for the selected model/effort before dispatch, or confirm them in the reused session. PM defaults to the claude-opus-5-5/medium preference; choosing a Codex alternative (gpt-6.1-sol/high or gpt-6-astra/medium) also requires changing `kind`.
 
 ### Step-by-step: Standard workflow
 
@@ -143,7 +143,7 @@ python -m nexense start TASK-002 --mode quick
 python -m nexense start TASK-003 --mode deep
 ```
 
-- Quick uses a smaller planning scope; it retains the same PM-QA review and human plan/staffing/tickets approvals. It is not intended for high-risk production or device-control changes. Existing Quick tasks already awaiting plan approval should be restarted if they skipped QA review.
+- Quick bypasses mandatory *plan review*, but still requires human plan/staffing/tickets approval. It is not intended for high-risk production or device-control changes.
 - Standard requires QA review and human approvals.
 - Deep currently uses the same enforcement gates as Standard; deeper grilling, additional design alternatives, staged verification and risk controls are **prompt-level requirements**, not fully implemented automatic policies.
 

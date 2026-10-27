@@ -124,7 +124,7 @@ class Controller:
         self.require(d, "planning")
         if not self.substantive(task_id, "plan.md"):
             raise WorkflowError("Fill in plan.md before submitting")
-        d["state"] = "plan_review"
+        d["state"] = "plan_review" if d["mode"] != "quick" else "awaiting_plan_approval"
         self.event(d, "Plan submitted")
         self.save(d)
         return d

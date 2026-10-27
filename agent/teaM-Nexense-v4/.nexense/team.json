@@ -2,9 +2,9 @@
   "schema_version": 1,
   "roles": {
     "pm": {
-      "kind": "codex", "model": "gpt-6.1-sol", "effort": "high", "args": [],
+      "kind": "claude", "model": "claude-opus-5-5", "effort": "medium", "args": [],
       "alternatives": [
-        {"kind": "claude", "model": "claude-opus-5-5", "effort": "medium"},
+        {"kind": "codex", "model": "gpt-6.1-sol", "effort": "high"},
         {"kind": "codex", "model": "gpt-6-astra", "effort": "medium"}
       ]
     },
