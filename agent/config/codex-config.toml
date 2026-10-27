@@ -6,6 +6,23 @@ approval_policy = "on-request"
 approvals_reviewer = "auto_review"
 sandbox_mode = "workspace-write"
 
+[marketplaces.mattpocock]
+source_type = "git"
+source = "https://github.com/mattpocock/skills.git"
+
+[marketplaces.pstack-claude]
+source_type = "git"
+source = "https://github.com/michael-denyer/pstack-claude.git"
+
+[plugins."mattpocock-skills@mattpocock"]
+enabled = true
+
+[plugins."pstack@pstack-claude"]
+enabled = false
+
+[features]
+hooks = true
+
 [tui]
 status_line = ["model-with-reasoning", "project-name", "thread-name", "five-hour-limit", "weekly-limit", "context-used", "used-tokens"]
 status_line_use_colors = true

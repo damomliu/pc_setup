@@ -59,12 +59,12 @@ macOS:
 
 ### 佈署
 
-用 [sync_codex.py](src/sync_codex.py) 同步到 Windows 與 WSL（`--pull-win` / `--pull-wsl` 可從 Windows 或 WSL 收回 repo）：`AGENTS.md` 整檔覆寫；`codex-config.toml` 列出的 key（含 `[tui]` 這類 section，頂層 `model` / `model_reasoning_effort` 除外）合併至各自的 `$HOME/.codex/config.toml`，保留既有 model、MCP 等設定（用法見 sync 用法）。
+用 [sync_codex.py](src/sync_codex.py) 同步到 Windows 與 WSL（`--pull-win` / `--pull-wsl` 可從 Windows 或 WSL 收回 repo）：`AGENTS.md` 整檔覆寫；`codex-config.toml` 列出的 key（含 `[tui]` 這類 section，頂層 `model` / `model_reasoning_effort` 除外）合併至各自的 `$HOME/.codex/config.toml`，保留既有 model 與未受管設定（用法見 sync 用法）。
 
 - Repo 副本：
   - [AGENTS.md](config/AGENTS.md)
   - [codex-config.toml](config/codex-config.toml)
-  保存 approval / sandbox、`[tui]` status line 與 keymap 設定；`AGENTS.md` 保存 Codex global 指引
+  保存 approval / sandbox、`[tui]` status line 與 keymap、plugin 啟用狀態等；`AGENTS.md` 保存 Codex global 指引
 - `Ctrl+Enter` 換行：透過 `[tui.keymap.editor].insert_newline` 設定，保留預設換行按鍵；一般 `Enter` 仍由 composer 送出。Windows 與 WSL 共用，修改後重啟 Codex CLI 生效。
 - 啟用 Auto-Review（[OpenAI Docs](https://learn.chatgpt.com/docs/sandboxing/auto-review)）
   - CLI / 本機 config：repo 已設定 `approval_policy = "on-request"`、`approvals_reviewer = "auto_review"`、`sandbox_mode = "workspace-write"`。
@@ -120,7 +120,7 @@ Claude Code 另外依剩餘比例變色（5h／weekly 剩餘或 Context 剩餘 �
 - [wezterm-skill] 本機技能正本放 `.agents/skills/`，`.claude/skills/` 底下用 junction 指過去（git 不會保留 junction，clone 後要重建）：
   `New-Item -ItemType Junction -Path .claude\skills\wezterm -Target .agents\skills\wezterm`
 - [pstack](https://github.com/michael-denyer/pstack-claude)
-  - Claude plugin 在 Win／WSL 均設為停用，保留 marketplace 來源。Claude 的獨立設定仍放 `claude-pstack-models.md` 並參與 sync；global 指引不再引用它。Codex 的 pstack 設定不參與 sync。
+  - Claude 與 Codex plugin 在 Win／WSL 均設為停用，保留 marketplace 來源。Claude 的獨立設定仍放 `claude-pstack-models.md` 並參與 sync；global 指引不再引用它。Codex 的 marketplace 與 plugin 啟用狀態由 `codex-config.toml` 管理，hook trust state 仍由本機維護。
 - [Matt-Pocock Skills](https://github.com/mattpocock/skills)
 - [diagram-design](https://github.com/cathrynlavery/diagram-design)（manual only；Windows、WSL 各執行一次，裝法同 herdr）：
   `npx skills add cathrynlavery/diagram-design --skill diagram-design -g -a claude-code -a codex -y`

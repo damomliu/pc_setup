@@ -923,6 +923,45 @@ class TomlTests(EnvTestCase):
         self.assertEqual(got["C:\\a.b"]["trust_level"], "trusted")
         self.assertEqual(got["C:\\a"]["trust_level"], "other")
 
+    def test_real_codex_plugins_and_hooks_preserve_local_runtime(self):
+        e = self.env(real_sources=True)
+        target = (
+            'model = "local-model"\nmodel_reasoning_effort = "xhigh"\n'
+            '[mcp_servers.node_repl]\ncommand = "local-runtime"\n'
+            '[mcp_servers.node_repl.env]\nSESSION_PIPE = "local-pipe"\n'
+            '[desktop]\nfollowUpQueueMode = "steer"\n'
+            '[hooks.state."/local/hooks.json:session_start:0:0"]\n'
+            'enabled = false\ntrusted_hash = "local-hash"\n'
+            '[plugins."other@local"]\nenabled = true\n'
+        )
+        self.put(e, target)
+        before = self.tl(self.cfg(e))
+        self.assertRegex(self.codex(e, ["--check"]).out, r"(?m)^update +.*config\.toml")
+        self.assertEqual(self.codex(e).code, 0)
+        got = self.tl(self.cfg(e))
+        self.assertEqual(got["marketplaces"]["mattpocock"], {
+            "source_type": "git", "source": "https://github.com/mattpocock/skills.git",
+        })
+        self.assertEqual(got["marketplaces"]["pstack-claude"], {
+            "source_type": "git", "source": "https://github.com/michael-denyer/pstack-claude.git",
+        })
+        self.assertIs(got["plugins"]["mattpocock-skills@mattpocock"]["enabled"], True)
+        self.assertIs(got["plugins"]["pstack@pstack-claude"]["enabled"], False)
+        self.assertIs(got["features"]["hooks"], True)
+        for key in ("model", "model_reasoning_effort", "mcp_servers", "desktop", "hooks"):
+            self.assertEqual(got[key], before[key])
+        self.assertEqual(got["plugins"]["other@local"], before["plugins"]["other@local"])
+
+        self.put(e, rd(self.cfg(e)).replace('[features]\nhooks = true', '[features]\nhooks = false'))
+        out = self.codex(e, ["--check-verbose"]).out
+        self.assertRegex(out, r"(?m)^differs +.*config\.toml")
+        self.assertIn("features.hooks:", out)
+        self.assertEqual(self.codex(e, ["--force"]).code, 0)
+        snapshot = snap(e.win)
+        self.assertRegex(self.codex(e, ["--check"]).out, r"(?m)^same +.*config\.toml")
+        self.assertEqual(self.codex(e).code, 0)
+        self.assertEqual(snap(e.win), snapshot)
+
     def test_local_comments_and_unmanaged_content_preserved(self):
         target = '# 我的設定\nmodel = "mine"  # 自選\napproval_policy = "never"  # 手動改過\n\n[mcp_servers.s]\ncommand = "x"  # keep\n\n[tui]\n# tui 註解\nother = 1\n'
         e = self.setup(REPO_TOML, target)
