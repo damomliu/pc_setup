@@ -1,6 +1,8 @@
-# VS Code 快速鍵（Windows）
+# VS Code 快速鍵（Windows／macOS）
 
-設定檔：`vscode/keybindings.json`，以 VS Code 預設為基礎，不使用 keymap extension。下面只列跟 VS Code 預設不同的按鍵。
+設定檔：Windows 為 `vscode/keybindings.json`，macOS 為 `vscode/keybindings.macos.json`；以 VS Code 預設為基礎，不使用 keymap extension。下面只列跟 VS Code 預設不同的按鍵。
+
+各節以 Windows 寫法列出；macOS 把 `Ctrl` 換成 `Cmd`、`Alt` 即 `Option` 就是同一組按鍵。macOS 不同或沒有的按鍵另列在 [macOS 差異](#macos-差異)。
 
 ## 視窗
 
@@ -140,3 +142,69 @@ Claude Code 切換 model：按 `Ctrl+L` 聚焦輸入框後，輸入 `/model` 開
 |---|---|
 | `Ctrl+K E` | 用 Edit CSV 開啟（`keybindings.json` 沒限制 profile，但只有 Python profile 裝了該 extension，其他 profile 按了沒作用） |
 | `Ctrl+K T` | 用 Text editor 重新開啟目前檔案 |
+
+## macOS 差異
+
+以下按鍵照 macOS 實際寫法列出；`Ctrl` 表示實體 `Control` 鍵。
+
+### 只有 macOS 或按鍵不同
+
+| 按鍵 | 動作 |
+|---|---|
+| `Ctrl+Cmd+R` | Reload Window（Windows 為 `Ctrl+Alt+R`） |
+| `Alt+Cmd+Q` | 結束 VS Code（`Cmd+Q` 改為關閉視窗） |
+| `Ctrl+K Ctrl+O` | 開啟檔案／資料夾（`Cmd+O` 讓給 Codex） |
+| `Cmd+O`（terminal 內） | 也開啟 Codex sidebar（Windows 在 terminal 內留給 CLI） |
+| `Alt+Cmd+←/→` | 上一個／下一個游標位置（Navigate Back／Forward） |
+| `Ctrl+PageUp/PageDown` | 上一個／下一個 editor（`Cmd` 版同 Windows；取代 `Shift+Cmd+[`／`]`） |
+| `Shift+Cmd+R` | Rename Symbol（取代 `Alt+Cmd+R`） |
+| `Shift+Alt+D` | 選取上一個相同字（搭配 `Alt+D`） |
+| `Shift+Backspace` | 向右刪除一個字元 |
+| `Cmd+Enter`（find widget 內） | 取代一個（取代 Replace All） |
+| `Ctrl+[`／`Ctrl+]` | 收合／展開（取代 `Alt+Cmd+[`／`]`） |
+| `Ctrl+Alt+[`／`Ctrl+Alt+]` | 遞迴收合／展開（取代 `Cmd+K Cmd+[`／`]`） |
+| `Alt+Cmd+Delete`（Explorer 內） | 永久刪除檔案（取代 `Cmd+Backspace`、`Alt+Cmd+Backspace`） |
+| `Cmd+F7` | 中斷偵錯連線（Disconnect） |
+
+### 只有 Windows
+
+| Windows 按鍵 | 動作 | macOS |
+|---|---|---|
+| `Ctrl+K Z` | 全螢幕 | 未綁定 |
+| `Ctrl+0` | 重設縮放 | 未綁定 |
+| `Ctrl+B`／`Ctrl+J`（terminal 內） | 開關側邊欄／面板 | 未另外綁定 |
+| `Shift+Enter`（terminal 內） | 送出 `ESC`+`CR` | 未綁定 |
+| `Shift+Enter` | 在下方插入新行 | 未綁定（`Cmd+Enter` 的 Insert Line After 也已解除） |
+| `Ctrl+Shift+Backspace` | 刪除游標左側到行首 | 用 VS Code 預設 `Cmd+Backspace` |
+| `Ctrl+Alt+J` | 合併行 | 未綁定（`Alt+Cmd+J` 已解除） |
+| `Ctrl+1` | Quick Fix | 用 VS Code 預設 `Cmd+.`（`Cmd+1` 已解除） |
+| `Alt+I`／`Alt+M` | Markdown 斜體／數學式 | 只有 `Alt+B` 粗體；`Cmd+I`、`Cmd+M` 已解除 |
+| `Ctrl+Alt+M` | 開關 MPE 同步捲動 | 未綁定 |
+| `Ctrl+Shift+Alt+O` | 在新視窗開啟 worktree | 未綁定 |
+| `Ctrl+K E` | 用 Edit CSV 開啟 | 未綁定 |
+
+### 解除綁定（只有 macOS）
+
+只列解除後沒有改綁到別的動作的按鍵。
+
+| 按鍵 | 原本的動作 |
+|---|---|
+| `Ctrl+D`／`Ctrl+K`／`Ctrl+Backspace`／`Ctrl+Delete` | Emacs 式刪除（向右刪字元／刪到行尾／刪左右字） |
+| `Cmd+K`／`Shift+Cmd+K` | 尋找下一個／上一個選取內容 |
+| `Shift+Cmd+G` | 尋找上一個、Reference Search |
+| `Shift+Cmd+F`、`Cmd+K Cmd+F` | 格式化文件／選取範圍 |
+| `Shift+Cmd+X`／`Shift+Cmd+Y` | 轉大寫／小寫 |
+| `Shift+Cmd+O` | Organize Imports |
+| `Shift+Cmd+T` | Show All Symbols |
+| `Cmd+Space` | Trigger Suggest |
+| `Alt+Cmd+↑/↓`、`Ctrl+Alt+Cmd+↑/↓`、`Shift+Alt+↑/↓`（Markdown） | 向上／向下複製行 |
+| `Cmd+K Cmd+\`、`Shift+Cmd+[` | 分割 editor（上／左／右／垂直） |
+| `Cmd+K Shift+Cmd+←/→` | 在群組內左右移動 editor |
+| `Alt+Cmd+S` | 另存新檔 |
+| `Cmd+W`（沒有 editor 時） | 關閉視窗 |
+| `Shift+Cmd+C` | 開啟外部 terminal |
+| `Shift+Cmd+B` | 切換中斷點 |
+| `F5`、`Shift+F5` | 開始／繼續偵錯、停止偵錯 |
+| `Shift+Cmd+F11` | 開始偵錯、執行 |
+| `F10`／`F11` | Node debug 啟動並停在進入點 |
+| `Ctrl+Cmd+I`、`Alt+Ctrl+Cmd+L` | Chat 開啟、Quick Chat |
