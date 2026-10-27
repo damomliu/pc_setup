@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "roles": {
+    "pm": {"kind": "claude", "model_hint": "Opus / medium", "args": []},
+    "qa": {"kind": "codex", "model_hint": "Sol / high; verify exact model alias", "args": []},
+    "implementer": {"kind": "claude", "model_hint": "Sonnet / medium", "args": []},
+    "pro2": {"kind": "codex", "model_hint": "Sol / medium", "args": []}
+  }
+}
