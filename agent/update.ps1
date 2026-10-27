@@ -15,6 +15,7 @@
         （plugin id 來自 claude plugin list --json，失敗時改讀 ~/.claude/plugins/installed_plugins.json）
       - codex plugin marketplace upgrade
       - npx -y skills update -g -y
+      - 重寫 ~/.agents/skills/diagram-design/agents/openai.yaml（manual only；skills 重裝會清掉，目錄不存在則略過）
       - ~/.agent-skills/sources/asana-ai-skill 的 git pull --ff-only
         （目錄不存在則略過，工作目錄不乾淨則警告略過）
     WSL 以 wsl -d <distro> -- bash -l 執行暫存在 /tmp 的 bash script，完成後刪除。
@@ -90,6 +91,12 @@ if (-not $SkipWin) {
     }
     Invoke-Step 'Win: codex plugin marketplace upgrade' { codex plugin marketplace upgrade }
     Invoke-Step 'Win: npx skills update' { npx -y skills update -g -y }
+    Invoke-Step 'Win: diagram-design manual only' {
+        $skill = Join-Path $HOME '.agents\skills\diagram-design'
+        if (-not (Test-Path $skill)) { Write-Host '   不存在，略過'; return }
+        New-Item -ItemType Directory -Force (Join-Path $skill 'agents') | Out-Null
+        [System.IO.File]::WriteAllText((Join-Path $skill 'agents\openai.yaml'), "policy:`n  allow_implicit_invocation: false`n", $utf8)
+    }
     Invoke-Step 'Win: asana skill git pull' {
         $asana = Join-Path $HOME '.agent-skills\sources\asana-ai-skill'
         if (-not (Test-Path $asana)) { Write-Host '   不存在，略過'; return }
@@ -125,6 +132,11 @@ update_plugins() {
     done
     return $rc
 }
+manual_diagram_design() {
+    local d=~/.agents/skills/diagram-design
+    [ -d "$d" ] || { echo "   not found, skipped"; return 0; }
+    mkdir -p "$d/agents" && printf 'policy:\n  allow_implicit_invocation: false\n' > "$d/agents/openai.yaml"
+}
 pull_asana() {
     local d=~/.agent-skills/sources/asana-ai-skill
     [ -d "$d" ] || { echo "   not found, skipped"; return 0; }
@@ -141,6 +153,7 @@ step 'claude plugin marketplace update' claude plugin marketplace update
 step 'claude plugin update' update_plugins
 step 'codex plugin marketplace upgrade' codex plugin marketplace upgrade
 step 'npx skills update' npx -y skills update -g -y
+step 'diagram-design manual only' manual_diagram_design
 step 'asana skill git pull' pull_asana
 
 if [ ${#failed[@]} -gt 0 ]; then

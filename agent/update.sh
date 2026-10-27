@@ -15,6 +15,7 @@
 #       以 /usr/bin/python3 解析 JSON，避開 pyenv shim）
 #   - codex plugin marketplace upgrade
 #   - npx -y skills update -g -y
+#   - 重寫 ~/.agents/skills/diagram-design/agents/openai.yaml（manual only；skills 重裝會清掉，目錄不存在則略過）
 #   - ~/.agent-skills/sources/asana-ai-skill 的 git pull --ff-only
 #     （目錄不存在則略過，工作目錄不乾淨則警告並算失敗）
 # 最後印出 claude / codex 版本。
@@ -79,6 +80,13 @@ update_plugins() {
     return $rc
 }
 
+# Codex manual only：skills 重裝會清掉 agents/openai.yaml，update 後補回
+manual_diagram_design() {
+    local d=~/.agents/skills/diagram-design
+    [ -d "$d" ] || { echo "   不存在，略過"; return 0; }
+    mkdir -p "$d/agents" && printf 'policy:\n  allow_implicit_invocation: false\n' > "$d/agents/openai.yaml"
+}
+
 pull_asana() {
     local d=~/.agent-skills/sources/asana-ai-skill
     [ -d "$d" ] || { echo "   不存在，略過"; return 0; }
@@ -98,6 +106,7 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
     step 'claude plugin update' update_plugins
     step 'codex plugin marketplace upgrade' codex plugin marketplace upgrade
     step 'npx skills update' npx -y skills update -g -y
+    step 'diagram-design manual only' manual_diagram_design
     step 'asana skill git pull' pull_asana
 
     echo '== 版本 =='

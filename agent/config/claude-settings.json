@@ -52,6 +52,9 @@
     "next-steps@claude-community": true,
     "pstack@pstack-claude": false
   },
+  "skillOverrides": {
+    "diagram-design": "user-invocable-only"
+  },
   "extraKnownMarketplaces": {
     "pstack-claude": {
       "source": {

@@ -98,7 +98,7 @@ macOS 不在上方「4 Agents」內，比照 WSL 本機模式：只同步本機 
 - venv 放 `agent/.venv/macos/`（見 [sync.py](sync.py) 的 Python 環境）。
 - 更新：執行 [update.sh](update.sh)（Claude Code、Codex 及其 plugins / skills）。
 
-## Global 共同項目
+## 共同項目
 
 ### Status line
 Codex 與 Claude Code 共用 `Model · Workspace · 5h · weekly · Context · 用量` 的格式，Claude Code 向 Codex 的外觀對齊（Codex 只能挑內建 item，不能自訂）：
@@ -114,15 +114,18 @@ Codex 與 Claude Code 共用 `Model · Workspace · 5h · weekly · Context · �
 Claude Code 另外依剩餘比例變色（5h／weekly 剩餘或 Context 剩餘 ≤25% 黃、≤10% 紅）；Codex 不隨數值變色，僅 `status_line_use_colors = true` 依 item 類型上色。
 
 ### Skills
-- asana-ai-skill
-- herdr（Windows、WSL 各執行一次；裝到 `~/.agents/skills/herdr`，Codex 直接讀取，Claude Code 以 symlink 連結）：
+- [asana-ai-skill](https://github.com/elibosley/asana-ai-skill)
+- [herdr-skill]（Windows、WSL 各執行一次；裝到 `~/.agents/skills/herdr`，Codex 直接讀取，Claude Code 以 symlink 連結）：
   `npx skills add herdrdev/herdr --skill herdr -g -a claude-code -a codex -y`
-  更新：Windows／WSL 執行 `agent/update.ps1`，macOS 執行 `agent/update.sh`（含 `npx skills update -g`）；手動更新時 WSL 的 npx 來自 nvm，非互動 shell 需先 `source ~/.nvm/nvm.sh`
-- 本機技能正本放 `.agents/skills/`，`.claude/skills/` 底下用 junction 指過去（git 不會保留 junction，clone 後要重建）：
+- [wezterm-skill] 本機技能正本放 `.agents/skills/`，`.claude/skills/` 底下用 junction 指過去（git 不會保留 junction，clone 後要重建）：
   `New-Item -ItemType Junction -Path .claude\skills\wezterm -Target .agents\skills\wezterm`
 - [pstack](https://github.com/michael-denyer/pstack-claude)
   - Claude plugin 在 Win／WSL 均設為停用，保留 marketplace 來源。Claude 的獨立設定仍放 `claude-pstack-models.md` 並參與 sync；global 指引不再引用它。Codex 的 pstack 設定不參與 sync。
-
+- [Matt-Pocock Skills](https://github.com/mattpocock/skills)
+- [diagram-design](https://github.com/cathrynlavery/diagram-design)（manual only；Windows、WSL 各執行一次，裝法同 herdr）：
+  `npx skills add cathrynlavery/diagram-design --skill diagram-design -g -a claude-code -a codex -y`
+  - Claude：`claude-settings.json` 的 `skillOverrides` 設 `user-invocable-only`，description 不進 context，只能 `/diagram-design` 叫用
+  - Codex：`~/.agents/skills/diagram-design/agents/openai.yaml` 設 `policy.allow_implicit_invocation: false`，只能 `$diagram-design` 叫用；skills 重裝會清掉此檔，`update.ps1`／`update.sh` 在 `npx skills update` 後補回
 
 ## Project 初始化慣例
 
