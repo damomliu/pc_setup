@@ -43,3 +43,29 @@ command = 'powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%APP
 description = "show current tab pane layout"
 width = "35%"
 height = "35%"
+
+# Plugin keys. Windows binds the `-windows` action ids; on WSL drop the
+# `-windows` suffix from each command.
+[[keys.command]]
+key = "prefix+f"
+type = "plugin_action"
+command = "herdr-file-viewer.open-file-viewer-windows"
+description = "open file viewer in split"
+
+[[keys.command]]
+key = "prefix+shift+f"
+type = "plugin_action"
+command = "herdr-file-viewer.open-file-viewer-tab-windows"
+description = "open file viewer in tab"
+
+[[keys.command]]
+key = "prefix+up"
+type = "plugin_action"
+command = "cloudmanic.herdr-plus.projects-windows"
+description = "herdr-plus: projects"
+
+[[keys.command]]
+key = "prefix+down"
+type = "plugin_action"
+command = "cloudmanic.herdr-plus.quick-actions-windows"
+description = "herdr-plus: quick actions"

@@ -62,6 +62,21 @@ WSL 使用 [herdr-list-ids.py](src/herdr-list-ids.py)，複製至 `~/.config/her
 
 **note** `Ctrl+Space` 保留給中文輸入法，不可用作 prefix
 
+## Plugins
+
+- Herdr Plus (`cloudmanic/herdr-plus`)
+  - 快速鍵：`Ctrl+B, ↑` 開 Projects、`Ctrl+B, ↓` 開 Quick Actions
+- Auto Title (`kryptamine/herdr-auto-title`)
+  - repo 副本：[herdr-auto-title.env](config/herdr-auto-title.env)，複製至 Windows `%USERPROFILE%\.config\herdr-auto-title\config.env`、WSL `~/.config/herdr-auto-title/config.env`
+- File Viewer (`smarzban/herdr-file-viewer`)
+  - 快速鍵：`Ctrl+B, F` 以 split 開啟、`Ctrl+B, Shift+F` 以 tab 開啟
+  - repo 副本：[herdr-file-viewer.toml](config/herdr-file-viewer.toml)，複製至 `herdr plugin config-dir herdr-file-viewer` 下的 `config.toml`
+  - `glow` (Markdown renderer)
+  - `delta` (Diff renderer)
+  - `bat` (Syntax renderer)
+
+不安裝 Quota（`pinkpixel-dev/quota/herdr-plugin`）：sidebar token（如 `5h 100% · Wk 77%`）看不出是剩餘量，Claude Code status line 已顯示 `5h … left · weekly … left`。WSL 保留 `quota-cli`，需要時執行 `quota-cli usage` 查看各 provider 剩餘額度。
+
 ## 其他
 
 - theme: `one-dark` 採用接近 Darcula／PyCharm 氛圍的深灰配色。
