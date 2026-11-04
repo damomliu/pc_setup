@@ -74,6 +74,15 @@ WSL 使用 [herdr-list-ids.py](src/herdr-list-ids.py)，複製至 `~/.config/her
   - `glow` (Markdown renderer)
   - `delta` (Diff renderer)
   - `bat` (Syntax renderer)
+  - 遠端檔案（sshfs）：File Viewer 以 focused pane 的 cwd 為 tree root，將遠端 host 掛載成本機路徑後即可瀏覽
+    - 安裝：Windows `WinFsp` + `SSHFS-Win`; WSL `sshfs`
+    - helper：Windows: [sshfs-mount.ps1](src/sshfs-mount.ps1) -> `%APPDATA%\herdr\sshfs-mount.ps1`；WSL: [sshfs-mount.sh](src/sshfs-mount.sh) -> `~/.local/bin/sshfs-mount`
+    - Windows 安裝後需以系統管理員設定 `RunAs`，否則 WinFsp.Launcher 以 SYSTEM 執行 sshfs，`net use` 會報 error 67：`New-ItemProperty 'HKLM:\SOFTWARE\WOW6432Node\WinFsp\Services\sshfs.k' -Name RunAs -Value '.' -PropertyType String -Force`（重裝／升級 SSHFS-Win 後要重設）
+    - host 使用 `~/.ssh/config` 的 alias（如 `nb`、`pc`）；有 `RemoteCommand` 的 alias（如 `nb-wsl`）無法用於 sshfs
+    - Windows：`sshfs-mount.ps1 nb [RemotePath] [-Drive X]` → `cd X:\` → `Ctrl+B, F`；`-List` 列出掛載、`-Unmount X:`（或 host 名）卸載
+    - WSL：`sshfs-mount nb [remotePath]` → `cd ~/mnt/nb` → `Ctrl+B, F`；`sshfs-mount -l` 列出、`sshfs-mount -u nb` 卸載
+    - 注意：SSHFS-Win 使用內建 Cygwin ssh（非 `C:\Program Files\OpenSSH`），但讀取 `%USERPROFILE%\.ssh\config`，Windows 專用的 option 可能不相容
+    - 注意：遠端大型 git repo 會讓 tree／git status 變慢
 
 不安裝 Quota（`pinkpixel-dev/quota/herdr-plugin`）：sidebar token（如 `5h 100% · Wk 77%`）看不出是剩餘量，Claude Code status line 已顯示 `5h … left · weekly … left`。WSL 保留 `quota-cli`，需要時執行 `quota-cli usage` 查看各 provider 剩餘額度。
 

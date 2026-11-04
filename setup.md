@@ -36,11 +36,12 @@
 - PowerShell：見 [power_shell.md](./power_shell/power_shell.md)
 - openssh-server
     - ~/.ssh/config (shared.conf)
+- sshfs（Win: SSHFS-Win + WinFsp；WSL: sshfs）→ 見 [herdr.md](./wezterm/herdr.md)
 - usbipd-win
 - WezTerm
     - 要安裝已修復 IME 的版本
     - 設定見 `wezterm/`（`wezterm.md`；`config/wezterm.lua` 為 `~/.wezterm.lua` 副本）
-- Herdr
+- [Herdr](./wezterm/herdr.md)
 
 ## AI Agent 相關
 
