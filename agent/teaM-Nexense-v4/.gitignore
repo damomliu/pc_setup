@@ -1,5 +1,0 @@
-# Task state and in-progress plans may hold unpublished specifications
-.nexense/tasks/
-__pycache__/
-.pytest_cache/
-*.pyc
