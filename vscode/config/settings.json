@@ -136,7 +136,9 @@
         "uigc-14p3a": "linux",
         "uigc-14p4a": "linux",
         "stsp-07": "linux",
-        "nb": "windows"
+        "nb": "windows",
+        "ctsp-2611": "linux",
+        "hsp3-2611": "linux"
     },
     "editor.cursorSmoothCaretAnimation": "on",
     "editor.cursorBlinking": "phase",

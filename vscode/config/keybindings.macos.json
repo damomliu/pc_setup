@@ -780,7 +780,14 @@
     },
     {
         "key": "cmd+k t",
-        "command": "workbench.action.reopenTextEditor"
+        "command": "reopenActiveEditorWith",
+        "args": "vscode.markdown.editor",
+        "when": "activeEditor == 'workbench.editors.files.textFileEditor' && resourceExtname =~ /^\\.(md|mkd|mkdn|mdwn|mdown|markdown|markdn|mdtxt|mdtext|litcoffee|ron|ronn|workbook)$/i"
+    },
+    {
+        "key": "cmd+k t",
+        "command": "workbench.action.reopenTextEditor",
+        "when": "activeEditor && activeEditor != 'workbench.editors.files.textFileEditor'"
     },
     {
         "key": "ctrl+`",

@@ -208,11 +208,6 @@
         "when": "textInputFocus"
     },
     {
-        "key": "ctrl+1",
-        "command": "editor.action.quickFix",
-        "when": "editorHasCodeActionsProvider && textInputFocus && !editorReadonly"
-    },
-    {
         "key": "shift+f8",
         "command": "-editor.action.marker.prevInFiles",
         "when": "editorFocus"
@@ -551,7 +546,14 @@
     },
     {
         "key": "ctrl+k t",
-        "command": "workbench.action.reopenTextEditor"
+        "command": "reopenActiveEditorWith",
+        "args": "vscode.markdown.editor",
+        "when": "activeEditor == 'workbench.editors.files.textFileEditor' && resourceExtname =~ /^\\.(md|mkd|mkdn|mdwn|mdown|markdown|markdn|mdtxt|mdtext|litcoffee|ron|ronn|workbook)$/i"
+    },
+    {
+        "key": "ctrl+k t",
+        "command": "workbench.action.reopenTextEditor",
+        "when": "activeEditor && activeEditor != 'workbench.editors.files.textFileEditor'"
     },
     {
         "key": "ctrl+k m",

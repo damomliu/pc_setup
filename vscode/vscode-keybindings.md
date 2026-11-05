@@ -45,7 +45,6 @@
 | `Ctrl+Shift+Backspace` | 刪除游標左側到行首 |
 | `Ctrl+Alt+J` | 合併行 |
 | `Shift+Enter` | 在下方插入新行（find／replace 輸入框內除外） |
-| `Ctrl+1` | Quick Fix |
 ## 導覽
 
 | 按鍵 | 動作 |
@@ -141,7 +140,9 @@ Claude Code 切換 model：按 `Ctrl+L` 聚焦輸入框後，輸入 `/model` 開
 | 按鍵 | 動作 |
 |---|---|
 | `Ctrl+K E` | 用 Edit CSV 開啟（`keybindings.json` 沒限制 profile，但只有 Python profile 裝了該 extension，其他 profile 按了沒作用） |
-| `Ctrl+K T` | 用 Text editor 重新開啟目前檔案 |
+| `Ctrl+K T` | Text Editor／內建 experimental Markdown Editor 切換（macOS：`Cmd+K T`） |
+
+在 Text Editor 中，只有內建 Markdown Editor 支援的副檔名才會切換、其他副檔名（例如 `.py`、`.json`）不切換；在其他 active editor 中則切回 Text Editor；沒有 active editor 時不執行。
 
 ## macOS 差異
 
@@ -177,7 +178,6 @@ Claude Code 切換 model：按 `Ctrl+L` 聚焦輸入框後，輸入 `/model` 開
 | `Shift+Enter` | 在下方插入新行 | 未綁定（`Cmd+Enter` 的 Insert Line After 也已解除） |
 | `Ctrl+Shift+Backspace` | 刪除游標左側到行首 | 用 VS Code 預設 `Cmd+Backspace` |
 | `Ctrl+Alt+J` | 合併行 | 未綁定（`Alt+Cmd+J` 已解除） |
-| `Ctrl+1` | Quick Fix | 用 VS Code 預設 `Cmd+.`（`Cmd+1` 已解除） |
 | `Alt+I`／`Alt+M` | Markdown 斜體／數學式 | 只有 `Alt+B` 粗體；`Cmd+I`、`Cmd+M` 已解除 |
 | `Ctrl+Alt+M` | 開關 MPE 同步捲動 | 未綁定 |
 | `Ctrl+Shift+Alt+O` | 在新視窗開啟 worktree | 未綁定 |
@@ -189,6 +189,7 @@ Claude Code 切換 model：按 `Ctrl+L` 聚焦輸入框後，輸入 `/model` 開
 
 | 按鍵 | 原本的動作 |
 |---|---|
+| `Cmd+1` | Quick Fix（使用 VS Code 預設 `Cmd+.`） |
 | `Ctrl+D`／`Ctrl+K`／`Ctrl+Backspace`／`Ctrl+Delete` | Emacs 式刪除（向右刪字元／刪到行尾／刪左右字） |
 | `Cmd+K`／`Shift+Cmd+K` | 尋找下一個／上一個選取內容 |
 | `Shift+Cmd+G` | 尋找上一個、Reference Search |
