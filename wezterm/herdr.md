@@ -29,10 +29,8 @@
 - `Ctrl+Alt+←` / `Ctrl+Alt+→` — 切換上一個／下一個 tab
 - `Ctrl+Alt+↑` / `Ctrl+Alt+↓` — 切換上一個／下一個 workspace
 - `Prefix, 1`～`Prefix, 9` — 依編號切換 tab（herdr 預設，不需設定）
-- `Prefix, I` — popup（35%×35%）顯示目前 tab ID，並以 Unicode 框線依版面畫出該 tab 所有 pane 的 ID；目前 pane 以 one-dark 選取列風格（淺灰底、白色粗體）顯示，標籤為「ID (已複製)」，其 ID 會自動複製到剪貼簿，按任意鍵關閉。配色在 helper 開頭的 `$highlight`／`HIGHLIGHT` 調整
-- `Ctrl+B, M` — popup 選擇目前 pane 的目的 tab：預設反白第一項「新增 tab」，其餘顯示同 workspace 的其他 tab（編號與名稱）。`↑` / `↓` 移動反白，首尾停止，Enter 確認；單按 Esc 或 Q 立即取消。
-- 可輸入多位選項編號，有效編號立即反白，Enter 確認；Backspace 刪除一位，方向鍵清空數字。無效編號按 Enter 只提示錯誤，不會執行先前反白項目。清單過長會捲動，長名稱依 popup 寬度截斷，resize 後重新排版。
-- 移至既有 tab 時在右側 split；成功後 focus 跟隨原 pane，保留原本執行中的程序。執行前會再次驗證來源與目的地；失敗顯示錯誤，按 Esc 或 Enter 關閉，不會改用新增 tab。helper 結束時還原 terminal mode、顏色及 cursor。
+- `Prefix, I` — 顯示目前 tab ID
+- `Prefix, M` — 移動目前 pane 至其他 tab，預設「新增 tab」
 
 ### Pane 移動 popup 安裝
 
@@ -46,8 +44,8 @@ key = "prefix+m"
 type = "popup"
 command = 'python3 "$HOME/.config/herdr/herdr-move-pane.py"'
 description = "move pane to tab"
-width = "70%"
-height = "70%"
+width = "23%"
+height = "18%"
 ```
 
 helper 使用 popup 注入的 `HERDR_ACTIVE_PANE_ID`、`HERDR_ACTIVE_WORKSPACE_ID`、`HERDR_ACTIVE_TAB_ID` 固定來源，並透過 `HERDR_BIN_PATH` 呼叫 CLI，沿用 socket 環境。合併時以 `prefix+m` 識別並更新這一筆 command，保留其他 command、`onboarding` 與 UI 設定，再分別執行 reload。
@@ -58,14 +56,23 @@ Herdr 0.9.3 不允許移動 zoom 中 tab 的 pane（`zoomed_tab`）；請先用 
 
 Windows 使用 [herdr-list-ids.ps1](src/herdr-list-ids.ps1)，複製至 `%APPDATA%\herdr\herdr-list-ids.ps1`；repo 的 `[[keys.command]]`（`prefix+i`）可直接合併。
 
+Windows herdr server 若由 sshd 啟動（例如 WSL 端以 `herdr machine add` 連到此機器），會跑在 Session 0，`Set-Clipboard` 寫入的是 Session 0 的剪貼簿，使用者桌面上貼不出來。因此 helper 在 Session 0 時改把 pane ID 寫入 `%APPDATA%\herdr\clipboard.txt`，再由 scheduled task `herdr-clipboard`（以互動 session 執行）寫入剪貼簿。此 task 需在 Windows 上註冊一次（一般使用者權限即可）：
+
+```powershell
+$action = New-ScheduledTaskAction -Execute 'conhost.exe' -Argument '--headless powershell.exe -NoProfile -NonInteractive -Command "Get-Content -Raw -LiteralPath (Join-Path $env:APPDATA ''herdr\clipboard.txt'') | Set-Clipboard"'
+$principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive
+$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Minutes 1)
+Register-ScheduledTask -TaskName herdr-clipboard -Action $action -Principal $principal -Settings $settings -Force
+```
+
+`conhost --headless` 可避免執行時視窗閃現；`LogonType Interactive` 確保 task 在使用者桌面 session 執行。
+
 WSL 使用 [herdr-list-ids.py](src/herdr-list-ids.py)，複製至 `~/.config/herdr/herdr-list-ids.py`（需要 Python 3），並將 `prefix+i` 的 command 改為 `python3 "$HOME/.config/herdr/herdr-list-ids.py"`。
 
 **note** `Ctrl+Space` 保留給中文輸入法，不可用作 prefix
 
 ## Plugins
 
-- Herdr Plus (`cloudmanic/herdr-plus`)
-  - 快速鍵：`Ctrl+B, ↑` 開 Projects、`Ctrl+B, ↓` 開 Quick Actions
 - Auto Title (`kryptamine/herdr-auto-title`)
   - repo 副本：[herdr-auto-title.env](config/herdr-auto-title.env)，複製至 Windows `%USERPROFILE%\.config\herdr-auto-title\config.env`、WSL `~/.config/herdr-auto-title/config.env`
 - File Viewer (`smarzban/herdr-file-viewer`)

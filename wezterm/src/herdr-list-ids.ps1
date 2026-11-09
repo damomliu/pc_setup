@@ -1,4 +1,5 @@
 ﻿# Popup 顯示目前 tab 的 ID，並依版面畫出所有 pane 的 ID；目前 pane 以高亮底色顯示，並自動複製其 ID。
+# 若 server 跑在 Session 0（經 sshd 啟動，例如 remote 連線），無法寫入桌面剪貼簿，改由 scheduled task herdr-clipboard 寫入。
 # 注意：必須存成 UTF-8 with BOM，否則 Windows PowerShell 5.1 會以 cp950 解析而壞掉。
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = New-Object Text.UTF8Encoding($false)
@@ -40,6 +41,14 @@ function Fit-Line {
 }
 function Get-Layout {
     return (Invoke-Herdr @('pane', 'layout', '--pane', $pane)).layout
+}
+# 經 sshd 啟動的 server 跑在 Session 0，碰不到桌面剪貼簿；改由互動 session 的 scheduled task 寫入
+function Set-PaneClipboard {
+    param([string]$Text)
+    if ([Diagnostics.Process]::GetCurrentProcess().SessionId -ne 0) { Set-Clipboard -Value $Text; return }
+    [IO.File]::WriteAllText((Join-Path $env:APPDATA 'herdr\clipboard.txt'), $Text)
+    $null = & schtasks.exe /run /tn herdr-clipboard 2>&1
+    if ($LASTEXITCODE -ne 0) { throw 'schtasks /run herdr-clipboard failed' }
 }
 # 回傳整個畫面的行：標題、空行、(Width-1) x (Height-4) 的版面、空行、footer。
 # 版面僅含 ASCII（+ - |），每格寬度固定為 1；目前 pane 的整個矩形（含外框）包上藍底白字。
@@ -128,7 +137,7 @@ try {
     if (!$binary -or !$pane) { throw 'Missing Herdr popup context.' }
     $layout = Get-Layout
     try {
-        Set-Clipboard -Value $pane
+        Set-PaneClipboard $pane
         $note = '(已複製)'
     } catch {
         $note = '(複製失敗)'
