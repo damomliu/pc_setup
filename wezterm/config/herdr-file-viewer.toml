@@ -2,5 +2,28 @@
 # Target: `herdr plugin config-dir herdr-file-viewer`/config.toml
 #   Windows: %APPDATA%\herdr\plugins\config\herdr-file-viewer\config.toml
 #   WSL:     ~/.config/herdr/plugins/config/herdr-file-viewer/config.toml
+
+# --- File Tree ---
+compact_dirs = true
+expand_changed = true
+hide_dotfiles = false
+show_ignored = false
 changed_file_view = "content"
+
+tree_position = "left"
+tree_width = 35
+tree_max_cols = 45
+
+# --- Navigation ---
+scroll_lines = 4
+open_direction = "right"
+
+# --- Safety ---
+confirm_discard = true
+
+# --- Performance ---
+preview_max_lines = 10000
+preview_max_kib = 1024
+
+# --- Update Notifications ---
 update_check = false
