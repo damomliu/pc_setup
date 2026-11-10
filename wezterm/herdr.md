@@ -29,6 +29,7 @@
 - `Ctrl+Alt+←` / `Ctrl+Alt+→` — 切換上一個／下一個 tab
 - `Ctrl+Alt+↑` / `Ctrl+Alt+↓` — 切換上一個／下一個 workspace
 - `Prefix, 1`～`Prefix, 9` — 依編號切換 tab（herdr 預設，不需設定）
+- `Prefix, C` — 直接新增 tab，不詢問名稱（`[ui] prompt_new_tab_name = false`，tab 名稱交給 Auto Title）
 - `Prefix, I` — 顯示目前 tab ID
 - `Prefix, M` — 移動目前 pane 至其他 tab，預設「新增 tab」
 

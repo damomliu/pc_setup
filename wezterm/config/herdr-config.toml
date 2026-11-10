@@ -1,6 +1,10 @@
 [theme]
 name = "one-dark"
 
+# Ctrl+B, C 直接新增 tab，不詢問名稱（交給 Auto Title 命名）。
+[ui]
+prompt_new_tab_name = false
+
 # Herdr owns the inner panes; WezTerm uses Ctrl+G as its prefix.
 # Keep the default prefix bindings alongside direct Alt shortcuts.
 [keys]
