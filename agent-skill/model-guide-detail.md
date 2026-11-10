@@ -1,5 +1,7 @@
 # GPT / Claude 模型特性整理（Team Nexense 派工參考）
 
+模型定位簡表：[model-guide.md](model-guide.md)。
+
 查詢日期：2026-10-27。
 
 **來源可信度**
