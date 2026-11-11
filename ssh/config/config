@@ -1,0 +1,12 @@
+# Win / WSL 共用入口；with-identity.conf 由同步器依平台選用。
+Include ~/.ssh/ipc.conf ~/.ssh/with-identity.conf
+
+# TKK-匯率爬蟲
+Host fx
+  HostName 192.168.1.124
+  User user
+
+# TKK-日報主機
+Host rpt
+  HostName 192.168.1.132
+  User user
