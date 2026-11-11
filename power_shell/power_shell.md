@@ -15,6 +15,7 @@
 - `Set-PSReadLineOption -EditMode Vi -ViModeIndicator Cursor`（須在自訂 KeyHandler 之前，否則會被重設）
 - `Ctrl+D`：空行送出 EOF 結束，有字元則刪除游標處字元
 - `Import-Module ZLocation`
+- WezTerm session 狀態：供「開啟 Herdr Tab」判斷是否關閉未使用的 PowerShell tab
 - flutter：把 `C:\src\flutter\bin` 加入 PATH
 
 ## Alias

@@ -58,7 +58,7 @@ config.window_padding = {
 
 config.use_fancy_tab_bar = false
 config.tab_bar_at_bottom = false
-config.hide_tab_bar_if_only_one_tab = false
+config.hide_tab_bar_if_only_one_tab = true
 config.tab_max_width = 32
 
 -- 終端行為。
@@ -1210,6 +1210,89 @@ local function notify_spawn_error(gui_win, err)
   end
 end
 
+-- 必須是同一個、尚未送出指令的預設 PowerShell process。
+local function unused_powershell(pane)
+  local ok, unused = pcall(function()
+    local proc = pane:get_foreground_process_info()
+    return proc and proc.executable
+      and proc.executable:lower() == config.default_prog[1]:lower()
+      and pane:get_user_vars().PC_SETUP_PS_SESSION == 'fresh:' .. tostring(proc.pid)
+  end)
+  return ok and unused
+end
+
+local function spawn_herdr_tab(gui_win, pane)
+  local mux_win = pane:window()
+  local original_tab = pane:tab()
+  if not mux_win or not original_tab then
+    return
+  end
+
+  local ok, err = pcall(function()
+    local candidate = #mux_win:tabs() == 1
+      and #original_tab:panes() == 1 and unused_powershell(pane)
+    local tab, herdr_pane = mux_win:spawn_tab {
+      cwd = wezterm.home_dir,
+      args = {
+        'C:\\Windows\\System32\\wsl.exe', '--distribution', 'Ubuntu-24.04', '--cd', '~',
+        '--exec', '/bin/bash', '-lic',
+        [[if [ -x /home/damon/.local/bin/herdr ]; then
+  printf '\033]1337;SetUserVar=PC_SETUP_HERDR_READY=MQ==\007'
+  /home/damon/.local/bin/herdr
+else
+  printf 'Herdr executable not found: /home/damon/.local/bin/herdr\n' >&2
+fi
+exec /bin/bash -i]],
+      },
+    }
+    tab:activate()
+    if not candidate then
+      return
+    end
+
+    -- 等到 Herdr 真正進入 TUI 才關閉；單有 WSL process 不代表啟動成功。
+    local tries = 0
+    local ready_ticks = 0
+    local function check_ready()
+      local checked, check_err = pcall(function()
+        tries = tries + 1
+        local tabs = mux_win:tabs()
+        local source_present, target_present = false, false
+        for _, existing in ipairs(tabs) do
+          source_present = source_present or existing:tab_id() == original_tab:tab_id()
+          target_present = target_present or existing:tab_id() == tab:tab_id()
+        end
+        if #tabs ~= 2 or not source_present or not target_present
+          or #original_tab:panes() ~= 1 or not unused_powershell(pane) then
+          return
+        end
+        local ready = herdr_pane:get_user_vars().PC_SETUP_HERDR_READY == '1'
+          and herdr_pane:is_alt_screen_active()
+        ready_ticks = ready and ready_ticks + 1 or 0
+        if ready_ticks >= 3 then
+          -- 指定 pane ID，避免切換 tab 與 GUI action 非同步而關錯 tab。
+          local closed, _, close_err = wezterm.run_child_process {
+            wezterm_exe(), 'cli', 'kill-pane', '--pane-id', tostring(pane:pane_id()),
+          }
+          if not closed then
+            notify_spawn_error(gui_win, close_err or '無法關閉原 PowerShell tab')
+          end
+          tab:activate()
+        elseif tries < 150 then
+          wezterm.time.call_after(0.1, check_ready)
+        end
+      end)
+      if not checked then
+        notify_spawn_error(gui_win, check_err)
+      end
+    end
+    wezterm.time.call_after(0.1, check_ready)
+  end)
+  if not ok then
+    notify_spawn_error(gui_win, err)
+  end
+end
+
 local function spawn_simulators_tab(gui_win, pane)
   local mux_win = pane:window()
   if not mux_win then
@@ -1310,6 +1393,12 @@ end
 
 wezterm.on('augment-command-palette', function()
   return {
+    {
+      brief = '開啟 Herdr Tab',
+      doc = '新增 Ubuntu Herdr tab；僅剩一個未使用的 PowerShell tab 時自動關閉它',
+      icon = 'md_tab_plus',
+      action = wezterm.action_callback(spawn_herdr_tab),
+    },
     {
       brief = 'RyokoTower Simulators (新分頁)',
       doc = '在目前視窗開 Simulators tab，跑 RyokoTower 的七個模擬器',

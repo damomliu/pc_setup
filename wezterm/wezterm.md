@@ -46,6 +46,9 @@ Ubuntu Prefix 為 `Ctrl+U`（按下後有 2 秒可接下一鍵）：
 其他：
 
 - `Ctrl+Shift+P`：命令面板
+  - 搜 `Herdr`：`開啟 Herdr Tab`，在目前視窗新增 Ubuntu-24.04 tab，從 Linux home 執行 Herdr；結束後回到 Bash，不另加快速鍵。
+    - Herdr 進入 TUI 後，若視窗只有兩個 tab，且原 tab 只有一個 pane、為本次 session 尚未送出非空白指令的預設 PowerShell，就直接關閉原 tab。
+    - 其他 shell、缺少 session 狀態、啟動失敗或 15 秒內未就緒時，保留原 tab。需使用同步 profile 後新開的 PowerShell session；清除 history 不會恢復未使用狀態。
   - 搜 `RyokoTower`：七個模擬器，佈局相同
     - `RyokoTower Simulators (新分頁)`：在目前視窗開一個 tab
     - `RyokoTower Simulators (新視窗)`：開一個新視窗；等它最大化、格子尺寸跟上來源視窗後才切 pane，再均分欄寬與列高
@@ -70,7 +73,7 @@ Ubuntu Prefix 為 `Ctrl+U`（按下後有 2 秒可接下一鍵）：
 - 啟動選單：PowerShell 7、Ubuntu 24.04（進 Linux home）、Git Bash、Command Prompt、SSH `nb`
 - 配色：Catppuccin Mocha
 - 字型：Maple Mono NF CN 11 pt（缺字時 fallback 到 Sarasa Term TC Nerd Font）
-- 啟動時最大化；永遠顯示 tab bar
+- 啟動時最大化；只有一個 tab 時隱藏 tab bar
 - 降低非作用中 pane 的亮度與飽和度
 - Tab 自動顯示編號、程序、資料夾與 pane 位置 `(目前/總數)`；zoom 時為 `(目前/總數Z)`
 - 視窗標題為 `[Z] [目前 tab/tab 總數] 標題`；`[Z]` 僅 zoom 時顯示，`[目前 tab/tab 總數]` 僅多於一個 tab 時顯示
