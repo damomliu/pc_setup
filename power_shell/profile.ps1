@@ -29,3 +29,29 @@ Set-Alias -Name cl -Value claude
 
 # codex：cx 當 codex
 Set-Alias -Name cx -Value codex
+
+# 只回報本次互動 session 的使用狀態，不傳送指令內容或讀取 history 檔。
+if ($env:WEZTERM_PANE -and -not (Test-Path Variable:global:WezTermSessionUsed)) {
+    # 手動載入舊 session 的 profile 時無法證明從未執行指令，採保留。
+    $global:WezTermSessionUsed = -not (
+        $MyInvocation.HistoryId -eq 1 -and
+        $MyInvocation.Line -eq ". '$PSCommandPath'" -and
+        @(Get-History).Count -eq 0
+    )
+    $global:WezTermOriginalReadLine = (Get-Command PSConsoleHostReadLine -CommandType Function).ScriptBlock
+    function global:Send-WezTermSessionState {
+        $state = if ($global:WezTermSessionUsed) { 'used' } else { 'fresh' }
+        $value = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes("${state}:$PID"))
+        [Console]::Write("$([char]27)]1337;SetUserVar=PC_SETUP_PS_SESSION=$value$([char]7)")
+    }
+    # 在 history 去重前處理完成的輸入；不替換 AddToHistoryHandler。
+    function global:PSConsoleHostReadLine {
+        $line = & $global:WezTermOriginalReadLine
+        if (-not [string]::IsNullOrWhiteSpace($line)) {
+            $global:WezTermSessionUsed = $true
+            Send-WezTermSessionState
+        }
+        return $line
+    }
+    Send-WezTermSessionState
+}
