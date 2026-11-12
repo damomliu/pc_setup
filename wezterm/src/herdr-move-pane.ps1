@@ -1,4 +1,5 @@
-﻿# Popup menu; all IDs are captured before the first CLI request.
+﻿param([ValidateSet('tab', 'workspace')][string]$Mode = 'tab')
+# Popup menu; all IDs are captured before the first CLI request.
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = New-Object Text.UTF8Encoding($false)
 $OutputEncoding = [Console]::OutputEncoding
@@ -37,7 +38,7 @@ function Fit-Line {
     return $builder.ToString()
 }
 function Select-Destination {
-    param([string[]]$Labels)
+    param([string[]]$Labels, [string]$Title = '移動 pane 至 tab')
     $selected = 0; $digits = ''; $message = ''
     while ($true) {
         $width = [Math]::Max(1, [Console]::WindowWidth - 1)
@@ -45,7 +46,7 @@ function Select-Destination {
         $rows = [Math]::Max(1, $height - 3)
         $start = [Math]::Max(0, [Math]::Min($selected - $rows + 1, $Labels.Count - $rows))
         $lines = New-Object 'Collections.Generic.List[string]'
-        $lines.Add((Fit-Line '移動 pane 至 tab ↑↓ / 數字 / Enter / Esc Q' $width))
+        $lines.Add((Fit-Line ($Title + ' ↑↓ / 數字 / Enter / Esc Q') $width))
         for ($index = $start; $index -lt [Math]::Min($Labels.Count, $start + $rows); $index++) {
             $line = Fit-Line ('{0}. {1}' -f ($index + 1), $Labels[$index]) $width
             if ($index -eq $selected) { $line = $esc + '[7m' + $line + $esc + '[0m' }
@@ -94,21 +95,42 @@ try {
     [Console]::TreatControlCAsInput = $true
     [Console]::Write($esc + '[?1049h' + $esc + '[?25l')
     if (!$binary -or !$pane -or !$workspace -or !$tab) { throw 'Missing Herdr popup context.' }
-    $destinations = @(Get-Tabs | Where-Object { $_.tab_id -ne $tab -and $_.workspace_id -eq $workspace } | Sort-Object number)
-    $labels = @('新增 tab') + @($destinations | ForEach-Object { 'Tab {0}: {1}' -f $_.number, $_.label })
-    $choice = Select-Destination $labels
-    if ($null -eq $choice) { return }
+    $destinationWorkspace = $workspace
+    $newWorkspace = $false
+    if ($Mode -eq 'workspace') {
+        $workspaces = @((Invoke-Herdr @('workspace', 'list')).workspaces | Where-Object { $_.workspace_id -ne $workspace } | Sort-Object number)
+        $labels = @('新增 workspace') + @($workspaces | ForEach-Object { 'Workspace {0}: {1}' -f $_.number, $_.label })
+        $choice = Select-Destination $labels '移動 pane 至 workspace'
+        if ($null -eq $choice) { return }
+        $newWorkspace = $choice -eq 1
+        if (!$newWorkspace) { $destinationWorkspace = $workspaces[$choice - 2].workspace_id }
+    }
+    if (!$newWorkspace) {
+        $destinations = @((Invoke-Herdr @('tab', 'list', '--workspace', $destinationWorkspace)).tabs | Where-Object { $_.tab_id -ne $tab -and $_.workspace_id -eq $destinationWorkspace } | Sort-Object number)
+        $labels = @('新增 tab') + @($destinations | ForEach-Object { 'Tab {0}: {1}' -f $_.number, $_.label })
+        $choice = Select-Destination $labels
+        if ($null -eq $choice) { return }
+    }
     $source = (Invoke-Herdr @('pane', 'get', $pane)).pane
     if ($source.pane_id -ne $pane -or $source.workspace_id -ne $workspace -or $source.tab_id -ne $tab) {
         throw 'Source pane moved or no longer exists; reopen the menu.'
     }
     $live = @(Get-Tabs)
     if (!($live | Where-Object { $_.tab_id -eq $tab -and $_.workspace_id -eq $workspace })) { throw 'Source tab no longer exists; reopen the menu.' }
+    if ($newWorkspace) {
+        $null = Invoke-Herdr @('pane', 'move', $pane, '--new-workspace', '--focus')
+        return
+    }
+    if ($destinationWorkspace -ne $workspace) {
+        $liveWorkspaces = (Invoke-Herdr @('workspace', 'list')).workspaces
+        if (!($liveWorkspaces | Where-Object { $_.workspace_id -eq $destinationWorkspace })) { throw 'Destination workspace no longer exists; reopen the menu.' }
+    }
+    $live = @((Invoke-Herdr @('tab', 'list', '--workspace', $destinationWorkspace)).tabs)
     if ($choice -eq 1) {
-        $null = Invoke-Herdr @('pane', 'move', $pane, '--new-tab', '--focus')
+        $null = Invoke-Herdr @('pane', 'move', $pane, '--new-tab', '--workspace', $destinationWorkspace, '--focus')
     } else {
         $target = $destinations[$choice - 2].tab_id
-        if (!($live | Where-Object { $_.tab_id -eq $target -and $_.workspace_id -eq $workspace })) { throw 'Destination tab no longer exists; reopen the menu.' }
+        if (!($live | Where-Object { $_.tab_id -eq $target -and $_.workspace_id -eq $destinationWorkspace })) { throw 'Destination tab no longer exists; reopen the menu.' }
         $null = Invoke-Herdr @('pane', 'move', $pane, '--tab', $target, '--split', 'right', '--focus')
     }
 } catch {
