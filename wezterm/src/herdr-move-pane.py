@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Popup menu: move the original pane within its original workspace."""
+"""Popup menu: move the original pane to a tab or workspace."""
 import json
 import os
 import re
@@ -61,14 +61,14 @@ def fit(text, width):
     return result
 
 
-def choose(labels):
+def choose(labels, title="移動 pane 至 tab"):
     selected, digits, message = 0, "", ""
     previous = None
     while True:
         width, height = shutil.get_terminal_size((80, 24))
         rows = max(1, height - 3)
         start = max(0, min(selected - rows + 1, len(labels) - rows))
-        lines = [fit("移動 pane 至 tab ↑↓ / 數字 / Enter / Esc Q", max(1, width - 1))]
+        lines = [fit(title + " ↑↓ / 數字 / Enter / Esc Q", max(1, width - 1))]
         for index in range(start, min(len(labels), start + rows)):
             line = fit(f"{index + 1}. {labels[index]}", max(1, width - 1))
             lines.append(("\033[7m" + line + "\033[0m") if index == selected else line)
@@ -121,22 +121,43 @@ def main():
     def tabs():
         return cli("tab", "list", "--workspace", workspace)["tabs"]
 
-    destinations = sorted((t for t in tabs() if t["tab_id"] != tab
-                           and t["workspace_id"] == workspace), key=lambda t: t["number"])
-    choice = choose(["新增 tab"] + [f"Tab {t['number']}: {t['label']}" for t in destinations])
-    if choice is None:
-        return
+    destination_workspace = workspace
+    new_workspace = False
+    if len(sys.argv) > 1 and sys.argv[1] == "workspace":
+        workspaces = sorted((w for w in cli("workspace", "list")["workspaces"]
+                             if w["workspace_id"] != workspace), key=lambda w: w["number"])
+        choice = choose(["新增 workspace"] + [f"Workspace {w['number']}: {w['label']}" for w in workspaces],
+                        "移動 pane 至 workspace")
+        if choice is None:
+            return
+        new_workspace = choice == 1
+        if not new_workspace:
+            destination_workspace = workspaces[choice - 2]["workspace_id"]
+    if not new_workspace:
+        destinations = sorted((t for t in cli("tab", "list", "--workspace", destination_workspace)["tabs"]
+                               if t["tab_id"] != tab and t["workspace_id"] == destination_workspace),
+                              key=lambda t: t["number"])
+        choice = choose(["新增 tab"] + [f"Tab {t['number']}: {t['label']}" for t in destinations])
+        if choice is None:
+            return
     source = cli("pane", "get", pane)["pane"]
     if (source["pane_id"], source["workspace_id"], source["tab_id"]) != (pane, workspace, tab):
         raise RuntimeError("Source pane moved or no longer exists; reopen the menu.")
     live = tabs()
     if not any(t["tab_id"] == tab and t["workspace_id"] == workspace for t in live):
         raise RuntimeError("Source tab no longer exists; reopen the menu.")
+    if new_workspace:
+        cli("pane", "move", pane, "--new-workspace", "--focus")
+        return
+    if destination_workspace != workspace:
+        if not any(w["workspace_id"] == destination_workspace for w in cli("workspace", "list")["workspaces"]):
+            raise RuntimeError("Destination workspace no longer exists; reopen the menu.")
+    live = cli("tab", "list", "--workspace", destination_workspace)["tabs"]
     if int(choice) == 1:
-        cli("pane", "move", pane, "--new-tab", "--focus")
+        cli("pane", "move", pane, "--new-tab", "--workspace", destination_workspace, "--focus")
     else:
         target = destinations[int(choice) - 2]["tab_id"]
-        if not any(t["tab_id"] == target and t["workspace_id"] == workspace for t in live):
+        if not any(t["tab_id"] == target and t["workspace_id"] == destination_workspace for t in live):
             raise RuntimeError("Destination tab no longer exists; reopen the menu.")
         cli("pane", "move", pane, "--tab", target, "--split", "right", "--focus")
 
@@ -145,7 +166,9 @@ if __name__ == "__main__":
     with terminal():
         try:
             main()
-        except (Exception, KeyboardInterrupt) as error:
+        except KeyboardInterrupt:
+            pass
+        except Exception as error:
             print("\033[H\033[2J" + fit(f"移動失敗： {error}", max(1, shutil.get_terminal_size().columns - 1)) + "\r\n按 Esc 或 Enter 關閉。", end="", flush=True)
             try:
                 while read_key() not in ("esc", "enter"):

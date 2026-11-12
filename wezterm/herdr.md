@@ -32,6 +32,7 @@
 - `Prefix, C` -- 直接新增 tab, 不詢問名稱(`[ui] prompt_new_tab_name = false`, tab 名稱交給 Auto Title)
 - `Prefix, I` -- 顯示目前 tab ID
 - `Prefix, M` -- 移動目前 pane 至其他 tab, 預設"新增 tab"
+- `Prefix, Shift+M` -- 移動目前 pane 至其他 workspace, 預設"新增 workspace"; 選擇既有 workspace 後可新增 tab 或選擇既有 tab, 後者以右側 split 加入. 完成後切換至移動的 pane
 - `Prefix, U` -- popup 顯示 Claude/Codex usage (5h/Wk 剩餘與重置時間), 任一鍵關閉; 需要 [quota-cli](#quota-cli)
 ### Pane 移動 popup 安裝
 
@@ -50,6 +51,20 @@ height = "18%"
 ```
 
 helper 使用 popup 注入的 `HERDR_ACTIVE_PANE_ID`, `HERDR_ACTIVE_WORKSPACE_ID`, `HERDR_ACTIVE_TAB_ID` 固定來源, 並透過 `HERDR_BIN_PATH` 呼叫 CLI, 沿用 socket 環境.合併時以 `prefix+m` 識別並更新這一筆 command, 保留其他 command, `onboarding` 與 UI 設定, 再分別執行 reload
+
+同一組 helper 也提供 workspace 模式. Windows 合併 repo 的 `prefix+shift+m` command (加上 `-Mode workspace`); WSL 新增以下 command:
+
+```toml
+[[keys.command]]
+key = "prefix+shift+m"
+type = "popup"
+command = 'python3 "$HOME/.config/herdr/herdr-move-pane.py" workspace'
+description = "move pane to workspace"
+width = "23%"
+height = "18%"
+```
+
+兩層選單均可用方向鍵或數字選擇, Enter 確認; Esc / Q / Ctrl+C 取消整個操作. 執行前重新確認來源與目的地仍有效; 若已變動則顯示錯誤, 關閉後重新開啟選單. 合併設定時以快捷鍵識別 command, 保留其他設定.
 
 Herdr 0.9.3 不允許移動 zoom 中 tab 的 pane(`zoomed_tab`); 請先用 `Alt+Z` 取消 zoom.helper 會將這類 `changed: false` 結果當成失敗顯示, 不會悄悄視為成功
 
