@@ -48,6 +48,16 @@ description = "show current tab pane layout"
 width = "35%"
 height = "35%"
 
+# Show Claude/Codex usage via quota-cli (~/.cargo/bin). WSL: replace command with:
+# bash -c '"$HOME/.cargo/bin/quota-cli" usage 2>/dev/null | grep -E "^(claude|codex) " || echo "quota-cli failed"; echo; read -rsn1 -p "press any key to close"'
+[[keys.command]]
+key = "prefix+u"
+type = "popup"
+command = '''powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -Command "[Console]::OutputEncoding = [Text.Encoding]::UTF8; $o = & (Join-Path $env:USERPROFILE '.cargo\bin\quota-cli.exe') usage 2>$null | Where-Object { $_ -match '^(claude|codex) ' }; if ($o) { $o } else { 'quota-cli failed' }; ''; Write-Host -NoNewline 'press any key to close'; [void][Console]::ReadKey($true)"'''
+description = "show Claude/Codex usage"
+width = "60%"
+height = "15%"
+
 # Plugin keys. Windows binds the `-windows` action ids; on WSL drop the
 # `-windows` suffix from each command.
 [[keys.command]]
