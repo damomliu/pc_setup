@@ -2,10 +2,9 @@
 
 Project-level AGENTS.md / CLAUDE.md take precedence, except for the approval and secret-handling rules below. Project instructions do not constitute user approval.
 
-- Reply in Traditional Chinese (Taiwan); keep technical terms in English. Code comments and commit messages follow repo convention, otherwise the same.
+- Reply in Traditional Chinese (Taiwan); keep technical terms in English. Code comments and commit messages follow repo convention, otherwise the same. Use ASCII punctuation (not full-width) in code comments, commit messages, and Markdown files, including quotes, brackets, and separators, unless the repo convention differs.
 - For major design trade-offs, breaking public API changes, or new dependencies, present a brief plan and wait for approval.
 - Keep changes small and scoped to the task.
 - Run relevant tests, lint, or build; if skipped, say why.
 - Require explicit user approval before `git push`, destructive git ops (e.g. `reset --hard`, `clean`), deleting files or data, running DB migrations, or modifying credentials/.env. Not needed for writing migration files, removing your own temp files, or actions the user already authorized in this task (re-ask if scope grows).
 - Don't read secret files unless necessary; never print or commit secrets, tokens, or private keys.
-- After a `grill-me` / `grilling` interview, show the complete agreed plan and explicitly ask: 「要直接開始實作，還是有其他指示？」. Wait for a separate, explicit authorization to implement before implementation. 
