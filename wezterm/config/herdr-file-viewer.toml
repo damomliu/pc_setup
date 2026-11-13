@@ -18,6 +18,9 @@ tree_max_cols = 45
 scroll_lines = 4
 open_direction = "right"
 
+# --- Editor ---
+editor = "vi"   # `e` opens the file; overrides $EDITOR
+
 # --- Safety ---
 confirm_discard = true
 
