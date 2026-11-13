@@ -94,6 +94,7 @@ WSL 使用 [herdr-list-ids.py](src/herdr-list-ids.py), 複製至 `~/.config/herd
 - File Viewer (`smarzban/herdr-file-viewer`)
   - 快速鍵: `Ctrl+B, F` 以 split 開啟, `Ctrl+B, Shift+F` 以 tab 開啟
   - repo 副本: [herdr-file-viewer.toml](config/herdr-file-viewer.toml), 複製至 `herdr plugin config-dir herdr-file-viewer` 下的 `config.toml`
+  - 編輯器: config.toml 的 `editor = "vi"`, 在 File Viewer 按 `e` 開啟(Win/WSL 皆需 `vi` 在 PATH)
   - `glow` (Markdown renderer)
   - `delta` (Diff renderer)
   - `bat` (Syntax renderer)
