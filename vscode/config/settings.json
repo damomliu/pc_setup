@@ -8,8 +8,12 @@
     "[json]": {
         "editor.defaultFormatter": "vscode.json-language-features"
     },
+    "[markdown]": {
+        "editor.colorDecorators": false
+    },
     "chat.editing.alwaysSaveWithGeneratedChanges": true,
     "chat.editor.fontSize": 13,
+    "color-highlight.languages": ["*", "!markdown"],
     "debug.console.historySuggestions": false,
     "diffEditor.ignoreTrimWhitespace": false,
     "editor.accessibilitySupport": "off",
@@ -113,6 +117,7 @@
     "workbench.startupEditor": "newUntitledFile",
     "workbench.tree.indent": 12,
     "remote.autoForwardPortsSource": "hybrid",
+    "remote.SSH.useExecServer": false,
     "remote.SSH.defaultExtensions": [
         "mhutchie.git-graph"
     ],
@@ -138,7 +143,8 @@
         "stsp-07": "linux",
         "nb": "windows",
         "ctsp-2611": "linux",
-        "hsp3-2611": "linux"
+        "hsp3-2611": "linux",
+        "pc": "windows"
     },
     "editor.cursorSmoothCaretAnimation": "on",
     "editor.cursorBlinking": "phase",
