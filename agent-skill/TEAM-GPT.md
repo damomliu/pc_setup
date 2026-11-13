@@ -19,4 +19,4 @@ Team NEXENSE 的 GPT PM 簡化版
     - 負責 review JUPITER, SATURN, LUNA 的程式
 - `JUPITER` (gpt-6.1-astra) - 實作程式
 - `SATURN` (gpt-6.1-sol) - 實作程式
-- `LUNA` (gpt-6.1-luna) - 實作程式
+- `LUNA` (gpt-6-luna) - 實作程式
