@@ -87,6 +87,22 @@ WSL 使用 [herdr-list-ids.py](src/herdr-list-ids.py), 複製至 `~/.config/herd
 
 **note** `Ctrl+Space` 保留給中文輸入法, 不可用作 prefix
 
+### macOS
+
+- 終端機：iTerm2 的 `Herdr` dynamic profile（直接啟動 `~/.local/bin/herdr`）；repo 副本 [iterm2-herdr.json](config/iterm2-herdr.json)，複製到 `~/Library/Application Support/iTerm2/DynamicProfiles/herdr.json` 後 iTerm2 會自動載入。設為預設 profile：`defaults write com.googlecode.iterm2 "Default Bookmark Guid" -string "84493b13-8660-41ce-a367-047c1a98b8b9"`（之後重開 iTerm2）。快速鍵映射只存在這個 profile 裡；用其他 profile（例如 `long`）開 Herdr 時，`Opt+Shift`、`Opt+Z`、`Cmd+B` 都不會有作用。
+- Herdr 設定：repo 副本 [herdr-config.macos.toml](config/herdr-config.macos.toml)，合併到 `~/.config/herdr/config.toml`（保留 `onboarding`、`[ui.toast]`），再執行 `herdr server reload-config`。
+- helper：把 [herdr-move-pane.py](src/herdr-move-pane.py)、[herdr-list-ids.py](src/herdr-list-ids.py) 複製到 `~/.config/herdr/`，用 `/usr/bin/python3` 執行；`Prefix, I` 用 `pbcopy` 複製 pane ID。
+- 快速鍵跟 Windows 相同，`Alt` 換成 `Option`：`Opt+方向鍵`、`Opt+Shift+方向鍵`、`Opt+Z`。
+- Windows 的 `Ctrl+Alt` 系列在 Mac 改用 `Cmd+Opt`：`Cmd+Opt+←/→` 切換 tab、`Cmd+Opt+↑/↓` 切換 workspace、`Cmd+Opt+Shift+方向鍵` 交換 pane。Herdr config 仍寫 `ctrl+alt+…`，由 iTerm2 profile 把 `Cmd+Opt` 送成對應的 escape sequence。`Ctrl+Opt+方向鍵` 留給 BetterTouchTool 的全域快速鍵。
+- BetterTouchTool 的 iTerm2 專屬規則 `Cmd+Opt+←/→`（送 `Ctrl+Shift+Tab`／`Ctrl+Tab` 切 iTerm2 tab）需要停用，否則會攔截 Herdr 的切換 tab。
+- Prefix：`Ctrl+B` 與 `Cmd+B` 都可以用。`Cmd+B` 是 iTerm2 profile 送出的 `0x02`，Herdr config 仍是 `ctrl+b`。
+- iTerm2 profile 的 Option 維持 Normal（不設成 Esc+），Option 組合改由 Keyboard Map 逐一送出 escape sequence（`Opt+方向鍵` → `ESC[1;3x`、`Opt+Shift` → `1;4`、`Cmd+Opt` → `1;7`、`Cmd+Opt+Shift` → `1;8`、`Opt+Z` → `ESC z`）；要新增 Option 快速鍵時，必須在 profile 補上對應的映射。
+- 避開 `Ctrl+方向鍵`：這是 macOS Spaces／Mission Control 的快速鍵。
+- File Viewer renderer：`brew install glow bat`；`git-delta` 在 macOS 14 的 Homebrew 需從原始碼編譯（z3 編譯失敗），改下載 [GitHub release](https://github.com/dandavison/delta/releases) 的 `delta-<ver>-aarch64-apple-darwin.tar.gz`，將 `delta` 複製到 `~/.local/bin/`。
+- iTerm2 直接執行 profile 的 Command 時不經過 shell，herdr server 的 PATH 只有 `/usr/bin:/bin:/usr/sbin:/sbin`，File Viewer 會回報三個 renderer 都 not found。因此 profile 的 Command 為 `/bin/zsh -lic 'exec /Users/yuenlungliu/.local/bin/herdr'`，由 login + interactive zsh 讀入 `~/.zprofile`（Homebrew）與 `~/.zshrc`（`~/.local/bin`）。
+- 修改 Command 後需重啟 herdr server 才會用新的 PATH：在非 herdr 的終端機執行 `herdr server stop`（會關閉所有 pane 與 agent），再開新的 `Herdr` profile 視窗；以 `ps eww -p $(pgrep -f "herdr server") | tr ' ' '\n' | grep ^PATH=` 確認含 `/opt/homebrew/bin`。
+- File Viewer 沿用共用的 [herdr-file-viewer.toml](config/herdr-file-viewer.toml)，不需要以絕對路徑指定 renderer；複製到 `~/.config/herdr/plugins/config/herdr-file-viewer/config.toml`。若 File Viewer 又回報 renderer not found，先檢查 server 的 PATH。
+
 ## Plugins
 
 - Auto Title (`kryptamine/herdr-auto-title`)

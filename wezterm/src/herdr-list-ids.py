@@ -68,9 +68,13 @@ def herdr(*args):
 
 
 def copy_to_clipboard(text):
-    # Windows clipboard via clip.exe (WSL interop); /etc/wsl.conf may disable PATH appending.
+    # macOS uses pbcopy; WSL uses Windows clip.exe via interop (/etc/wsl.conf may disable PATH appending).
+    if sys.platform == "darwin":
+        command = ["pbcopy"]
+    else:
+        command = [shutil.which("clip.exe") or "/mnt/c/Windows/System32/clip.exe"]
     try:
-        subprocess.run([shutil.which("clip.exe") or "/mnt/c/Windows/System32/clip.exe"], input=text.encode("ascii"), check=True, capture_output=True)
+        subprocess.run(command, input=text.encode("ascii"), check=True, capture_output=True)
         return True
     except (OSError, subprocess.CalledProcessError):
         return False

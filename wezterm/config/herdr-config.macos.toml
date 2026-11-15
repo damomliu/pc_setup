@@ -1,0 +1,58 @@
+[theme]
+name = "one-dark"
+
+# macOS: Alt means Option; Ctrl remains Control. The iTerm2 Herdr profile
+# (config/iterm2-herdr.json) sends the matching escape sequences and maps
+# Cmd+B to Ctrl+B, so both work as the prefix. It also sends the ctrl+alt
+# sequences below for Cmd+Opt(+Shift)+arrows, so on macOS press Cmd+Opt
+# where these bindings say ctrl+alt.
+[keys]
+prefix = "ctrl+b"
+split_vertical = 'prefix+\'
+focus_pane_left = ["prefix+h", "alt+left"]
+focus_pane_down = ["prefix+j", "alt+down"]
+focus_pane_up = ["prefix+k", "alt+up"]
+focus_pane_right = ["prefix+l", "alt+right"]
+swap_pane_left = ["prefix+shift+h", "ctrl+alt+shift+left"]
+swap_pane_down = ["prefix+shift+j", "ctrl+alt+shift+down"]
+swap_pane_up = ["prefix+shift+k", "ctrl+alt+shift+up"]
+swap_pane_right = ["prefix+shift+l", "ctrl+alt+shift+right"]
+zoom = ["prefix+z", "alt+z"]
+resize_pane_left = "alt+shift+left"
+resize_pane_down = "alt+shift+down"
+resize_pane_up = "alt+shift+up"
+resize_pane_right = "alt+shift+right"
+previous_tab = "ctrl+alt+left"
+next_tab = "ctrl+alt+right"
+previous_workspace = "ctrl+alt+up"
+next_workspace = "ctrl+alt+down"
+
+# macOS popup helpers (Python 3 supplied by Xcode Command Line Tools).
+[[keys.command]]
+key = "prefix+m"
+type = "popup"
+command = '/usr/bin/python3 "$HOME/.config/herdr/herdr-move-pane.py"'
+description = "move pane to tab"
+width = "70%"
+height = "70%"
+
+# Show current tab ID and draw its panes by layout; read-only.
+[[keys.command]]
+key = "prefix+i"
+type = "popup"
+command = '/usr/bin/python3 "$HOME/.config/herdr/herdr-list-ids.py"'
+description = "show current tab pane layout"
+width = "35%"
+height = "35%"
+
+[[keys.command]]
+key = "prefix+f"
+type = "plugin_action"
+command = "herdr-file-viewer.open-file-viewer"
+description = "open file viewer in split"
+
+[[keys.command]]
+key = "prefix+shift+f"
+type = "plugin_action"
+command = "herdr-file-viewer.open-file-viewer-tab"
+description = "open file viewer in tab"
