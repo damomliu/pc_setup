@@ -34,6 +34,9 @@
 - `Prefix, M` -- 移動目前 pane 至其他 tab, 預設"新增 tab"
 - `Prefix, Shift+M` -- 移動目前 pane 至其他 workspace, 預設"新增 workspace"; 選擇既有 workspace 後可新增 tab 或選擇既有 tab, 後者以右側 split 加入. 完成後切換至移動的 pane
 - `Prefix, U` -- popup 顯示 Claude/Codex usage (5h/Wk 剩餘與重置時間), 任一鍵關閉; 需要 [quota-cli](#quota-cli)
+- `Prefix, Y` -- 右側 split 開 Yazi, 瀏覽目前 pane 的本機或 SSH 遠端目錄; 見 [Yazi / SSHFS](#yazi--sshfs)
+- `Prefix, Shift+S` -- 列出 sshfs 掛載點, 選擇後卸載
+- `Prefix, S` 維持 Herdr 預設的 Settings
 ### Pane 移動 popup 安裝
 
 Windows 使用 [herdr-move-pane.ps1](src/herdr-move-pane.ps1), 複製至 `%APPDATA%\herdr\herdr-move-pane.ps1`; repo 的 `[[keys.command]]` 可直接合併
@@ -114,15 +117,39 @@ WSL 使用 [herdr-list-ids.py](src/herdr-list-ids.py), 複製至 `~/.config/herd
   - `glow` (Markdown renderer)
   - `delta` (Diff renderer)
   - `bat` (Syntax renderer)
-  - 遠端檔案(sshfs): File Viewer 以 focused pane 的 cwd 為 tree root, 將遠端 host 掛載成本機路徑後即可瀏覽
-    - 安裝: Windows `WinFsp` + `SSHFS-Win`; WSL `sshfs`
-    - helper: Windows: [sshfs-mount.ps1](src/sshfs-mount.ps1) -> `%APPDATA%\herdr\sshfs-mount.ps1`; WSL: [sshfs-mount.sh](src/sshfs-mount.sh) -> `~/.local/bin/sshfs-mount`
-    - Windows 安裝後需以系統管理員設定 `RunAs`, 否則 WinFsp.Launcher 以 SYSTEM 執行 sshfs, `net use` 會報 error 67: `New-ItemProperty 'HKLM:\SOFTWARE\WOW6432Node\WinFsp\Services\sshfs.k' -Name RunAs -Value '.' -PropertyType String -Force`(重裝/升級 SSHFS-Win 後要重設)
-    - host 使用 `~/.ssh/config` 的 alias(如 `nb`, `pc`); 有 `RemoteCommand` 的 alias(如 `nb-wsl`)無法用於 sshfs
-    - Windows: `sshfs-mount.ps1 nb [RemotePath] [-Drive X]`  ->  `cd X:\`  ->  `Ctrl+B, F`; `-List` 列出掛載, `-Unmount X:`(或 host 名)卸載
-    - WSL: `sshfs-mount nb [remotePath]`  ->  `cd ~/mnt/nb`  ->  `Ctrl+B, F`; `sshfs-mount -l` 列出, `sshfs-mount -u nb` 卸載
-    - 注意: SSHFS-Win 使用內建 Cygwin ssh(非 `C:\Program Files\OpenSSH`), 但讀取 `%USERPROFILE%\.ssh\config`, Windows 專用的 option 可能不相容
-    - 注意: 遠端大型 git repo 會讓 tree/git status 變慢
+
+### Yazi / SSHFS
+
+`Prefix, Y` 在右側 split 開 Yazi: 一般 pane 開本機 cwd; SSH pane 掛載遠端 host 後開啟目錄. 離開 Yazi 後保留 shell. `Prefix, Shift+S` 選擇掛載點並卸載, 若有 pane 正在使用會先提示.
+
+- 遠端首次開啟會詢問 RemotePath; 已掛載時沿用該 host 上次路徑. `-DefaultPath` / `--default-path` 可指定預設路徑.
+- host 使用 `~/.ssh/config` 的 alias, 不支援含 `RemoteCommand` 的 alias.
+- 遠端一律掛載 `/`, 換目錄不必重掛; 遇到舊式掛載會先確認再改掛.
+- 遠端大型 repo 使用 File Viewer 會很慢, 改用 Yazi 預設設定, 避免安裝會執行 git status 的外掛.
+
+**安裝**
+
+| 項目 | Windows | WSL |
+|---|---|---|
+| Yazi | `winget install --id sxyazi.yazi -e` | 從 [GitHub release](https://github.com/sxyazi/yazi/releases) 下載 `yazi-x86_64-unknown-linux-gnu.zip`, 將 `yazi`, `ya` 放到 `~/.local/bin` |
+| SSHFS | `winget install --id WinFsp.WinFsp -e` 與 `winget install --id SSHFS-Win.SSHFS-Win -e` | 安裝 `sshfs` |
+| 掛載 helper | [sshfs-mount.ps1](src/sshfs-mount.ps1) -> `%APPDATA%\herdr\sshfs-mount.ps1` | [sshfs-mount.sh](src/sshfs-mount.sh) -> `~/.local/bin/sshfs-mount` |
+| Popup helper | [herdr-sshfs.ps1](src/herdr-sshfs.ps1) -> `%APPDATA%\herdr\herdr-sshfs.ps1` (UTF-8 with BOM) | [herdr-sshfs.py](src/herdr-sshfs.py) -> `~/.config/herdr/herdr-sshfs.py` (LF) |
+
+合併 repo config 的 `prefix+y` 與 `prefix+shift+s` command; 預設為 Windows, WSL 依註解替換.
+
+Windows 安裝或升級 SSHFS-Win 後, 需以系統管理員設定 `RunAs`, 否則可能出現 error 67:
+
+```powershell
+foreach ($n in 'sshfs.k','sshfs.kr') { New-ItemProperty "HKLM:\SOFTWARE\WOW6432Node\WinFsp\Services\$n" -Name RunAs -Value '.' -PropertyType String -Force }
+```
+
+Windows 使用 `\\sshfs.kr\<host>` 以 key 認證掛載遠端 `/`. SSHFS-Win 使用內建 Cygwin ssh, 讀取 `%USERPROFILE%\.ssh\config`, 部分 Windows 專用 option 可能不相容. Yazi 所需的 `file.exe` 由 helper 自動使用 Git for Windows 版本, 也可用 `YAZI_FILE_ONE` 指定.
+
+**手動掛載 / 卸載**
+
+- Windows: `sshfs-mount.ps1 nb [-Drive X]` 掛載 `nb:/` (未指定磁碟機時從 `Z:` 往前找); `-List` 列出, `-Unmount X:` 或 `-Unmount nb` 卸載.
+- WSL: `sshfs-mount nb` 掛載 `nb:/` 至 `~/mnt/nb`; `sshfs-mount -l` 列出, `sshfs-mount -u nb` 卸載.
 
 ## 其他
 

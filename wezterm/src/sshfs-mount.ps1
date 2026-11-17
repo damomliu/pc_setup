@@ -1,10 +1,9 @@
-﻿# 以 SSHFS-Win 將 SSH host 掛載成磁碟機代號，供 Herdr File Viewer（Ctrl+B, F）瀏覽遠端檔案。
-# 用法：sshfs-mount.ps1 <Host> [RemotePath] [-Drive X] | -Unmount <X: | Host> | -List
+﻿# 以 SSHFS-Win（\\sshfs.kr\<host>，key 認證）將 SSH host 的遠端 / 掛載成磁碟機代號（遠端 /a/b 對應 X:\a\b），供 Yazi（Herdr Prefix, Y）瀏覽遠端檔案。
+# 用法：sshfs-mount.ps1 <Host> [-Drive X] | -Unmount <X: | Host> | -List
 # 注意：必須存成 UTF-8 with BOM，否則 Windows PowerShell 5.1 會以 cp950 解析而壞掉。
 # 部署位置：%APPDATA%\herdr\sshfs-mount.ps1；需先安裝 WinFsp 與 SSHFS-Win。
 param(
     [Parameter(Position = 0)][string]$HostName,
-    [Parameter(Position = 1)][string]$RemotePath = '',
     [string]$Drive,
     [string]$Unmount,
     [switch]$List
@@ -38,7 +37,7 @@ if ($List) {
 if ($Unmount) {
     $target = $Unmount
     if ($target -notmatch '^[A-Za-z]:?$') {
-        $found = Get-SshfsMappings | Where-Object { $_.Remote -match ('^\\\\sshfs(\.[a-z])?\\' + [regex]::Escape($Unmount) + '(\\|$)') } | Select-Object -First 1
+        $found = Get-SshfsMappings | Where-Object { $_.Remote -match ('^\\\\sshfs(\.[a-z]+)?\\' + [regex]::Escape($Unmount) + '(\\|$)') } | Select-Object -First 1
         if (!$found) { Fail "找不到 host 的掛載：$Unmount" }
         $target = $found.Drive
     }
@@ -48,15 +47,16 @@ if ($Unmount) {
     exit 0
 }
 
-if (!$HostName) { Fail '用法：sshfs-mount.ps1 <Host> [RemotePath] [-Drive X] | -Unmount <X: | Host> | -List' }
+if (!$HostName) { Fail '用法：sshfs-mount.ps1 <Host> [-Drive X] | -Unmount <X: | Host> | -List' }
 if (!(Test-Path "$env:ProgramFiles\SSHFS-Win") -and !(Test-Path "${env:ProgramFiles(x86)}\SSHFS-Win")) {
     Fail '找不到 SSHFS-Win，請先安裝：winget install --id WinFsp.WinFsp -e 與 winget install --id SSHFS-Win.SSHFS-Win -e'
 }
 
-$existing = Get-SshfsMappings | Where-Object { $_.Remote -match ('^\\\\sshfs\.k\\' + [regex]::Escape($HostName) + '(\\|$)') } | Select-Object -First 1
+$unc = '\\sshfs.kr\' + $HostName
+$existing = Get-SshfsMappings | Where-Object { $_.Remote -match ('^\\\\sshfs(\.[a-z]+)?\\' + [regex]::Escape($HostName) + '(\\|$)') } | Select-Object -First 1
 if ($existing) {
+    if ($existing.Remote -ne $unc) { Fail "$($existing.Drive) 已掛載為 $($existing.Remote)（非 $unc），請先 sshfs-mount.ps1 -Unmount $($existing.Drive)" }
     Write-Output "已掛載：$($existing.Drive)  $($existing.Remote)"
-    Write-Output "下一步：cd $($existing.Drive)\ 然後按 Ctrl+B, F"
     exit 0
 }
 
@@ -68,9 +68,6 @@ if ($Drive) {
     $letter = [char[]](90..68) | Where-Object { $used -notcontains [string]$_ } | Select-Object -First 1
     if (!$letter) { Fail '沒有可用的磁碟機代號' }
 }
-$unc = '\\sshfs.k\' + $HostName
-if ($RemotePath) { $unc += '\' + ($RemotePath.Trim('/', '\') -replace '/', '\') }
 $output = net use "${letter}:" $unc 2>&1
 if ($LASTEXITCODE -ne 0) { Fail ("掛載失敗：net use ${letter}: $unc`n" + ($output -join "`n")) }
 Write-Output "已掛載：${letter}:  $unc"
-Write-Output "下一步：cd ${letter}:\ 然後按 Ctrl+B, F"
