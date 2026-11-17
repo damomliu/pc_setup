@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # 一次更新 macOS 的 Claude Code、Codex 及其 plugins / skills。
-# 對應 update.ps1（Windows / WSL），步驟相同。相容 macOS 內建 bash 3.2。
+# 對應 update-core.ps1 (Windows / WSL), 步驟相同。相容 macOS 內建 bash 3.2。
 #
 # 請在沒有執行中的 claude / codex 的 terminal 執行（更新時可能被鎖）。
 # plugin 更新需重啟 Claude Code session 才生效。

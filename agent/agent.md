@@ -51,9 +51,38 @@ macOS:
 
 ### 更新
 
-[update.ps1](update.ps1) 一次更新 Windows 與 WSL 的 Claude Code、Codex 及其 plugins / `npx skills` / asana skill（`-Distro`、`-SkipWin`、`-SkipWsl`）；單一步驟失敗只警告並繼續，最後彙整失敗清單。請在沒有執行中的 claude / codex 的 terminal 執行；plugin 更新需重啟 session 才生效。
+[update.ps1](update.ps1) 是 PowerShell 7 的互動入口, 讓選定的 agent 執行 `update-core.ps1` 一次, 並以繁體中文總結成功 / 失敗 / 略過項目、版本、更新 exit code 與後續處理。
 
-[update.sh](update.sh) 為 macOS 版，步驟相同（claude 為 Homebrew 安裝時改用 `brew upgrade --cask claude-code`）。
+未指定 `-Agent` 或 `-Preview` 時顯示選單, Enter 預設只 preview, 不執行更新:
+
+```text
+1. Codex Luna   - 執行並總結
+2. Claude Haiku - 執行並總結
+3. Codex Luna   - 只 preview [預設]
+4. Claude Haiku - 只 preview
+Q. 離開
+```
+
+選單不顯示 effort, 兩個 agent 實際皆使用 `medium`。無效輸入會重新詢問; Q 或輸入結束時離開。指定 `-Agent` 或 `-Preview` 就略過選單; `-Model`、`-Distro`、`-SkipWin`、`-SkipWsl` 本身不略過選單。
+
+```powershell
+pwsh -File agent/update.ps1                              # 互動選單
+pwsh -File agent/update.ps1 -Agent codex                 # gpt-6-luna, 直接執行並總結
+pwsh -File agent/update.ps1 -Agent claude                # haiku, 直接執行並總結
+pwsh -File agent/update.ps1 -SkipWsl                     # 選單, 只更新 Windows
+pwsh -File agent/update.ps1 -Distro Ubuntu-24.04 -SkipWin # 選單, 只更新 WSL
+pwsh -File agent/update.ps1 -Model <model-id>             # 選單, 覆寫 model ID
+pwsh -File agent/update.ps1 -Preview                     # Codex preview, 不啟動 agent
+pwsh -File agent/update.ps1 -Agent claude -Preview       # Claude preview
+```
+
+preview 完整顯示 agent、model、CLI 參數與 prompt (包含實際 effort), 不需要已安裝 agent CLI。執行時需要已安裝並登入對應 CLI, 且帳號可使用所選 model。Codex 使用 `--approve-for-me` 進行自動權限審查; Claude 使用 print mode 並沿用現有 permissions, 未授權的工具操作可能被拒絕。封裝不略過 permissions / sandbox, 需要互動的更新可能仍須手動執行。
+
+[update-core.ps1](update-core.ps1) 是原本的更新腳本, 可直接執行以更新 Windows 與 WSL 的 Claude Code、Codex 及其 plugins / `npx skills` / asana skill, 支援 `-Distro`、`-SkipWin`、`-SkipWsl`。單一步驟失敗只警告並繼續, 最後彙整失敗清單。agent 本身也是更新目標, 可能造成執行中檔案鎖定; 遇到時請關閉其他 session, 在獨立 terminal 執行 `pwsh -File agent/update-core.ps1`。plugin 更新需重啟 Claude Code session 才生效。
+
+入口的 exit code 是 agent CLI 的結果, 更新腳本的 exit code 以摘要為準; agent 正常結束不代表全部更新成功。
+
+[update.sh](update.sh) 為 macOS 版, 步驟相同 (claude 為 Homebrew 安裝時改用 `brew upgrade --cask claude-code`)。
 
 ## ChatGPT Codex
 
@@ -125,7 +154,7 @@ Claude Code 另外依剩餘比例變色（5h／weekly 剩餘或 Context 剩餘 �
 - [diagram-design](https://github.com/cathrynlavery/diagram-design)（manual only；Windows、WSL 各執行一次，裝法同 herdr）：
   `npx skills add cathrynlavery/diagram-design --skill diagram-design -g -a claude-code -a codex -y`
   - Claude：`claude-settings.json` 的 `skillOverrides` 設 `user-invocable-only`，description 不進 context，只能 `/diagram-design` 叫用
-  - Codex：`~/.agents/skills/diagram-design/agents/openai.yaml` 設 `policy.allow_implicit_invocation: false`，只能 `$diagram-design` 叫用；skills 重裝會清掉此檔，`update.ps1`／`update.sh` 在 `npx skills update` 後補回
+  - Codex：`~/.agents/skills/diagram-design/agents/openai.yaml` 設 `policy.allow_implicit_invocation: false`，只能 `$diagram-design` 叫用；skills 重裝會清掉此檔，`update-core.ps1` / `update.sh` 在 `npx skills update` 後補回
 
 ## Project 初始化慣例
 
