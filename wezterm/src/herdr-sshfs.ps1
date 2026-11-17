@@ -14,9 +14,13 @@ $sshfsMount = Join-Path $PSScriptRoot 'sshfs-mount.ps1'
 # 每台 host 上次開啟的遠端絕對路徑
 $stateFile = Join-Path $env:LOCALAPPDATA 'herdr\herdr-sshfs.json'
 $sshValueOptions = 'BbcDEeFIiJLlmOoPpQRSWw'
+$popupTitle = $(if ($Mode -eq 'unmount') { '卸載 SSHFS' } else { '開啟 Yazi' })
 $esc = [char]27
 $savedControlC = [Console]::TreatControlCAsInput
 
+function Get-PopupHeader {
+    return $esc + '[H' + $esc + '[2J' + $esc + '[1;96m' + (Fit-Line $popupTitle ([Math]::Max(1, [Console]::WindowWidth - 1))) + $esc + '[0m' + "`r`n`r`n"
+}
 function Invoke-Herdr {
     param([string[]]$Arguments)
     $output = & $binary @Arguments 2>&1
@@ -43,17 +47,17 @@ function Fit-Line {
     return $builder.ToString()
 }
 function Get-Width { return [Math]::Max(1, [Console]::WindowWidth - 1) }
-function Clear-Popup { [Console]::Write($esc + '[H' + $esc + '[2J') }
+function Clear-Popup { [Console]::Write((Get-PopupHeader)) }
 function Select-Item {
     param([string[]]$Labels, [string]$Title)
     $selected = 0; $digits = ''; $message = ''
     while ($true) {
         $width = Get-Width
         $height = [Math]::Max(1, [Console]::WindowHeight)
-        $rows = [Math]::Max(1, $height - 3)
+        $rows = [Math]::Max(1, $height - 5)
         $start = [Math]::Max(0, [Math]::Min($selected - $rows + 1, $Labels.Count - $rows))
         $lines = New-Object 'Collections.Generic.List[string]'
-        $lines.Add((Fit-Line ($Title + ' ↑↓ / 數字 / Enter / Esc Q') $width))
+        $lines.Add((Fit-Line ($(if ($Title -ne $popupTitle) { $Title + ' ' }) + '↑↓ / 數字 / Enter / Esc Q') $width))
         for ($index = $start; $index -lt [Math]::Min($Labels.Count, $start + $rows); $index++) {
             $line = Fit-Line ('{0}. {1}' -f ($index + 1), $Labels[$index]) $width
             if ($index -eq $selected) { $line = $esc + '[7m' + $line + $esc + '[0m' }
@@ -63,8 +67,8 @@ function Select-Item {
         if ($digits) { $footer = '編號：' + $digits }
         if ($message) { $footer = $message }
         $lines.Add((Fit-Line $footer $width))
-        if ($height -lt 3) { $lines.RemoveAt(0) }
-        [Console]::Write($esc + '[H' + $esc + '[2J' + (($lines | Select-Object -First $height) -join "`r`n"))
+        if ($height -lt 5) { $lines.RemoveAt(0) }
+        [Console]::Write((Get-PopupHeader) + (($lines | Select-Object -First ([Math]::Max(0, $height - 2))) -join "`r`n"))
         while (![Console]::KeyAvailable) {
             Start-Sleep -Milliseconds 50
             if ((Get-Width) -ne $width -or [Math]::Max(1, [Console]::WindowHeight) -ne $height) { break }
@@ -281,7 +285,7 @@ function Invoke-Unmount {
         return
     }
     $labels = @($items | ForEach-Object { '{0}  {1}' -f $_.Drive, $_.Remote })
-    $choice = Select-Item $labels '卸載 sshfs'
+    $choice = Select-Item $labels '卸載 SSHFS'
     if ($null -eq $choice) { return }
     $drive = $items[$choice - 1].Drive
     $busy = @()

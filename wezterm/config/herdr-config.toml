@@ -58,14 +58,14 @@ width = "35%"
 height = "35%"
 
 # Show Claude/Codex usage via quota-cli (~/.cargo/bin). WSL: replace command with:
-# bash -c '"$HOME/.cargo/bin/quota-cli" usage 2>/dev/null | grep -E "^(claude|codex) " || echo "quota-cli failed"; echo; read -rsn1 -p "press any key to close"'
+# bash -c 'o=$("$HOME/.cargo/bin/quota-cli" usage 2>/dev/null | grep -E "^(claude|codex) " || echo "quota-cli failed"); printf "\033[H\033[2J\033[1;96mAgent 用量\033[0m\n\n%s\n\n" "$o"; read -rsn1 -p "press any key to close"'
 [[keys.command]]
 key = "prefix+u"
 type = "popup"
-command = '''powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -Command "[Console]::OutputEncoding = [Text.Encoding]::UTF8; $o = & (Join-Path $env:USERPROFILE '.cargo\bin\quota-cli.exe') usage 2>$null | Where-Object { $_ -match '^(claude|codex) ' }; if ($o) { $o } else { 'quota-cli failed' }; ''; Write-Host -NoNewline 'press any key to close'; [void][Console]::ReadKey($true)"'''
+command = '''powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -Command "[Console]::OutputEncoding = [Text.Encoding]::UTF8; $o = & (Join-Path $env:USERPROFILE '.cargo\bin\quota-cli.exe') usage 2>$null | Where-Object { $_ -match '^(claude|codex) ' }; [Console]::Write([char]27 + '[H' + [char]27 + '[2J' + [char]27 + '[1;96mAgent 用量' + [char]27 + '[0m' + [Environment]::NewLine + [Environment]::NewLine); if (!$o) { $o = 'quota-cli failed' }; [Console]::Write(($o -join [Environment]::NewLine) + [Environment]::NewLine + [Environment]::NewLine + 'press any key to close'); [void][Console]::ReadKey($true)"'''
 description = "show Claude/Codex usage"
 width = "60%"
-height = "15%"
+height = 12
 
 # Open Yazi in a right split: local cwd, or (when the focused pane runs ssh) the host's / via sshfs.
 # WSL: python3 "$HOME/.config/herdr/herdr-sshfs.py" open --default-path /opt/aiont-vibration-monitoring

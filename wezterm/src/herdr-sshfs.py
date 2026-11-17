@@ -26,6 +26,14 @@ STATE_FILE = os.path.expanduser("~/.local/state/herdr-sshfs.json")
 SSH_VALUE_OPTIONS = set("BbcDEeFIiJLlmOoPpQRSWw")
 
 
+POPUP_TITLE = (sys.argv[1:2] == ["unmount"] and "卸載 SSHFS" or "開啟 Yazi")
+
+
+def clear_popup():
+    width = max(1, shutil.get_terminal_size().columns - 1)
+    return "\033[H\033[2J" + "\033[1;96m" + fit(POPUP_TITLE, width) + "\033[0m\r\n\r\n"
+
+
 @contextmanager
 def terminal():
     fd = sys.stdin.fileno()
@@ -77,18 +85,18 @@ def choose(labels, title):
     previous = None
     while True:
         width, height = shutil.get_terminal_size((80, 24))
-        rows = max(1, height - 3)
+        rows = max(1, height - 5)
         start = max(0, min(selected - rows + 1, len(labels) - rows))
-        lines = [fit(title + " ↑↓ / 數字 / Enter / Esc Q", max(1, width - 1))]
+        lines = [fit(((title + " ") if title != POPUP_TITLE else "") + "↑↓ / 數字 / Enter / Esc Q", max(1, width - 1))]
         for index in range(start, min(len(labels), start + rows)):
             line = fit(f"{index + 1}. {labels[index]}", max(1, width - 1))
             lines.append(("\033[7m" + line + "\033[0m") if index == selected else line)
         lines.append(fit(message or ("編號：" + digits if digits else "Enter 確認；Esc / Q 取消"), max(1, width - 1)))
-        if height < 3:
-            lines = lines[1:1 + height]
+        if height < 5:
+            lines = lines[1:1 + max(0, height - 2)]
         state = (width, height, selected, digits, message)
         if state != previous:
-            print("\033[H\033[2J" + "\r\n".join(lines[:max(1, height)]), end="", flush=True)
+            print(clear_popup() + "\r\n".join(lines[:max(0, height - 2)]), end="", flush=True)
             previous = state
         key = read_key(0.15)
         if key in ("esc", "q", "Q"):
@@ -113,7 +121,7 @@ def choose(labels, title):
 
 def confirm(message):
     """顯示訊息, Enter 回傳 True, Esc 回傳 False."""
-    print("\033[H\033[2J" + fit(message, max(1, shutil.get_terminal_size().columns - 1)) + "\r\nEnter 繼續；Esc 取消。", end="", flush=True)
+    print(clear_popup() + fit(message, max(1, shutil.get_terminal_size().columns - 1)) + "\r\nEnter 繼續；Esc 取消。", end="", flush=True)
     while True:
         key = read_key()
         if key in ("enter", "esc"):
@@ -217,13 +225,13 @@ def open_browser(cli, sshfs_mount, pane, default_path):
         cwd = next((p.get("cwd") for p in cli("pane", "list")["panes"] if p["pane_id"] == pane), None)
         open_yazi(cli, pane, cwd or os.path.expanduser("~"))
         return
-    print("\033[H\033[2J" + f"host: {host}", flush=True)
+    print(clear_popup() + f"host: {host}", flush=True)
     target = os.path.join(MOUNT_ROOT, host)
     existing = dict(mounts()).get(target)
     if existing is not None and existing != f"{host}:/":
         if not confirm(f"{target} 為舊式掛載 ({existing}); Enter 卸載並改掛 {host}:/"):
             return
-        print("\033[H\033[2J" + f"host: {host}\r\n卸載舊式掛載 ...", flush=True)
+        print(clear_popup() + f"host: {host}\r\n卸載舊式掛載 ...", flush=True)
         sshfs_mount("-u", host)
         existing = None
     if existing is not None:
@@ -266,13 +274,13 @@ def open_yazi(cli, pane, root):
 def unmount(cli, sshfs_mount):
     items = mounts()
     if not items:
-        print("\033[H\033[2J沒有 sshfs 掛載\r\n按 Esc 或 Enter 關閉。", end="", flush=True)
+        print(clear_popup() + "沒有 sshfs 掛載\r\n按 Esc 或 Enter 關閉。", end="", flush=True)
         while read_key() not in ("esc", "enter"):
             pass
         return
     home = os.path.expanduser("~")
     labels = [f"{target.replace(home, '~', 1)}  {source}" for target, source in items]
-    choice = choose(labels, "卸載 sshfs")
+    choice = choose(labels, "卸載 SSHFS")
     if choice is None:
         return
     target = items[choice - 1][0]
@@ -327,7 +335,7 @@ if __name__ == "__main__":
         except KeyboardInterrupt:
             pass
         except Exception as error:
-            print("\033[H\033[2J" + fit(f"失敗： {error}", max(1, shutil.get_terminal_size().columns - 1)) + "\r\n按 Esc 或 Enter 關閉。", end="", flush=True)
+            print(clear_popup() + fit(f"失敗： {error}", max(1, shutil.get_terminal_size().columns - 1)) + "\r\n按 Esc 或 Enter 關閉。", end="", flush=True)
             try:
                 while read_key() not in ("esc", "enter"):
                     pass
