@@ -36,7 +36,7 @@
 - PowerShell：見 [power_shell.md](./power_shell/power_shell.md)
 - openssh-server
     - SSH 設定副本與 Win／WSL 同步：見 [sync.py](./ssh/sync.py) 檔頭說明（`--check`／`--pull`／`--push`）
-- sshfs（Win: SSHFS-Win + WinFsp；WSL: sshfs）→ 見 [herdr.md](./wezterm/herdr.md)
+- Yazi + sshfs（Win: SSHFS-Win + WinFsp；WSL: sshfs）→ 見 [herdr.md](./wezterm/herdr.md)
 - usbipd-win
 - WezTerm
     - 要安裝已修復 IME 的版本
