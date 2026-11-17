@@ -140,6 +140,8 @@ Claude Code 切換 model：按 `Ctrl+L` 聚焦輸入框後，輸入 `/model` 開
 | 按鍵 | 動作 |
 |---|---|
 | `Ctrl+K E` | 用 Edit CSV 開啟（`keybindings.json` 沒限制 profile，但只有 Python profile 裝了該 extension，其他 profile 按了沒作用） |
+| `Ctrl+K P` | 複製相對路徑（Explorer 內為選取的檔案；取代 Copy Path of Active File） |
+| `Ctrl+K Shift+P` | 複製絕對路徑（Explorer 內為選取的檔案） |
 | `Ctrl+K T` | Text Editor／內建 experimental Markdown Editor 切換（macOS：`Cmd+K T`） |
 
 在 Text Editor 中，只有內建 Markdown Editor 支援的副檔名才會切換、其他副檔名（例如 `.py`、`.json`）不切換；在其他 active editor 中則切回 Text Editor；沒有 active editor 時不執行。

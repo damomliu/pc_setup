@@ -545,6 +545,19 @@
         "command": "edit-csv.edit"
     },
     {
+        "key": "ctrl+k p",
+        "command": "-workbench.action.files.copyPathOfActiveFile"
+    },
+    {
+        // Explorer 有焦點時複製選取的檔案，否則複製 active editor（Shift+P 同）
+        "key": "ctrl+k p",
+        "command": "copyRelativeFilePath"
+    },
+    {
+        "key": "ctrl+k shift+p",
+        "command": "copyFilePath"
+    },
+    {
         "key": "ctrl+k t",
         "command": "reopenActiveEditorWith",
         "args": "vscode.markdown.editor",
