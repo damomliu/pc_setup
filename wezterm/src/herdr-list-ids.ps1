@@ -6,10 +6,14 @@ $ErrorActionPreference = 'Stop'
 $OutputEncoding = [Console]::OutputEncoding
 $binary = $env:HERDR_BIN_PATH
 $pane = $env:HERDR_ACTIVE_PANE_ID
+$popupTitle = 'Pane 總覽'
 $esc = [char]27
 # 目前 pane 的底色：one-dark 選取列風格，淺灰底 #3e4451 + 白色粗體字，要換色只改這裡
 $highlight = $esc + '[1;38;2;255;255;255;48;2;62;68;81m'
 $savedControlC = [Console]::TreatControlCAsInput
+function Get-PopupHeader {
+    return $esc + '[H' + $esc + '[2J' + $esc + '[1;96m' + (Fit-Line $popupTitle ([Math]::Max(1, [Console]::WindowWidth - 1))) + $esc + '[0m' + "`r`n`r`n"
+}
 function Invoke-Herdr {
     param([string[]]$Arguments)
     $output = & $binary @Arguments 2>&1
@@ -55,7 +59,7 @@ function Set-PaneClipboard {
 function Render-Layout {
     param($Layout, [int]$Width, [int]$Height, [string]$Active, [string]$Note = '')
     $cols = [Math]::Max(1, $Width - 1)
-    $rows = [Math]::Max(1, $Height - 4)
+    $rows = [Math]::Max(1, $Height - 6)
     $area = $Layout.area
     $areaW = [Math]::Max(1.0, [double]$area.width)
     $areaH = [Math]::Max(1.0, [double]$area.height)
@@ -146,7 +150,7 @@ try {
         $width = [Console]::WindowWidth
         $height = [Console]::WindowHeight
         $lines = Render-Layout $layout $width $height $pane $note
-        [Console]::Write($esc + '[H' + $esc + '[2J' + (($lines | Select-Object -First ([Math]::Max(1, $height))) -join "`r`n"))
+        [Console]::Write((Get-PopupHeader) + (($lines | Select-Object -First ([Math]::Max(0, $height - 2))) -join "`r`n"))
         while (![Console]::KeyAvailable) {
             Start-Sleep -Milliseconds 50
             if ([Console]::WindowWidth -ne $width -or [Console]::WindowHeight -ne $height) { break }
@@ -154,7 +158,7 @@ try {
         if ([Console]::KeyAvailable) { $null = [Console]::ReadKey($true); return }
     }
 } catch {
-    [Console]::Write($esc + '[H' + $esc + '[2J')
+    [Console]::Write((Get-PopupHeader))
     [Console]::WriteLine((Fit-Line ("讀取失敗： $_") ([Math]::Max(1, [Console]::WindowWidth - 1))))
     [Console]::Write('按任意鍵關閉。')
     $null = [Console]::ReadKey($true)

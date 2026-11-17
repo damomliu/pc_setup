@@ -18,6 +18,14 @@ HIGHLIGHT = "\033[1;38;2;255;255;255;48;2;62;68;81m"
 FOOTER = "按任意鍵關閉..."
 
 
+POPUP_TITLE = "Pane 總覽"
+
+
+def clear_popup():
+    width = max(1, shutil.get_terminal_size().columns - 1)
+    return "\033[H\033[2J" + "\033[1;96m" + fit(POPUP_TITLE, width) + "\033[0m\r\n\r\n"
+
+
 @contextmanager
 def terminal():
     fd = sys.stdin.fileno()
@@ -81,13 +89,13 @@ def copy_to_clipboard(text):
 
 
 def render_layout(layout, width, height, active, note=""):
-    """Return screen lines: title, blank, (width-1)x(height-4) layout, blank, footer.
+    """Return screen lines: Tab ID, blank, (width-1)x(height-6) layout, blank, footer.
 
     Borders are Unicode box-drawing characters; the whole rectangle of the active
     pane, border included, is wrapped in the HIGHLIGHT colours. Each cell holds one
     string; a wide (CJK) character takes two cells, the second one empty.
     """
-    cols, rows = max(1, width - 1), max(1, height - 4)
+    cols, rows = max(1, width - 1), max(1, height - 6)
     area = layout["area"]
     area_w, area_h = max(1, area["width"]), max(1, area["height"])
     chars = [[" "] * cols for _ in range(rows)]
@@ -157,7 +165,7 @@ def main():
         width, height = shutil.get_terminal_size((80, 24))
         if (width, height) != previous:
             lines = render_layout(layout, width, height, pane, note)
-            print("\033[H\033[2J" + "\r\n".join(lines[:max(1, height)]), end="", flush=True)
+            print(clear_popup() + "\r\n".join(lines[:max(0, height - 2)]), end="", flush=True)
             previous = (width, height)
         if read_key(0.15) != "resize":
             return
@@ -170,7 +178,7 @@ if __name__ == "__main__":
         except KeyboardInterrupt:
             pass
         except Exception as error:
-            print("\033[H\033[2J" + fit(f"讀取失敗： {error}", max(1, shutil.get_terminal_size().columns - 1)) + "\r\n按任意鍵關閉。", end="", flush=True)
+            print(clear_popup() + fit(f"讀取失敗： {error}", max(1, shutil.get_terminal_size().columns - 1)) + "\r\n按任意鍵關閉。", end="", flush=True)
             try:
                 read_key()
             except (EOFError, KeyboardInterrupt):

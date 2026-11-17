@@ -13,6 +13,14 @@ import unicodedata
 from contextlib import contextmanager
 
 
+POPUP_TITLE = (sys.argv[1:2] == ["workspace"] and "移動 pane 至 workspace" or "移動 pane 至 tab")
+
+
+def clear_popup():
+    width = max(1, shutil.get_terminal_size().columns - 1)
+    return "\033[H\033[2J" + "\033[1;96m" + fit(POPUP_TITLE, width) + "\033[0m\r\n\r\n"
+
+
 @contextmanager
 def terminal():
     fd = sys.stdin.fileno()
@@ -66,18 +74,18 @@ def choose(labels, title="移動 pane 至 tab"):
     previous = None
     while True:
         width, height = shutil.get_terminal_size((80, 24))
-        rows = max(1, height - 3)
+        rows = max(1, height - 5)
         start = max(0, min(selected - rows + 1, len(labels) - rows))
-        lines = [fit(title + " ↑↓ / 數字 / Enter / Esc Q", max(1, width - 1))]
+        lines = [fit(((title + " ") if title != POPUP_TITLE else "") + "↑↓ / 數字 / Enter / Esc Q", max(1, width - 1))]
         for index in range(start, min(len(labels), start + rows)):
             line = fit(f"{index + 1}. {labels[index]}", max(1, width - 1))
             lines.append(("\033[7m" + line + "\033[0m") if index == selected else line)
         lines.append(fit(message or ("編號：" + digits if digits else "Enter 確認；Esc / Q 取消"), max(1, width - 1)))
-        if height < 3:
-            lines = lines[1:1 + height]
+        if height < 5:
+            lines = lines[1:1 + max(0, height - 2)]
         state = (width, height, selected, digits, message)
         if state != previous:
-            print("\033[H\033[2J" + "\r\n".join(lines[:max(1, height)]), end="", flush=True)
+            print(clear_popup() + "\r\n".join(lines[:max(0, height - 2)]), end="", flush=True)
             previous = state
         key = read_key(0.15)
         if key in ("esc", "q", "Q"):
@@ -169,7 +177,7 @@ if __name__ == "__main__":
         except KeyboardInterrupt:
             pass
         except Exception as error:
-            print("\033[H\033[2J" + fit(f"移動失敗： {error}", max(1, shutil.get_terminal_size().columns - 1)) + "\r\n按 Esc 或 Enter 關閉。", end="", flush=True)
+            print(clear_popup() + fit(f"移動失敗： {error}", max(1, shutil.get_terminal_size().columns - 1)) + "\r\n按 Esc 或 Enter 關閉。", end="", flush=True)
             try:
                 while read_key() not in ("esc", "enter"):
                     pass

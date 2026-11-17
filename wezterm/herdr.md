@@ -10,6 +10,19 @@
 - Windows 與 WSL 的 Herdr 設定各自獨立, 需分別合併並在各自環境執行 reload
 - 以已安裝的 Herdr 0.9.3 為準; 下次啟動 Herdr 時載入.已開啟的 client 可用 `Ctrl+B, Shift+R` reload config
 
+## Popup 標題
+
+自訂 popup 第一行以粗體亮青色顯示標題 (ANSI `1;96`), 標題結尾重設樣式, 空一行後顯示原有內容. 清畫面、確認、錯誤與無資料畫面均沿用此格式.
+
+| 快速鍵 | 標題 |
+|---|---|
+| Prefix, M | 移動 pane 至 tab |
+| Prefix, Shift+M | 移動 pane 至 workspace |
+| Prefix, I | Pane 總覽 |
+| Prefix, U | Agent 用量 |
+| Prefix, Y | 開啟 Yazi |
+| Prefix, Shift+S | 卸載 SSHFS |
+
 ## 快速鍵
 
 主要 pane/tab 操作交給 Herdr, WezTerm 保留外層管理功能
@@ -156,6 +169,10 @@ Windows 使用 `\\sshfs.kr\<host>` 以 key 認證掛載遠端 `/`. SSHFS-Win 使
 - theme: `one-dark` 採用接近 Darcula/PyCharm 氛圍的深灰配色
 
 ### quota-cli
+
+- 用量 popup 固定 12 行高 (含外框), 避免原本 15% 高度在一般視窗只有約 4 行內容, 導致標題被用量換行捲出畫面. Windows 以 Console 直接輸出結果, 避免 PowerShell 自動格式化改變排版.
+
+- 用量先查詢並暫存, 完成後清畫面, 再一起顯示粗體亮青色的「Agent 用量」、空白行與結果, 避免查詢期間覆蓋標題. 無結果或查詢失敗時同樣保留標題並顯示 `quota-cli failed`.
 
 - 不安裝完整Quota (`pinkpixel-dev/quota/herdr-plugin`), 僅保留 `quota-cli`, 由 `Prefix, U` popup 執行 `quota-cli usage` 並只顯示 claude/codex 兩行 (repo 的 `prefix+u` command 可直接合併至 Windows config; WSL 改用註解中的 bash command)
 

@@ -18,8 +18,12 @@ function Invoke-Herdr {
     }
     return $data.result
 }
+$popupTitle = $(if ($Mode -eq 'workspace') { '移動 pane 至 workspace' } else { '移動 pane 至 tab' })
 $esc = [char]27
 $savedControlC = [Console]::TreatControlCAsInput
+function Get-PopupHeader {
+    return $esc + '[H' + $esc + '[2J' + $esc + '[1;96m' + (Fit-Line $popupTitle ([Math]::Max(1, [Console]::WindowWidth - 1))) + $esc + '[0m' + "`r`n`r`n"
+}
 function Fit-Line {
     param([string]$Text, [int]$Width)
     $Text = [regex]::Replace($Text, '[\x00-\x1f\x7f-\x9f]', ' ')
@@ -43,10 +47,10 @@ function Select-Destination {
     while ($true) {
         $width = [Math]::Max(1, [Console]::WindowWidth - 1)
         $height = [Math]::Max(1, [Console]::WindowHeight)
-        $rows = [Math]::Max(1, $height - 3)
+        $rows = [Math]::Max(1, $height - 5)
         $start = [Math]::Max(0, [Math]::Min($selected - $rows + 1, $Labels.Count - $rows))
         $lines = New-Object 'Collections.Generic.List[string]'
-        $lines.Add((Fit-Line ($Title + ' ↑↓ / 數字 / Enter / Esc Q') $width))
+        $lines.Add((Fit-Line ($(if ($Title -ne $popupTitle) { $Title + ' ' }) + '↑↓ / 數字 / Enter / Esc Q') $width))
         for ($index = $start; $index -lt [Math]::Min($Labels.Count, $start + $rows); $index++) {
             $line = Fit-Line ('{0}. {1}' -f ($index + 1), $Labels[$index]) $width
             if ($index -eq $selected) { $line = $esc + '[7m' + $line + $esc + '[0m' }
@@ -56,8 +60,8 @@ function Select-Destination {
         if ($digits) { $footer = '編號：' + $digits }
         if ($message) { $footer = $message }
         $lines.Add((Fit-Line $footer $width))
-        if ($height -lt 3) { $lines.RemoveAt(0) }
-        [Console]::Write($esc + '[H' + $esc + '[2J' + (($lines | Select-Object -First $height) -join "`r`n"))
+        if ($height -lt 5) { $lines.RemoveAt(0) }
+        [Console]::Write((Get-PopupHeader) + (($lines | Select-Object -First ([Math]::Max(0, $height - 2))) -join "`r`n"))
         while (![Console]::KeyAvailable) {
             Start-Sleep -Milliseconds 50
             if ([Math]::Max(1, [Console]::WindowWidth - 1) -ne $width -or [Math]::Max(1, [Console]::WindowHeight) -ne $height) { break }
@@ -134,7 +138,7 @@ try {
         $null = Invoke-Herdr @('pane', 'move', $pane, '--tab', $target, '--split', 'right', '--focus')
     }
 } catch {
-    [Console]::Write($esc + '[H' + $esc + '[2J')
+    [Console]::Write((Get-PopupHeader))
     [Console]::WriteLine((Fit-Line ("移動失敗： $_") ([Math]::Max(1, [Console]::WindowWidth - 1))))
     [Console]::Write('按 Esc 或 Enter 關閉。')
     do { $key = [Console]::ReadKey($true) } while ($key.Key -ne 'Escape' -and $key.Key -ne 'Enter')
