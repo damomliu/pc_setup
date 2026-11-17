@@ -845,5 +845,17 @@
     {
         "key": "cmd+k cmd+f",
         "command": "-editor.action.formatSelection"
+    },
+    {
+        "key": "cmd+k p",
+        "command": "-workbench.action.files.copyPathOfActiveFile"
+    },
+    {
+        "key": "cmd+k p",
+        "command": "copyRelativeFilePath"
+    },
+    {
+        "key": "cmd+k shift+p",
+        "command": "copyFilePath"
     }
 ]
