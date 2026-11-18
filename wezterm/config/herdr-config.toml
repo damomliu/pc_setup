@@ -99,3 +99,8 @@ key = "prefix+shift+f"
 type = "plugin_action"
 command = "herdr-file-viewer.open-file-viewer-tab-windows"
 description = "open file viewer in tab"
+
+# Windows only: the server runs elevated (auto-started via sshd/WMI), so let the
+# ordinary WezTerm process query it directly. Takes effect after a server restart.
+[server]
+allow_unelevated_clients = true

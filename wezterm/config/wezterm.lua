@@ -1391,6 +1391,66 @@ local function toggle_default_font(window, _pane)
   window:set_config_overrides(overrides)
 end
 
+-- WIN machine 即本機 Windows Herdr server; 直接執行 herdr.exe 比經 WSL ssh 快約 20 倍.
+local function find_on_path(name)
+  for dir in (os.getenv('PATH') or ''):gmatch('[^;]+') do
+    local path = dir:gsub('[\\/]+$', '') .. '\\' .. name
+    local file = io.open(path, 'rb')
+    if file then
+      file:close()
+      return path
+    end
+  end
+end
+
+local windows_herdr = find_on_path('herdr.exe')
+local herdr_agent_statuses = { blocked = true, working = true, idle = true, done = true, unknown = true }
+
+-- 回傳 snapshot 是否含 blocked agent; 格式無效時回傳 nil, 不把失敗當成無 blocked.
+local function herdr_snapshot_has_blocked(stdout)
+  local reply = decode_json(stdout or '')
+  local result = reply and not reply.error and reply.result
+  local agents = type(result) == 'table' and result.type == 'session_snapshot'
+    and type(result.snapshot) == 'table' and result.snapshot.agents
+  if type(agents) ~= 'table' then
+    return nil
+  end
+  local blocked = false
+  for _, agent in ipairs(agents) do
+    if type(agent) ~= 'table' or not agent.pane_id or not herdr_agent_statuses[agent.agent_status] then
+      return nil
+    end
+    blocked = blocked or agent.agent_status == 'blocked'
+  end
+  return blocked
+end
+
+local function query_herdr_blocked(args)
+  local ok, success, stdout = pcall(wezterm.run_child_process, args)
+  if ok and success then
+    return herdr_snapshot_has_blocked(stdout)
+  end
+end
+
+-- 先查 WIN (快), 有 Blocked 就不必等 WSL Local; 任一查詢失敗則提示並保留 Blocked.
+local open_herdr_goto_priority = wezterm.action_callback(function(window, pane)
+  local blocked = windows_herdr and query_herdr_blocked { windows_herdr, 'api', 'snapshot' }
+  if blocked == false then
+    blocked = query_herdr_blocked {
+      (os.getenv('SystemRoot') or 'C:\\Windows') .. '\\System32\\wsl.exe',
+      '--distribution', 'Ubuntu-24.04', '--exec', '/usr/bin/timeout', '3',
+      '/usr/bin/env', '-u', 'HERDR_SOCKET_PATH', '-u', 'HERDR_SESSION_DIR',
+      '/home/damon/.local/bin/herdr', 'api', 'snapshot',
+    }
+  end
+  if blocked == nil then
+    window:toast_notification('Herdr Go To', 'Cannot query WSL Local and WIN; showing Blocked.', nil, 4000)
+  end
+  window:perform_action(act.SendString(blocked == false and '\x02gd' or '\x02gb'), pane)
+end)
+local open_herdr_goto_blocked = act.SendString '\x02gb'
+local open_herdr_goto_done = act.SendString '\x02gd'
+
 wezterm.on('augment-command-palette', function()
   return {
     {
@@ -1398,6 +1458,24 @@ wezterm.on('augment-command-palette', function()
       doc = '新增 Ubuntu Herdr tab；僅剩一個未使用的 PowerShell tab 時自動關閉它',
       icon = 'md_tab_plus',
       action = wezterm.action_callback(spawn_herdr_tab),
+    },
+    {
+      brief = '開啟 Herdr Go To (Blocked 優先)',
+      doc = '檢查 WSL Local 與 WIN, 有 Blocked 則顯示 Blocked, 否則顯示 Done',
+      icon = 'md_search',
+      action = open_herdr_goto_priority,
+    },
+    {
+      brief = '開啟 Herdr Go To Blocked',
+      doc = '傳送 Ctrl+B, g, b 至目前 pane, 開啟 Herdr Go To 並篩選 Blocked',
+      icon = 'md_search',
+      action = open_herdr_goto_blocked,
+    },
+    {
+      brief = '開啟 Herdr Go To Done',
+      doc = '傳送 Ctrl+B, g, d 至目前 pane, 開啟 Herdr Go To 並篩選 Done',
+      icon = 'md_search',
+      action = open_herdr_goto_done,
     },
     {
       brief = 'RyokoTower Simulators (新分頁)',
@@ -1711,6 +1789,9 @@ config.keys = {
   { key = '[', mods = 'ALT', action = activate_pane 'previous' },
 
   -- Prefix 操作。
+  { key = 'g', mods = 'LEADER|CTRL', action = open_herdr_goto_priority },
+  { key = 'b', mods = 'LEADER|CTRL', action = open_herdr_goto_blocked },
+  { key = 'd', mods = 'LEADER|CTRL', action = open_herdr_goto_done },
   { key = '\\', mods = 'LEADER', action = split_action 'Right' },
   { key = '-', mods = 'LEADER', action = split_action 'Bottom' },
   { key = 'x', mods = 'LEADER', action = act.CloseCurrentPane { confirm = false } },

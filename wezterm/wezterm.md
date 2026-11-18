@@ -32,6 +32,11 @@ Prefix 為 `Ctrl+G`（按下後有 2 秒可接下一鍵，期間右上角顯示 
 - `Prefix, ,`：命名 tab；清空可恢復自動標題
 - `Prefix, Q`：在各 pane 上顯示編號，按數字直接切換至該 pane；若有 pane 被擠成 0 寬／高會先救回來再顯示
 - `Prefix, L`：開啟啟動選單
+- `Ctrl+G, Ctrl+G`: 在 WSL Herdr 開啟 Go To, 優先顯示 WSL Local 與 WIN 的 Blocked panes; 兩邊皆無 Blocked 時改顯示 Done. 分別轉譯為 `Ctrl+B, g, b` 或 `Ctrl+B, g, d`.
+- `Ctrl+G, Ctrl+B`: 直接開啟 Herdr Go To 並篩選 Blocked, 轉譯為 `Ctrl+B, g, b`, 不執行狀態查詢.
+- `Ctrl+G, Ctrl+D`: 開啟 Herdr Go To 並篩選 Done, 轉譯為 `Ctrl+B, g, d`.
+- 上述三組快速鍵需在 2 秒內完成, 目前 pane 須執行 Herdr 且位於一般模式, 沒有 modal popup. 開啟後由使用者選擇並按 Enter 跳轉; 無符合項目時顯示空清單.
+- Blocked 優先查詢由 wezterm.lua 直接執行, 不需額外 helper. 先以 `PATH` 上的 Windows `herdr.exe api snapshot` 查詢 WIN (WIN machine 即本機 Windows Herdr server, 直接查詢約 60ms, 經 WSL ssh 約 1.3 秒); 有 Blocked 即開啟 Blocked, 否則再於 Ubuntu-24.04 查詢 Local `api snapshot` (期限 3 秒). 涵蓋兩個 session 的全部 workspaces. 任一查詢失敗或格式無效時顯示提示並保留 Blocked. 使用前提為 WSL Herdr, 且 WIN profile 指向本機; Windows server 由 sshd 啟動時為 elevated, 一般權限的 WezTerm 會被拒, 需在 `%APPDATA%\herdr\config.toml` 設定 `[server] allow_unelevated_clients = true` (見 [herdr-config.toml](config/herdr-config.toml)) 並重啟 server; 若 WIN 改指向其他機器需改回 `--machine WIN` 查詢. 狀態以查詢當下為準.
 - `Prefix, S`：選 pane 並與目前 pane 對調位置；對調後 focus 跟著移到目標位置
 - `Prefix, ←`／`→`／`↑`／`↓`：依該方向的實際位置切換至相鄰 pane，切換後維持原本的 zoom 狀態
 - `Prefix, Z`：切換目前 pane 的 zoom
@@ -46,6 +51,7 @@ Ubuntu Prefix 為 `Ctrl+U`（按下後有 2 秒可接下一鍵）：
 其他：
 
 - `Ctrl+Shift+P`：命令面板
+  - 搜 `Herdr Go To`: `開啟 Herdr Go To (Blocked 優先)` 執行上述跨 WSL Local 與 WIN 的條件篩選; `開啟 Herdr Go To Blocked` / `開啟 Herdr Go To Done` 分別直接傳送 `Ctrl+B, g, b` / `Ctrl+B, g, d`, 使用前提同上述快速鍵.
   - 搜 `Herdr`：`開啟 Herdr Tab`，在目前視窗新增 Ubuntu-24.04 tab，從 Linux home 執行 Herdr；結束後回到 Bash，不另加快速鍵。
     - Herdr 進入 TUI 後，若視窗只有兩個 tab，且原 tab 只有一個 pane、為本次 session 尚未送出非空白指令的預設 PowerShell，就直接關閉原 tab。
     - 其他 shell、缺少 session 狀態、啟動失敗或 15 秒內未就緒時，保留原 tab。需使用同步 profile 後新開的 PowerShell session；清除 history 不會恢復未使用狀態。

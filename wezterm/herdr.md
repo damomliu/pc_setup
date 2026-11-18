@@ -28,6 +28,9 @@
 主要 pane/tab 操作交給 Herdr, WezTerm 保留外層管理功能
 
 - `Ctrl+B` -- Herdr prefix
+- `Ctrl+G, Ctrl+G` -- 在 WSL Herdr 開啟 Go To, 優先顯示 WSL Local 與已加入的 WIN machine 的 Blocked panes; 兩邊皆無 Blocked 才顯示 Done. 查詢失敗則提示並保留 Blocked. 查詢方式與使用前提見 [WezTerm 快速鍵設定](wezterm.md#快速鍵設定).
+- `Ctrl+G, Ctrl+B` -- 直接開啟 Go To 並篩選 Blocked, 由 [WezTerm 快速鍵設定](wezterm.md#快速鍵設定) 轉譯為 `Ctrl+B, g, b`, 不執行狀態查詢.
+- `Ctrl+G, Ctrl+D` -- 開啟 Go To 並篩選 Done, 由 [WezTerm 快速鍵設定](wezterm.md#快速鍵設定) 轉譯為 `Ctrl+B, g, d`. Herdr 的 `Prefix, B` 維持切換 sidebar, `Prefix, G` 維持開啟 Go To.
 
 **Pane操作**
 
