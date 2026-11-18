@@ -45,7 +45,7 @@ type = "popup"
 command = 'powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%APPDATA%\herdr\herdr-move-pane.ps1" -Mode workspace'
 description = "move pane to workspace"
 width = "23%"
-height = "18%"
+height = 16
 
 # Show current tab ID and draw its panes by layout; read-only. WSL: replace command with:
 # python3 "$HOME/.config/herdr/herdr-list-ids.py"

@@ -77,10 +77,10 @@ type = "popup"
 command = 'python3 "$HOME/.config/herdr/herdr-move-pane.py" workspace'
 description = "move pane to workspace"
 width = "23%"
-height = "18%"
+height = 16
 ```
 
-兩層選單均可用方向鍵或數字選擇, Enter 確認; Esc / Q / Ctrl+C 取消整個操作. 執行前重新確認來源與目的地仍有效; 若已變動則顯示錯誤, 關閉後重新開啟選單. 合併設定時以快捷鍵識別 command, 保留其他設定.
+Workspace popup 固定 16 行高 (含外框), 終端較小時由 Herdr 限制高度. 兩層選單上方或下方仍有隱藏選項時, 狀態列開頭顯示 `(more)`; 全部可見時不顯示. 兩層選單均可用方向鍵或數字選擇, Enter 確認; Esc / Q / Ctrl+C 取消整個操作. 執行前重新確認來源與目的地仍有效; 若已變動則顯示錯誤, 關閉後重新開啟選單. 合併設定時以快捷鍵識別 command, 保留其他設定.
 
 Herdr 0.9.3 不允許移動 zoom 中 tab 的 pane(`zoomed_tab`); 請先用 `Alt+Z` 取消 zoom.helper 會將這類 `changed: false` 結果當成失敗顯示, 不會悄悄視為成功
 

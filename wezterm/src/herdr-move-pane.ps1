@@ -59,6 +59,7 @@ function Select-Destination {
         $footer = 'Enter 確認；Esc / Q 取消'
         if ($digits) { $footer = '編號：' + $digits }
         if ($message) { $footer = $message }
+        if ($start -gt 0 -or $start + $rows -lt $Labels.Count) { $footer = '(more) ' + $footer }
         $lines.Add((Fit-Line $footer $width))
         if ($height -lt 5) { $lines.RemoveAt(0) }
         [Console]::Write((Get-PopupHeader) + (($lines | Select-Object -First ([Math]::Max(0, $height - 2))) -join "`r`n"))
