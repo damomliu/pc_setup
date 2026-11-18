@@ -80,7 +80,10 @@ def choose(labels, title="移動 pane 至 tab"):
         for index in range(start, min(len(labels), start + rows)):
             line = fit(f"{index + 1}. {labels[index]}", max(1, width - 1))
             lines.append(("\033[7m" + line + "\033[0m") if index == selected else line)
-        lines.append(fit(message or ("編號：" + digits if digits else "Enter 確認；Esc / Q 取消"), max(1, width - 1)))
+        footer = message or ("編號：" + digits if digits else "Enter 確認；Esc / Q 取消")
+        if start > 0 or start + rows < len(labels):
+            footer = "(more) " + footer
+        lines.append(fit(footer, max(1, width - 1)))
         if height < 5:
             lines = lines[1:1 + max(0, height - 2)]
         state = (width, height, selected, digits, message)
