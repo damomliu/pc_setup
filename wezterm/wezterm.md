@@ -52,9 +52,10 @@ Ubuntu Prefix 為 `Ctrl+U`（按下後有 2 秒可接下一鍵）：
 
 - `Ctrl+Shift+P`：命令面板
   - 搜 `Herdr Go To`: `開啟 Herdr Go To (Blocked 優先)` 執行上述跨 WSL Local 與 WIN 的條件篩選; `開啟 Herdr Go To Blocked` / `開啟 Herdr Go To Done` 分別直接傳送 `Ctrl+B, g, b` / `Ctrl+B, g, d`, 使用前提同上述快速鍵.
-  - 搜 `Herdr`：`開啟 Herdr Tab`，在目前視窗新增 Ubuntu-24.04 tab，從 Linux home 執行 Herdr；結束後回到 Bash，不另加快速鍵。
-    - Herdr 進入 TUI 後，若視窗只有兩個 tab，且原 tab 只有一個 pane、為本次 session 尚未送出非空白指令的預設 PowerShell，就直接關閉原 tab。
-    - 其他 shell、缺少 session 狀態、啟動失敗或 15 秒內未就緒時，保留原 tab。需使用同步 profile 後新開的 PowerShell session；清除 history 不會恢復未使用狀態。
+  - 搜 `Herdr` 選 `開啟 Herdr Tab`。先在臨時 PowerShell tab 啟動或沿用 Windows Herdr `default`，確認 pane 的 Windows Session ID 與目前桌面相同，再開 Ubuntu-24.04 Herdr tab。WSL Herdr 就緒後自動關閉臨時 tab，要用 Windows agent 時可手動切到 `WIN`。
+    - 若 Windows `default` 跑在 Session 0，臨時 tab 會詢問是否重啟。輸入 `y` 或 `yes` 才會停止該 session 的所有 panes 與 agents，然後從 Windows 桌面重新啟動。取消、驗證失敗或逾時時，保留臨時 tab 供查看。
+    - 若忽略臨時 tab 後只剩 WSL Herdr 和原 tab，且原 tab 仍只有一個尚未送出非空白指令的預設 PowerShell pane，WSL Herdr 就緒後也會關閉原 tab。需同步 profile 後開新的 PowerShell 殼層。清除 history 不會恢復未使用狀態。
+    - WSL Herdr 結束後回到 Bash。`sync-wezterm.ps1` 同時安裝 Windows 啟動腳本，請用該腳本同步設定。
   - 搜 `RyokoTower`：七個模擬器，佈局相同
     - `RyokoTower Simulators (新分頁)`：在目前視窗開一個 tab
     - `RyokoTower Simulators (新視窗)`：開一個新視窗；等它最大化、格子尺寸跟上來源視窗後才切 pane，再均分欄寬與列高
