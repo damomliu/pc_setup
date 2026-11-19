@@ -1221,6 +1221,18 @@ local function unused_powershell(pane)
   return ok and unused
 end
 
+local herdr_launch
+local herdr_launcher = wezterm.home_dir .. '\\.config\\wezterm\\start-herdr.ps1'
+
+local function close_herdr_launch_pane(gui_win, pane)
+  local closed, _, err = wezterm.run_child_process {
+    wezterm_exe(), 'cli', 'kill-pane', '--pane-id', tostring(pane:pane_id()),
+  }
+  if not closed then
+    notify_spawn_error(gui_win, err or '無法關閉 PowerShell pane')
+  end
+end
+
 local function spawn_herdr_tab(gui_win, pane)
   local mux_win = pane:window()
   local original_tab = pane:tab()
@@ -1228,9 +1240,45 @@ local function spawn_herdr_tab(gui_win, pane)
     return
   end
 
-  local ok, err = pcall(function()
-    local candidate = #mux_win:tabs() == 1
-      and #original_tab:panes() == 1 and unused_powershell(pane)
+  if herdr_launch then
+    herdr_launch:activate()
+    return
+  end
+
+  local function stop_launch(err)
+    herdr_launch = nil
+    if err then
+      notify_spawn_error(gui_win, err)
+    end
+  end
+
+  local function check_after(delay, callback)
+    wezterm.time.call_after(delay, function()
+      local ok, err = pcall(callback)
+      if not ok then
+        stop_launch(err)
+      end
+    end)
+  end
+
+  local function tab_exists(tab)
+    for _, existing in ipairs(mux_win:tabs()) do
+      if existing:tab_id() == tab:tab_id() then
+        return true
+      end
+    end
+    return false
+  end
+
+  local candidate = #mux_win:tabs() == 1
+    and #original_tab:panes() == 1 and unused_powershell(pane)
+  local launcher_tab, launcher_pane
+
+  local function open_wsl_herdr()
+    if not tab_exists(launcher_tab) then
+      stop_launch()
+      return
+    end
     local tab, herdr_pane = mux_win:spawn_tab {
       cwd = wezterm.home_dir,
       args = {
@@ -1245,51 +1293,81 @@ fi
 exec /bin/bash -i]],
       },
     }
+    herdr_launch = tab
     tab:activate()
-    if not candidate then
-      return
-    end
 
-    -- 等到 Herdr 真正進入 TUI 才關閉；單有 WSL process 不代表啟動成功。
+    -- WSL Herdr 進入 TUI 後才關閉 PowerShell pane。
     local tries = 0
     local ready_ticks = 0
     local function check_ready()
-      local checked, check_err = pcall(function()
-        tries = tries + 1
-        local tabs = mux_win:tabs()
-        local source_present, target_present = false, false
-        for _, existing in ipairs(tabs) do
-          source_present = source_present or existing:tab_id() == original_tab:tab_id()
-          target_present = target_present or existing:tab_id() == tab:tab_id()
+      if not tab_exists(tab) then
+        stop_launch()
+        return
+      end
+      tries = tries + 1
+      local ready = herdr_pane:get_user_vars().PC_SETUP_HERDR_READY == '1'
+        and herdr_pane:is_alt_screen_active()
+      ready_ticks = ready and ready_ticks + 1 or 0
+      if ready_ticks >= 3 then
+        local launcher_present = tab_exists(launcher_tab)
+        if candidate and #mux_win:tabs() == (launcher_present and 3 or 2)
+          and tab_exists(original_tab) and #original_tab:panes() == 1 and unused_powershell(pane) then
+          close_herdr_launch_pane(gui_win, pane)
         end
-        if #tabs ~= 2 or not source_present or not target_present
-          or #original_tab:panes() ~= 1 or not unused_powershell(pane) then
-          return
+        if launcher_present then
+          close_herdr_launch_pane(gui_win, launcher_pane)
         end
-        local ready = herdr_pane:get_user_vars().PC_SETUP_HERDR_READY == '1'
-          and herdr_pane:is_alt_screen_active()
-        ready_ticks = ready and ready_ticks + 1 or 0
-        if ready_ticks >= 3 then
-          -- 指定 pane ID，避免切換 tab 與 GUI action 非同步而關錯 tab。
-          local closed, _, close_err = wezterm.run_child_process {
-            wezterm_exe(), 'cli', 'kill-pane', '--pane-id', tostring(pane:pane_id()),
-          }
-          if not closed then
-            notify_spawn_error(gui_win, close_err or '無法關閉原 PowerShell tab')
-          end
-          tab:activate()
-        elseif tries < 150 then
-          wezterm.time.call_after(0.1, check_ready)
-        end
-      end)
-      if not checked then
-        notify_spawn_error(gui_win, check_err)
+        stop_launch()
+      elseif tries < 150 then
+        check_after(0.1, check_ready)
+      else
+        stop_launch('WSL Herdr 逾時，請查看啟動 tab。')
       end
     end
-    wezterm.time.call_after(0.1, check_ready)
+    check_after(0.1, check_ready)
+  end
+
+  local ok, err = pcall(function()
+    launcher_tab, launcher_pane = mux_win:spawn_tab {
+      cwd = wezterm.home_dir,
+      args = { config.default_prog[1], '-NoLogo', '-NoProfile', '-NoExit', '-File', herdr_launcher },
+    }
+    herdr_launch = launcher_tab
+    launcher_tab:activate()
+
+    local tries = 0
+    local function check_windows()
+      if not tab_exists(launcher_tab) then
+        stop_launch()
+        return
+      end
+      local state = launcher_pane:get_user_vars().PC_SETUP_WIN_HERDR
+      if state == 'ready' then
+        open_wsl_herdr()
+      elseif state == 'starting' then
+        local verified, _, verify_err = wezterm.run_child_process {
+          config.default_prog[1], '-NoLogo', '-NoProfile', '-File', herdr_launcher, '-Verify',
+        }
+        if verified and launcher_pane:get_user_vars().PC_SETUP_WIN_HERDR == 'starting' then
+          open_wsl_herdr()
+        else
+          stop_launch(verify_err ~= '' and verify_err or 'Windows Herdr 啟動失敗，請查看 PowerShell tab。')
+        end
+      elseif state == 'blocked' then
+        stop_launch('Windows Herdr 啟動已停止，請查看 PowerShell tab。')
+      else
+        tries = state == 'confirm' and 0 or tries + 1
+        if tries < 175 then
+          check_after(0.1, check_windows)
+        else
+          stop_launch('Windows Herdr 檢查逾時，請查看 PowerShell tab。')
+        end
+      end
+    end
+    check_after(0.1, check_windows)
   end)
   if not ok then
-    notify_spawn_error(gui_win, err)
+    stop_launch(err)
   end
 end
 
@@ -1455,7 +1533,7 @@ wezterm.on('augment-command-palette', function()
   return {
     {
       brief = '開啟 Herdr Tab',
-      doc = '新增 Ubuntu Herdr tab；僅剩一個未使用的 PowerShell tab 時自動關閉它',
+      doc = '確認 Windows Herdr 在桌面 Session 後，開啟 Ubuntu Herdr tab',
       icon = 'md_tab_plus',
       action = wezterm.action_callback(spawn_herdr_tab),
     },
