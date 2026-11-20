@@ -69,23 +69,27 @@ def fit(text, width):
     return result
 
 
-def choose(labels, title="移動 pane 至 tab"):
-    selected, digits, message = 0, "", ""
+def choose(labels, current=None):
+    workspace_mode = current is not None
+    selected, digits, message = current if workspace_mode else 0, "", ""
     previous = None
     while True:
         width, height = shutil.get_terminal_size((80, 24))
         rows = max(1, height - 5)
         start = max(0, min(selected - rows + 1, len(labels) - rows))
-        lines = [fit(((title + " ") if title != POPUP_TITLE else "") + "↑↓ / 數字 / Enter / Esc Q", max(1, width - 1))]
+        lines = [] if workspace_mode else [fit("↑↓ / 數字 / Enter / Esc Q", max(1, width - 1))]
         for index in range(start, min(len(labels), start + rows)):
             line = fit(f"{index + 1}. {labels[index]}", max(1, width - 1))
             lines.append(("\033[7m" + line + "\033[0m") if index == selected else line)
-        footer = message or ("編號：" + digits if digits else "Enter 確認；Esc / Q 取消")
+        hint = "↑↓ 選擇 / 數字或 Enter 確認 / Esc 或 Q 取消" if workspace_mode else "Enter 確認；Esc / Q 取消"
+        footer = message or ("編號：" + digits if digits else hint)
         if start > 0 or start + rows < len(labels):
             footer = "(more) " + footer
+        if workspace_mode and height >= 5:
+            lines.append("")
         lines.append(fit(footer, max(1, width - 1)))
-        if height < 5:
-            lines = lines[1:1 + max(0, height - 2)]
+        if height < 5 and not workspace_mode:
+            lines = lines[1:]
         state = (width, height, selected, digits, message)
         if state != previous:
             print(clear_popup() + "\r\n".join(lines[:max(0, height - 2)]), end="", flush=True)
@@ -106,9 +110,40 @@ def choose(labels, title="移動 pane 至 tab"):
             if digits and not 1 <= int(digits) <= len(labels):
                 message = "無效選項，請修改編號或使用方向鍵。"
                 continue
-            return selected + 1
+            if selected != current:
+                return selected + 1
+            digits, message = "", ""
         if digits and 1 <= int(digits) <= len(labels):
             selected = int(digits) - 1
+            if workspace_mode and len(key) == 1 and key in "0123456789" and int(digits) * 10 > len(labels):
+                if selected != current:
+                    return selected + 1
+                digits = ""
+
+
+def workspace_rows(workspaces, current_id):
+    ordered = sorted(workspaces, key=lambda workspace: workspace["number"])
+    parents = {}
+    for workspace in ordered:
+        worktree = workspace.get("worktree") or {}
+        if worktree.get("repo_key") and not worktree.get("is_linked_worktree"):
+            parents.setdefault(worktree["repo_key"], workspace["workspace_id"])
+
+    roots, children = [], {}
+    for workspace in ordered:
+        worktree = workspace.get("worktree") or {}
+        parent = parents.get(worktree.get("repo_key")) if worktree.get("is_linked_worktree") else None
+        if parent:
+            children.setdefault(parent, []).append(workspace)
+        else:
+            roots.append(workspace)
+
+    rows = []
+    for root in roots:
+        rows.append((root, ""))
+        rows.extend((child, "> ") for child in children.get(root["workspace_id"], ()))
+    return [(workspace["workspace_id"], "(current)" if workspace["workspace_id"] == current_id
+             else prefix + workspace["label"]) for workspace, prefix in rows]
 
 
 def main():
@@ -132,21 +167,19 @@ def main():
     def tabs():
         return cli("tab", "list", "--workspace", workspace)["tabs"]
 
-    destination_workspace = workspace
-    new_workspace = False
-    if len(sys.argv) > 1 and sys.argv[1] == "workspace":
-        workspaces = sorted((w for w in cli("workspace", "list")["workspaces"]
-                             if w["workspace_id"] != workspace), key=lambda w: w["number"])
-        choice = choose(["新增 workspace"] + [f"Workspace {w['number']}: {w['label']}" for w in workspaces],
-                        "移動 pane 至 workspace")
+    workspace_mode = sys.argv[1:2] == ["workspace"]
+    if workspace_mode:
+        rows = workspace_rows(cli("workspace", "list")["workspaces"], workspace)
+        current = next((i for i, (workspace_id, _) in enumerate(rows) if workspace_id == workspace), None)
+        if current is None:
+            raise RuntimeError("Source workspace no longer exists; reopen the menu.")
+        choice = choose([label for _, label in rows], current)
         if choice is None:
             return
-        new_workspace = choice == 1
-        if not new_workspace:
-            destination_workspace = workspaces[choice - 2]["workspace_id"]
-    if not new_workspace:
-        destinations = sorted((t for t in cli("tab", "list", "--workspace", destination_workspace)["tabs"]
-                               if t["tab_id"] != tab and t["workspace_id"] == destination_workspace),
+        destination_workspace = rows[choice - 1][0]
+    else:
+        destinations = sorted((t for t in tabs()
+                               if t["tab_id"] != tab and t["workspace_id"] == workspace),
                               key=lambda t: t["number"])
         choice = choose(["新增 tab"] + [f"Tab {t['number']}: {t['label']}" for t in destinations])
         if choice is None:
@@ -157,18 +190,18 @@ def main():
     live = tabs()
     if not any(t["tab_id"] == tab and t["workspace_id"] == workspace for t in live):
         raise RuntimeError("Source tab no longer exists; reopen the menu.")
-    if new_workspace:
-        cli("pane", "move", pane, "--new-workspace", "--focus")
+    if workspace_mode:
+        destination = cli("workspace", "get", destination_workspace)["workspace"]
+        target = destination["active_tab_id"]
+        if not target or cli("tab", "get", target)["tab"]["workspace_id"] != destination_workspace:
+            raise RuntimeError("Destination active tab no longer exists; reopen the menu.")
+        cli("pane", "move", pane, "--tab", target, "--split", "right", "--focus")
         return
-    if destination_workspace != workspace:
-        if not any(w["workspace_id"] == destination_workspace for w in cli("workspace", "list")["workspaces"]):
-            raise RuntimeError("Destination workspace no longer exists; reopen the menu.")
-    live = cli("tab", "list", "--workspace", destination_workspace)["tabs"]
-    if int(choice) == 1:
-        cli("pane", "move", pane, "--new-tab", "--workspace", destination_workspace, "--focus")
+    if choice == 1:
+        cli("pane", "move", pane, "--new-tab", "--workspace", workspace, "--focus")
     else:
-        target = destinations[int(choice) - 2]["tab_id"]
-        if not any(t["tab_id"] == target and t["workspace_id"] == destination_workspace for t in live):
+        target = destinations[choice - 2]["tab_id"]
+        if not any(t["tab_id"] == target and t["workspace_id"] == workspace for t in live):
             raise RuntimeError("Destination tab no longer exists; reopen the menu.")
         cli("pane", "move", pane, "--tab", target, "--split", "right", "--focus")
 
