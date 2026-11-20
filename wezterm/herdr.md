@@ -48,7 +48,7 @@
 - `Prefix, C` -- 直接新增 tab, 不詢問名稱(`[ui] prompt_new_tab_name = false`, tab 名稱交給 Auto Title)
 - `Prefix, I` -- 顯示目前 tab ID
 - `Prefix, M` -- 移動目前 pane 至其他 tab, 預設"新增 tab"
-- `Prefix, Shift+M` -- 移動目前 pane 至其他 workspace, 預設"新增 workspace"; 選擇既有 workspace 後可新增 tab 或選擇既有 tab, 後者以右側 split 加入. 完成後切換至移動的 pane
+- `Prefix, Shift+M` -- 選擇 workspace, 將目前 pane 移至該 workspace 的 active tab 右側並聚焦該 pane. 選單依 workspace 順序顯示, linked worktree 列在同 repo 的主 workspace 下方並加上 `>`. 初始反白停在 `(current)`, 確認該列會留在選單.
 - `Prefix, U` -- popup 顯示 Claude/Codex usage (5h/Wk 剩餘與重置時間), 任一鍵關閉; 需要 [quota-cli](#quota-cli)
 - `Prefix, Y` -- 右側 split 開 Yazi, 瀏覽目前 pane 的本機或 SSH 遠端目錄; 見 [Yazi / SSHFS](#yazi--sshfs)
 - `Prefix, Shift+S` -- 列出 sshfs 掛載點, 選擇後卸載
@@ -79,11 +79,11 @@ key = "prefix+shift+m"
 type = "popup"
 command = 'python3 "$HOME/.config/herdr/herdr-move-pane.py" workspace'
 description = "move pane to workspace"
-width = "23%"
+width = 54
 height = 16
 ```
 
-Workspace popup 固定 16 行高 (含外框), 終端較小時由 Herdr 限制高度. 兩層選單上方或下方仍有隱藏選項時, 狀態列開頭顯示 `(more)`; 全部可見時不顯示. 兩層選單均可用方向鍵或數字選擇, Enter 確認; Esc / Q / Ctrl+C 取消整個操作. 執行前重新確認來源與目的地仍有效; 若已變動則顯示錯誤, 關閉後重新開啟選單. 合併設定時以快捷鍵識別 command, 保留其他設定.
+Workspace popup 為 54 欄、16 行 (含外框), 由 Herdr 依終端大小限制. 有隱藏選項時, 狀態列顯示 `(more)`. 方向鍵選擇、Enter 確認. 數字只對應一個選項時立即確認, 例如有第 10 列時, 輸入 1 後可按 Enter 選第 1 列, 或繼續輸入 0. Esc / Q / Ctrl+C 可取消. 確認後重新檢查來源位置並查詢目的 workspace 的 active tab. 若來源或目的地已失效, 關閉錯誤提示後可重新開啟選單. 合併設定時以快捷鍵識別 command, 保留其他設定.
 
 Herdr 0.9.3 不允許移動 zoom 中 tab 的 pane(`zoomed_tab`); 請先用 `Alt+Z` 取消 zoom.helper 會將這類 `changed: false` 結果當成失敗顯示, 不會悄悄視為成功
 
