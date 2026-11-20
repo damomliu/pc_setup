@@ -17,7 +17,7 @@ spec.loader.exec_module(menu)
 class MenuTests(unittest.TestCase):
     labels = ["新增 workspace"] + [f"Workspace {i}: example" for i in range(2, 7)]
 
-    def render(self, keys, heights=(7,), labels=None, current=None):
+    def render(self, keys, heights=(7,), labels=None, current=0, *, new_tab=False):
         frames = []
 
         def key(_):
@@ -37,7 +37,7 @@ class MenuTests(unittest.TestCase):
         with patch.object(menu.shutil, "get_terminal_size", side_effect=size), \
                 patch.object(menu, "read_key", side_effect=key), \
                 contextlib.redirect_stdout(output):
-            result = menu.choose(labels or self.labels, current)
+            result = menu.choose(labels or self.labels, current, new_tab=new_tab)
         return result, frames
 
     def test_hidden_options_have_hint(self):
@@ -52,10 +52,9 @@ class MenuTests(unittest.TestCase):
         self.assertTrue(all(label in frames[0] for label in self.labels))
 
     def test_scroll_and_numeric_jump_keep_selection_visible(self):
-        result, frames = self.render(["down", "6", "enter"])
+        result, frames = self.render(["down", "6"])
         self.assertEqual(result, 6)
         self.assertIn("\033[7m2. Workspace 2", frames[1])
-        self.assertIn("\033[7m6. Workspace 6", frames[2])
         self.assertTrue(all("(more)" in frame for frame in frames))
 
     def test_resize_recalculates_hint(self):
@@ -92,6 +91,56 @@ class MenuTests(unittest.TestCase):
                 result, frames = self.render(keys, labels=labels, current=8)
                 self.assertEqual(result, expected)
                 self.assertIn("(more)", frames[0])
+
+    def test_tab_menu_layout_and_keys(self):
+        labels = ["(current)", menu.tab_label("2 · ◉ ctsp-d ACD 進版")]
+        for keys, expected in [(["up", "enter", "1", "2"], 2), (["enter"], 2),
+                               (["down", "enter"], 3), (["N"], 3), (["n"], 3), (["Q"], None)]:
+            with self.subTest(keys=keys):
+                result, frames = self.render(keys, (14,), labels, new_tab=True)
+                self.assertEqual(result, expected)
+                frame = frames[0].replace("\033[7m", "").replace("\033[0m", "")
+                self.assertIn("1. (current)\r\n2. ctsp-d ACD 進版\r\nN. 新增 tab\r\n\r\n"
+                              "↑↓ 選擇 / 數字, N, Enter 確認 / Esc 或 Q 取消", frame)
+                self.assertNotIn("(more)", frame)
+                self.assertIn("\033[7m2. ctsp-d ACD 進版", frames[0])
+        self.assertEqual(menu.tab_label("Release 2 · notes"), "Release 2 · notes")
+        self.assertEqual(menu.tab_label("2 · dashboard"), "dashboard")
+
+    def test_last_tab_defaults_to_new_tab(self):
+        for labels in [["(current)"], ["Earlier tab", "(current)"]]:
+            with self.subTest(labels=labels):
+                result, frames = self.render(["enter"], (14,), labels, len(labels) - 1, new_tab=True)
+                self.assertEqual(result, len(labels) + 1)
+                self.assertIn("\033[7mN. 新增 tab", frames[0])
+
+    def test_tab_menu_keeps_new_tab_visible_during_resize_and_scroll(self):
+        labels = ["(current)"] + [f"Example {number}" for number in range(2, 11)]
+        result, frames = self.render(["resize", "1", "0"], (16, 16, 6, 6), labels, new_tab=True)
+        self.assertEqual(result, 10)
+        self.assertNotIn("(more)", frames[0])
+        self.assertIn("(more)", frames[1])
+        self.assertTrue(all("N. 新增 tab" in frame for frame in frames))
+
+    def test_tab_move_uses_tab_ids_and_new_tab_command(self):
+        source = {"pane_id": "w1W:p1", "workspace_id": "w1W", "tab_id": "w1W:t1"}
+        tabs = [dict(workspace_id="w1W", tab_id="w1W:t3", number=3, label="2 · ◉ ctsp-d ACD 進版"),
+                dict(workspace_id="w1W", tab_id="w1W:t1", number=1, label="Source")]
+        env = dict(HERDR_BIN_PATH="herdr", HERDR_ACTIVE_PANE_ID=source["pane_id"],
+                   HERDR_ACTIVE_WORKSPACE_ID=source["workspace_id"], HERDR_ACTIVE_TAB_ID=source["tab_id"])
+        for choice, destination in [(2, ["--tab", "w1W:t3", "--split", "right"]),
+                                    (3, ["--new-tab", "--workspace", "w1W"])]:
+            with self.subTest(choice=choice):
+                replies = [{"tabs": tabs}, {"pane": source}, {"tabs": tabs}, {"move_result": {"changed": True}}]
+                responses = [menu.subprocess.CompletedProcess([], 0, json.dumps({"result": reply}))
+                             for reply in replies]
+                with patch.dict(os.environ, env), patch.object(menu.sys, "argv", ["menu"]), \
+                        patch.object(menu, "choose", return_value=choice) as choose, \
+                        patch.object(menu.subprocess, "run", side_effect=responses) as run:
+                    menu.main()
+                choose.assert_called_once_with(["(current)", "ctsp-d ACD 進版"], 0, new_tab=True)
+                self.assertEqual(run.call_args.args[0],
+                                 ["herdr", "pane", "move", "w1W:p1", *destination, "--focus"])
 
     def test_workspace_move_resolves_active_tab_after_choice(self):
         commands = {
