@@ -91,9 +91,11 @@ Herdr 0.9.3 不允許移動 zoom 中 tab 的 pane(`zoomed_tab`); 請先用 `Alt+
 
 ### pane 版面 popup 安裝
 
+`Ctrl+B, I` 開啟 Pane 總覽並複製目前的 pane ID. 方向鍵選取相鄰 pane, 並立即複製選取的 ID. 上方沒有 pane 時, ↑ 選取目前的 tab ID. 在 tab ID 上按 ↓ 回到上一個 pane, 其餘方向鍵維持選取. 其他鍵關閉總覽. 粗體黃字 `(已複製)` 標示複製成功的 ID.
+
 Windows 使用 [herdr-list-ids.ps1](src/herdr-list-ids.ps1), 複製至 `%APPDATA%\herdr\herdr-list-ids.ps1`; repo 的 `[[keys.command]]`(`prefix+i`)可直接合併
 
-Windows herdr server 若由 sshd 啟動(例如 WSL 端以 `herdr machine add` 連到此機器), 會跑在 Session 0, `Set-Clipboard` 寫入的是 Session 0 的剪貼簿, 使用者桌面上貼不出來.因此 helper 在 Session 0 時改把 pane ID 寫入 `%APPDATA%\herdr\clipboard.txt`, 再由 scheduled task `herdr-clipboard`(以互動 session 執行)寫入剪貼簿.此 task 需在 Windows 上註冊一次(一般使用者權限即可): 
+Windows herdr server 若由 sshd 啟動(例如 WSL 端以 `herdr machine add` 連到此機器), 會跑在 Session 0. Helper 把選取的 pane 或 tab ID 寫入 `%APPDATA%\herdr\clipboard.txt`, 再由 scheduled task `herdr-clipboard` 在互動 session 寫入桌面剪貼簿. Helper 會等待 task 完成. 請在 Windows 上註冊一次此 task (一般使用者權限即可).
 
 ```powershell
 $action = New-ScheduledTaskAction -Execute 'conhost.exe' -Argument '--headless powershell.exe -NoProfile -NonInteractive -Command "Get-Content -Raw -LiteralPath (Join-Path $env:APPDATA ''herdr\clipboard.txt'') | Set-Clipboard"'
@@ -112,7 +114,7 @@ WSL 使用 [herdr-list-ids.py](src/herdr-list-ids.py), 複製至 `~/.config/herd
 
 - 終端機：iTerm2 的 `Herdr` dynamic profile（直接啟動 `~/.local/bin/herdr`）；repo 副本 [iterm2-herdr.json](config/iterm2-herdr.json)，複製到 `~/Library/Application Support/iTerm2/DynamicProfiles/herdr.json` 後 iTerm2 會自動載入。設為預設 profile：`defaults write com.googlecode.iterm2 "Default Bookmark Guid" -string "84493b13-8660-41ce-a367-047c1a98b8b9"`（之後重開 iTerm2）。快速鍵映射只存在這個 profile 裡；用其他 profile（例如 `long`）開 Herdr 時，`Opt+Shift`、`Opt+Z`、`Cmd+B` 都不會有作用。
 - Herdr 設定：repo 副本 [herdr-config.macos.toml](config/herdr-config.macos.toml)，合併到 `~/.config/herdr/config.toml`（保留 `onboarding`、`[ui.toast]`），再執行 `herdr server reload-config`。
-- helper：把 [herdr-move-pane.py](src/herdr-move-pane.py)、[herdr-list-ids.py](src/herdr-list-ids.py) 複製到 `~/.config/herdr/`，用 `/usr/bin/python3` 執行；`Prefix, I` 用 `pbcopy` 複製 pane ID。
+- helper：把 [herdr-move-pane.py](src/herdr-move-pane.py)、[herdr-list-ids.py](src/herdr-list-ids.py) 複製到 `~/.config/herdr/`，用 `/usr/bin/python3` 執行；`Prefix, I` 用 `pbcopy` 複製選取的 pane 或 tab ID。
 - 快速鍵跟 Windows 相同，`Alt` 換成 `Option`：`Opt+方向鍵`、`Opt+Shift+方向鍵`、`Opt+Z`。
 - Windows 的 `Ctrl+Alt` 系列在 Mac 改用 `Cmd+Opt`：`Cmd+Opt+←/→` 切換 tab、`Cmd+Opt+↑/↓` 切換 workspace、`Cmd+Opt+Shift+方向鍵` 交換 pane。Herdr config 仍寫 `ctrl+alt+…`，由 iTerm2 profile 把 `Cmd+Opt` 送成對應的 escape sequence。`Ctrl+Opt+方向鍵` 留給 BetterTouchTool 的全域快速鍵。
 - BetterTouchTool 的 iTerm2 專屬規則 `Cmd+Opt+←/→`（送 `Ctrl+Shift+Tab`／`Ctrl+Tab` 切 iTerm2 tab）需要停用，否則會攔截 Herdr 的切換 tab。
