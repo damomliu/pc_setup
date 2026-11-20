@@ -42,30 +42,35 @@ function Fit-Line {
     return $builder.ToString()
 }
 function Select-Destination {
-    param([string[]]$Labels, [int]$Current = -1)
-    $workspaceMenu = $Current -ge 0
-    $selected = [Math]::Max(0, $Current)
+    param([string[]]$Labels, [int]$Current, [switch]$NewTab)
+    $selected = $Current + [int]$NewTab.IsPresent
     $digits = ''; $message = ''
+    $hint = if ($NewTab) { '↑↓ 選擇 / 數字, N, Enter 確認 / Esc 或 Q 取消' } else { '↑↓ 選擇 / 數字或 Enter 確認 / Esc 或 Q 取消' }
+    $lastTab = $Labels.Count - 1
+    $lastChoice = $lastTab + [int]$NewTab.IsPresent
     while ($true) {
         $width = [Math]::Max(1, [Console]::WindowWidth - 1)
         $height = [Math]::Max(1, [Console]::WindowHeight)
         $rows = [Math]::Max(1, $height - 5)
-        $start = [Math]::Max(0, [Math]::Min($selected - $rows + 1, $Labels.Count - $rows))
+        $start = [Math]::Max(0, [Math]::Min([Math]::Min($selected, $lastTab) - $rows + 1, $Labels.Count - $rows))
         $lines = New-Object 'Collections.Generic.List[string]'
-        if (!$workspaceMenu) { $lines.Add((Fit-Line '↑↓ / 數字 / Enter / Esc Q' $width)) }
         for ($index = $start; $index -lt [Math]::Min($Labels.Count, $start + $rows); $index++) {
             $line = Fit-Line ('{0}. {1}' -f ($index + 1), $Labels[$index]) $width
             if ($index -eq $selected) { $line = $esc + '[7m' + $line + $esc + '[0m' }
             $lines.Add($line)
         }
-        $footer = 'Enter 確認；Esc / Q 取消'
-        if ($workspaceMenu) { $footer = '↑↓ 選擇 / 數字或 Enter 確認 / Esc 或 Q 取消' }
+        if ($NewTab) {
+            $line = Fit-Line 'N. 新增 tab' $width
+            if ($height -lt 5) { $lines.Clear() }
+            if ($selected -eq $Labels.Count) { $line = $esc + '[7m' + $line + $esc + '[0m' }
+            $lines.Add($line)
+        }
+        $footer = $hint
         if ($digits) { $footer = '編號：' + $digits }
         if ($message) { $footer = $message }
-        if ($start -gt 0 -or $start + $rows -lt $Labels.Count) { $footer = '(more) ' + $footer }
-        if ($workspaceMenu -and $height -ge 5) { $lines.Add('') }
+        if ($start -gt 0 -or $start + $rows -lt $Labels.Count -or ($NewTab -and $height -lt 5)) { $footer = '(more) ' + $footer }
+        if ($height -ge (5 + [int]$NewTab.IsPresent)) { $lines.Add('') }
         $lines.Add((Fit-Line $footer $width))
-        if ($height -lt 5 -and !$workspaceMenu) { $lines.RemoveAt(0) }
         [Console]::Write((Get-PopupHeader) + (($lines | Select-Object -First ([Math]::Max(0, $height - 2))) -join "`r`n"))
         while (![Console]::KeyAvailable) {
             Start-Sleep -Milliseconds 50
@@ -75,11 +80,12 @@ function Select-Destination {
         $key = [Console]::ReadKey($true)
         $isDigit = $key.KeyChar -ge '0' -and $key.KeyChar -le '9'
         if ($key.Key -eq 'Escape' -or $key.KeyChar -eq 'q' -or $key.KeyChar -eq 'Q' -or ($key.Key -eq 'C' -and ($key.Modifiers -band [ConsoleModifiers]::Control))) { return $null }
+        if ($NewTab -and ($key.KeyChar -eq 'n' -or $key.KeyChar -eq 'N')) { return ($Labels.Count + 1) }
         if ($key.Key -eq 'UpArrow' -or $key.Key -eq 'DownArrow') {
             $digits = ''; $message = ''
             $step = 1
             if ($key.Key -eq 'UpArrow') { $step = -1 }
-            $selected = [Math]::Max(0, [Math]::Min($Labels.Count - 1, $selected + $step))
+            $selected = [Math]::Max(0, [Math]::Min($lastChoice, $selected + $step))
         } elseif ($key.Key -eq 'Backspace') {
             if ($digits.Length) { $digits = $digits.Substring(0, $digits.Length - 1) }
             $message = ''
@@ -98,7 +104,7 @@ function Select-Destination {
         $number = 0
         if ($digits -and [int]::TryParse($digits, [ref]$number) -and $number -ge 1 -and $number -le $Labels.Count) {
             $selected = $number - 1
-            if ($workspaceMenu -and $isDigit -and $number * 10L -gt $Labels.Count) {
+            if ($isDigit -and $number * 10L -gt $Labels.Count) {
                 if ($selected -ne $Current) { return ($selected + 1) }
                 $digits = ''
             }
@@ -151,9 +157,14 @@ try {
         if ($null -eq $choice) { return }
         $destinationWorkspace = $rows[$choice - 1].Id
     } else {
-        $destinations = @(Get-Tabs | Where-Object { $_.tab_id -ne $tab -and $_.workspace_id -eq $workspace } | Sort-Object number)
-        $labels = @('新增 tab') + @($destinations | ForEach-Object { 'Tab {0}: {1}' -f $_.number, $_.label })
-        $choice = Select-Destination $labels
+        $destinations = @(Get-Tabs | Where-Object { $_.workspace_id -eq $workspace } | Sort-Object number)
+        $current = [Array]::IndexOf(@($destinations.tab_id), $tab)
+        if ($current -lt 0) { throw 'Source tab no longer exists; reopen the menu.' }
+        $labels = @($destinations | ForEach-Object {
+            if ($_.tab_id -ceq $tab) { '(current)' }
+            else { $_.label -creplace '^[0-9]+[ \t]+·[ \t]+(?:[◉◐●✓○][ \t]+)?(?=\S)', '' }
+        })
+        $choice = Select-Destination -Labels $labels -Current $current -NewTab
         if ($null -eq $choice) { return }
     }
     $source = (Invoke-Herdr @('pane', 'get', $pane)).pane
@@ -170,10 +181,10 @@ try {
         $null = Invoke-Herdr @('pane', 'move', $pane, '--tab', $target, '--split', 'right', '--focus')
         return
     }
-    if ($choice -eq 1) {
+    if ($choice -eq ($destinations.Count + 1)) {
         $null = Invoke-Herdr @('pane', 'move', $pane, '--new-tab', '--workspace', $workspace, '--focus')
     } else {
-        $target = $destinations[$choice - 2].tab_id
+        $target = $destinations[$choice - 1].tab_id
         if (!($live | Where-Object { $_.tab_id -eq $target -and $_.workspace_id -eq $workspace })) { throw 'Destination tab no longer exists; reopen the menu.' }
         $null = Invoke-Herdr @('pane', 'move', $pane, '--tab', $target, '--split', 'right', '--focus')
     }

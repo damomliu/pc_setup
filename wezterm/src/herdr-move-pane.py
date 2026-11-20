@@ -69,27 +69,31 @@ def fit(text, width):
     return result
 
 
-def choose(labels, current=None):
-    workspace_mode = current is not None
-    selected, digits, message = current if workspace_mode else 0, "", ""
+def choose(labels, current, *, new_tab=False):
+    selected, digits, message = current + new_tab, "", ""
+    hint = ("↑↓ 選擇 / 數字, N, Enter 確認 / Esc 或 Q 取消" if new_tab
+            else "↑↓ 選擇 / 數字或 Enter 確認 / Esc 或 Q 取消")
     previous = None
     while True:
         width, height = shutil.get_terminal_size((80, 24))
         rows = max(1, height - 5)
-        start = max(0, min(selected - rows + 1, len(labels) - rows))
-        lines = [] if workspace_mode else [fit("↑↓ / 數字 / Enter / Esc Q", max(1, width - 1))]
+        last_tab = len(labels) - 1
+        start = max(0, min(min(selected, last_tab) - rows + 1, len(labels) - rows))
+        lines = []
         for index in range(start, min(len(labels), start + rows)):
             line = fit(f"{index + 1}. {labels[index]}", max(1, width - 1))
             lines.append(("\033[7m" + line + "\033[0m") if index == selected else line)
-        hint = "↑↓ 選擇 / 數字或 Enter 確認 / Esc 或 Q 取消" if workspace_mode else "Enter 確認；Esc / Q 取消"
+        if new_tab:
+            line = fit("N. 新增 tab", max(1, width - 1))
+            if height < 5:
+                lines.clear()
+            lines.append(("\033[7m" + line + "\033[0m") if selected == len(labels) else line)
         footer = message or ("編號：" + digits if digits else hint)
-        if start > 0 or start + rows < len(labels):
+        if start > 0 or start + rows < len(labels) or (new_tab and height < 5):
             footer = "(more) " + footer
-        if workspace_mode and height >= 5:
+        if height >= (6 if new_tab else 5):
             lines.append("")
         lines.append(fit(footer, max(1, width - 1)))
-        if height < 5 and not workspace_mode:
-            lines = lines[1:]
         state = (width, height, selected, digits, message)
         if state != previous:
             print(clear_popup() + "\r\n".join(lines[:max(0, height - 2)]), end="", flush=True)
@@ -97,12 +101,15 @@ def choose(labels, current=None):
         key = read_key(0.15)
         if key in ("esc", "q", "Q"):
             return None
+        if new_tab and key in ("n", "N"):
+            return len(labels) + 1
+        is_digit = len(key) == 1 and key in "0123456789"
         if key in ("up", "down"):
             digits, message = "", ""
-            selected = max(0, min(len(labels) - 1, selected + (-1 if key == "up" else 1)))
+            selected = max(0, min(last_tab + new_tab, selected + (-1 if key == "up" else 1)))
         elif key == "backspace":
             digits, message = digits[:-1], ""
-        elif len(key) == 1 and key in "0123456789":
+        elif is_digit:
             if len(digits) < 100:
                 digits += key
             message = ""
@@ -115,7 +122,7 @@ def choose(labels, current=None):
             digits, message = "", ""
         if digits and 1 <= int(digits) <= len(labels):
             selected = int(digits) - 1
-            if workspace_mode and len(key) == 1 and key in "0123456789" and int(digits) * 10 > len(labels):
+            if is_digit and int(digits) * 10 > len(labels):
                 if selected != current:
                     return selected + 1
                 digits = ""
@@ -144,6 +151,10 @@ def workspace_rows(workspaces, current_id):
         rows.extend((child, "> ") for child in children.get(root["workspace_id"], ()))
     return [(workspace["workspace_id"], "(current)" if workspace["workspace_id"] == current_id
              else prefix + workspace["label"]) for workspace, prefix in rows]
+
+
+def tab_label(label):
+    return re.sub(r"^[0-9]+[ \t]+·[ \t]+(?:[◉◐●✓○][ \t]+)?(?=\S)", "", label)
 
 
 def main():
@@ -178,10 +189,14 @@ def main():
             return
         destination_workspace = rows[choice - 1][0]
     else:
-        destinations = sorted((t for t in tabs()
-                               if t["tab_id"] != tab and t["workspace_id"] == workspace),
+        destinations = sorted((t for t in tabs() if t["workspace_id"] == workspace),
                               key=lambda t: t["number"])
-        choice = choose(["新增 tab"] + [f"Tab {t['number']}: {t['label']}" for t in destinations])
+        current = next((i for i, row in enumerate(destinations) if row["tab_id"] == tab), None)
+        if current is None:
+            raise RuntimeError("Source tab no longer exists; reopen the menu.")
+        labels = ["(current)" if i == current else tab_label(row["label"])
+                  for i, row in enumerate(destinations)]
+        choice = choose(labels, current, new_tab=True)
         if choice is None:
             return
     source = cli("pane", "get", pane)["pane"]
@@ -197,10 +212,10 @@ def main():
             raise RuntimeError("Destination active tab no longer exists; reopen the menu.")
         cli("pane", "move", pane, "--tab", target, "--split", "right", "--focus")
         return
-    if choice == 1:
+    if choice == len(destinations) + 1:
         cli("pane", "move", pane, "--new-tab", "--workspace", workspace, "--focus")
     else:
-        target = destinations[choice - 2]["tab_id"]
+        target = destinations[choice - 1]["tab_id"]
         if not any(t["tab_id"] == target and t["workspace_id"] == workspace for t in live):
             raise RuntimeError("Destination tab no longer exists; reopen the menu.")
         cli("pane", "move", pane, "--tab", target, "--split", "right", "--focus")

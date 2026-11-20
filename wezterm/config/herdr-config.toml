@@ -35,8 +35,8 @@ key = "prefix+m"
 type = "popup"
 command = 'powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%APPDATA%\herdr\herdr-move-pane.ps1"'
 description = "move pane to tab"
-width = "23%"
-height = "18%"
+width = 58
+height = 16
 
 # WSL: python3 "$HOME/.config/herdr/herdr-move-pane.py" workspace
 [[keys.command]]

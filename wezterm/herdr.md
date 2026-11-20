@@ -47,7 +47,7 @@
 - `Prefix, 1`~`Prefix, 9` -- 依編號切換 tab(herdr 預設, 不需設定)
 - `Prefix, C` -- 直接新增 tab, 不詢問名稱(`[ui] prompt_new_tab_name = false`, tab 名稱交給 Auto Title)
 - `Prefix, I` -- 顯示目前 tab ID
-- `Prefix, M` -- 移動目前 pane 至其他 tab, 預設"新增 tab"
+- `Prefix, M` -- 依目前 workspace 的 tab 順序選擇目的地, 將 pane 移至該 tab 右側並聚焦. 初始反白停在 `(current)` 下一列, 若目前是最後一個 tab 就停在 `N. 新增 tab`. 確認 `(current)` 會留在選單. 按 N 可直接新增 tab 並移入 pane.
 - `Prefix, Shift+M` -- 選擇 workspace, 將目前 pane 移至該 workspace 的 active tab 右側並聚焦該 pane. 選單依 workspace 順序顯示, linked worktree 列在同 repo 的主 workspace 下方並加上 `>`. 初始反白停在 `(current)`, 確認該列會留在選單.
 - `Prefix, U` -- popup 顯示 Claude/Codex usage (5h/Wk 剩餘與重置時間), 任一鍵關閉; 需要 [quota-cli](#quota-cli)
 - `Prefix, Y` -- 右側 split 開 Yazi, 瀏覽目前 pane 的本機或 SSH 遠端目錄; 見 [Yazi / SSHFS](#yazi--sshfs)
@@ -65,11 +65,13 @@ key = "prefix+m"
 type = "popup"
 command = 'python3 "$HOME/.config/herdr/herdr-move-pane.py"'
 description = "move pane to tab"
-width = "23%"
-height = "18%"
+width = 58
+height = 16
 ```
 
 helper 使用 popup 注入的 `HERDR_ACTIVE_PANE_ID`, `HERDR_ACTIVE_WORKSPACE_ID`, `HERDR_ACTIVE_TAB_ID` 固定來源, 並透過 `HERDR_BIN_PATH` 呼叫 CLI, 沿用 socket 環境.合併時以 `prefix+m` 識別並更新這一筆 command, 保留其他 command, `onboarding` 與 UI 設定, 再分別執行 reload
+
+Tab popup 為 58 欄、16 行 (含外框), 由 Herdr 依終端大小限制. `N. 新增 tab` 固定在清單下方, 有隱藏的 tab 時提示列顯示 `(more)`. 方向鍵選擇、Enter 確認, 數字能唯一判定時直接確認. Esc / Q / Ctrl+C 取消.
 
 同一組 helper 也提供 workspace 模式. Windows 合併 repo 的 `prefix+shift+m` command (加上 `-Mode workspace`); WSL 新增以下 command:
 
