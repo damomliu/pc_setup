@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Popup: show the current tab ID and draw its panes by layout; the active pane is highlighted and its ID copied."""
+"""Use arrow keys to copy a tab or pane ID from the Herdr layout."""
 import json
 import math
 import os
@@ -13,9 +13,11 @@ import tty
 import unicodedata
 from contextlib import contextmanager
 
-# Highlight for the active pane: one-dark selection style, bold white on light gray #3e4451; change colours here.
-HIGHLIGHT = "\033[1;38;2;255;255;255;48;2;62;68;81m"
-FOOTER = "按任意鍵關閉..."
+RESET = "\033[0m"
+COPIED = "(已複製)"
+COPY_FAILED = "(複製失敗)"
+FOOTER = "方向鍵選取並複製 / 其他鍵關閉"
+ARROWS = dict(zip(b"ABCD", ("up", "down", "right", "left")))
 
 
 POPUP_TITLE = "Pane 總覽"
@@ -46,7 +48,14 @@ def read_key(timeout=None):
     char = os.read(fd, 1)
     if not char:
         raise EOFError()
-    return "key"
+    if char != b"\x1b":
+        return "close"
+    if not select.select([fd], [], [], 0.04)[0] or os.read(fd, 1) not in (b"[", b"O"):
+        return "close"
+    if not select.select([fd], [], [], 0.04)[0]:
+        return "close"
+    char = os.read(fd, 1)
+    return ARROWS.get(char[0], "close") if char else "close"
 
 
 def char_width(char):
@@ -82,7 +91,7 @@ def copy_to_clipboard(text):
         payload = text.encode("utf-8")
     else:
         command = [shutil.which("clip.exe") or "/mnt/c/Windows/System32/clip.exe"]
-        # A BOM prevents clip.exe from guessing ASCII pane IDs as UTF-16.
+        # A BOM makes clip.exe interpret the ID as UTF-16.
         payload = b"\xff\xfe" + text.encode("utf-16-le")
     try:
         subprocess.run(command, input=payload, check=True, capture_output=True)
@@ -91,18 +100,25 @@ def copy_to_clipboard(text):
         return False
 
 
-def render_layout(layout, width, height, active, note=""):
-    """Return screen lines: Tab ID, blank, (width-1)x(height-6) layout, blank, footer.
+def format_note(note):
+    return "\033[1;93m" + note + RESET if note == COPIED else note
 
-    Borders are Unicode box-drawing characters; the whole rectangle of the active
-    pane, border included, is wrapped in the HIGHLIGHT colours. Each cell holds one
-    string; a wide (CJK) character takes two cells, the second one empty.
-    """
+
+def render_layout(layout, width, height, selected, note="", message=""):
+    """Draw the tab and pane IDs, styling only the selected ID's copy result."""
     cols, rows = max(1, width - 1), max(1, height - 6)
     area = layout["area"]
     area_w, area_h = max(1, area["width"]), max(1, area["height"])
     chars = [[" "] * cols for _ in range(rows)]
-    flags = [[False] * cols for _ in range(rows)]
+    tab_id = layout["tab_id"]
+    status_in_footer = False
+    tab_label = "Tab: " + tab_id
+    tab = fit(tab_label, cols)
+    if selected == tab_id:
+        if fit(tab_label + note, cols) == tab_label + note:
+            tab += format_note(note)
+        else:
+            status_in_footer = True
     for entry in layout["panes"]:
         rect = entry["rect"]
         # Scale both edges with the same formula so neighbouring borders line up.
@@ -114,10 +130,6 @@ def render_layout(layout, width, height, active, note=""):
         y0, y1 = max(0, min(rows - 1, y0)), max(1, min(rows, y1))
         x1, y1 = max(x1, x0 + 1), max(y1, y0 + 1)
         box_w, box_h = x1 - x0, y1 - y0
-        is_active = entry["pane_id"] == active
-        for y in range(y0, y1):
-            for x in range(x0, x1):
-                flags[y][x] = is_active
         if box_w >= 3 and box_h >= 3:
             # Room for an interior: draw the border, ID centred inside.
             for x in range(x0, x1):
@@ -130,31 +142,32 @@ def render_layout(layout, width, height, active, note=""):
         else:
             # Too small for a border: ID only.
             avail, label_row, label_x = box_w, y0 + (box_h - 1) // 2, x0
-        text = str(entry["pane_id"])
-        if is_active and note:
-            text += " " + note
+        pane_id = entry["pane_id"]
+        text = fit(pane_id, avail)
+        suffix = ""
+        if pane_id == selected and note:
+            if fit(pane_id + note, avail) == pane_id + note:
+                suffix = note
+            else:
+                status_in_footer = True
         cells = []
-        for char in text:
-            size = char_width(char)
-            if len(cells) + size > avail:
-                break
+        for char in text + suffix:
             cells.append(char)
-            if size == 2:
+            if char_width(char) == 2:
                 cells.append("")
+        if suffix == COPIED:
+            start = sum(map(char_width, text))
+            cells[start] = "\033[1;93m" + cells[start]
+            cells[-1] += RESET
         start = label_x + (avail - len(cells)) // 2
         for index, cell in enumerate(cells):
             chars[label_row][start + index] = cell
-    lines = ["Tab: " + str(layout["tab_id"]), ""]
-    for y in range(rows):
-        parts, in_run = [], False
-        for x in range(cols):
-            if flags[y][x] != in_run:
-                parts.append(HIGHLIGHT if flags[y][x] else "\033[0m")
-                in_run = flags[y][x]
-            parts.append(chars[y][x])
-        lines.append("".join(parts))
-    lines += ["", fit(FOOTER, cols)]
-    return [line + "\033[0m" for line in lines]
+    footer = fit(message or FOOTER, cols)
+    if status_in_footer and not message:
+        footer = fit(selected, cols)
+        if fit(selected + note, cols) == selected + note:
+            footer += format_note(note)
+    return [tab, "", *map("".join, chars), "", footer]
 
 
 def main():
@@ -162,16 +175,44 @@ def main():
         raise RuntimeError("Missing Herdr popup context.")
     pane = os.environ["HERDR_ACTIVE_PANE_ID"]
     layout = herdr("pane", "layout", "--pane", pane)["layout"]
-    note = "(已複製)" if copy_to_clipboard(pane) else "(複製失敗)"
+    tab = layout["tab_id"]
+    selected = last_pane = pane
+    note = COPIED if copy_to_clipboard(pane) else COPY_FAILED
+    message = ""
     previous = None
     while True:
         width, height = shutil.get_terminal_size((80, 24))
-        if (width, height) != previous:
-            lines = render_layout(layout, width, height, pane, note)
+        frame = (width, height, selected, note, message)
+        if frame != previous:
+            lines = render_layout(layout, width, height, selected, note, message)
             print(clear_popup() + "\r\n".join(lines[:max(0, height - 2)]), end="", flush=True)
-            previous = (width, height)
-        if read_key(0.15) != "resize":
+            previous = frame
+        key = read_key(0.15)
+        if key == "close":
             return
+        if key == "resize":
+            continue
+        target = selected
+        message = ""
+        if selected == tab:
+            if key == "down":
+                target = last_pane
+        else:
+            try:
+                neighbor = herdr("pane", "neighbor", "--pane", selected, "--direction", key)["neighbor"]
+                if neighbor["layout"]["tab_id"] != tab:
+                    raise RuntimeError("The selected pane moved to another tab.")
+            except (OSError, RuntimeError, ValueError, KeyError):
+                message = "無法讀取相鄰 pane"
+                continue
+            layout = neighbor["layout"]
+            previous = None
+            target = neighbor.get("neighbor_pane_id") or (tab if key == "up" else selected)
+        if target != selected:
+            if target != tab:
+                last_pane = target
+            selected = target
+            note = COPIED if copy_to_clipboard(selected) else COPY_FAILED
 
 
 if __name__ == "__main__":
