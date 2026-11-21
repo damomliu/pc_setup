@@ -36,6 +36,14 @@ description = "move pane to tab"
 width = 58
 height = 16
 
+[[keys.command]]
+key = "prefix+shift+m"
+type = "popup"
+command = '/usr/bin/python3 "$HOME/.config/herdr/herdr-move-pane.py" workspace'
+description = "move pane to workspace"
+width = 54
+height = 16
+
 # Show current tab ID and draw its panes by layout; read-only.
 [[keys.command]]
 key = "prefix+i"
@@ -44,6 +52,22 @@ command = '/usr/bin/python3 "$HOME/.config/herdr/herdr-list-ids.py"'
 description = "show current tab pane layout"
 width = "35%"
 height = "35%"
+
+[[keys.command]]
+key = "prefix+u"
+type = "popup"
+command = '''/bin/bash -c '
+if output=$("$HOME/.cargo/bin/quota-cli" usage 2>/dev/null); then
+    output=$(printf "%s\n" "$output" | /usr/bin/grep -E "^(claude|codex)[[:space:]]")
+else
+    output=
+fi
+printf "\033[H\033[2J\033[1;96mAgent 用量\033[0m\n\n%s\n\n" "${output:-quota-cli failed}"
+read -rsn1 -p "press any key to close"
+' '''
+description = "show Claude/Codex usage"
+width = "60%"
+height = 12
 
 [[keys.command]]
 key = "prefix+f"
