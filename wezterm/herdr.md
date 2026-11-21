@@ -113,8 +113,8 @@ WSL 使用 [herdr-list-ids.py](src/herdr-list-ids.py), 複製至 `~/.config/herd
 ### macOS
 
 - 終端機：iTerm2 的 `Herdr` dynamic profile（直接啟動 `~/.local/bin/herdr`）；repo 副本 [iterm2-herdr.json](config/iterm2-herdr.json)，複製到 `~/Library/Application Support/iTerm2/DynamicProfiles/herdr.json` 後 iTerm2 會自動載入。設為預設 profile：`defaults write com.googlecode.iterm2 "Default Bookmark Guid" -string "84493b13-8660-41ce-a367-047c1a98b8b9"`（之後重開 iTerm2）。快速鍵映射只存在這個 profile 裡；用其他 profile（例如 `long`）開 Herdr 時，`Opt+Shift`、`Opt+Z`、`Cmd+B` 都不會有作用。
-- Herdr 設定：repo 副本 [herdr-config.macos.toml](config/herdr-config.macos.toml)，合併到 `~/.config/herdr/config.toml`（保留 `onboarding`、`[ui.toast]`），再執行 `herdr server reload-config`。
-- helper：把 [herdr-move-pane.py](src/herdr-move-pane.py)、[herdr-list-ids.py](src/herdr-list-ids.py) 複製到 `~/.config/herdr/`，用 `/usr/bin/python3` 執行；`Prefix, I` 用 `pbcopy` 複製選取的 pane 或 tab ID。
+- Herdr 設定合併到 `~/.config/herdr/config.toml`。以 `key` 更新同名的 `[[keys.command]]`，保留 `onboarding`、`[ui.toast]` 與其他本機設定。執行 `herdr config check` 通過後再執行 `herdr server reload-config`。[macOS 設定](config/herdr-config.macos.toml)
+- 將兩支 helper 複製到 `~/.config/herdr/`，由 `/usr/bin/python3` 執行。`Prefix, M` 可移到既有 tab，按 `N` 可移到新 tab。`Prefix, Shift+M` 可移到另一個 workspace 的作用中 tab。`Prefix, I` 開啟 Pane 總覽，用方向鍵選取後會以 `pbcopy` 複製 pane 或 tab ID。[移動 pane](src/herdr-move-pane.py) · [Pane 總覽](src/herdr-list-ids.py)
 - 快速鍵跟 Windows 相同，`Alt` 換成 `Option`：`Opt+方向鍵`、`Opt+Shift+方向鍵`、`Opt+Z`。
 - Windows 的 `Ctrl+Alt` 系列在 Mac 改用 `Cmd+Opt`：`Cmd+Opt+←/→` 切換 tab、`Cmd+Opt+↑/↓` 切換 workspace、`Cmd+Opt+Shift+方向鍵` 交換 pane。Herdr config 仍寫 `ctrl+alt+…`，由 iTerm2 profile 把 `Cmd+Opt` 送成對應的 escape sequence。`Ctrl+Opt+方向鍵` 留給 BetterTouchTool 的全域快速鍵。
 - BetterTouchTool 的 iTerm2 專屬規則 `Cmd+Opt+←/→`（送 `Ctrl+Shift+Tab`／`Ctrl+Tab` 切 iTerm2 tab）需要停用，否則會攔截 Herdr 的切換 tab。
@@ -124,7 +124,8 @@ WSL 使用 [herdr-list-ids.py](src/herdr-list-ids.py), 複製至 `~/.config/herd
 - File Viewer renderer：`brew install glow bat`；`git-delta` 在 macOS 14 的 Homebrew 需從原始碼編譯（z3 編譯失敗），改下載 [GitHub release](https://github.com/dandavison/delta/releases) 的 `delta-<ver>-aarch64-apple-darwin.tar.gz`，將 `delta` 複製到 `~/.local/bin/`。
 - iTerm2 直接執行 profile 的 Command 時不經過 shell，herdr server 的 PATH 只有 `/usr/bin:/bin:/usr/sbin:/sbin`，File Viewer 會回報三個 renderer 都 not found。因此 profile 的 Command 為 `/bin/zsh -lic 'exec /Users/yuenlungliu/.local/bin/herdr'`，由 login + interactive zsh 讀入 `~/.zprofile`（Homebrew）與 `~/.zshrc`（`~/.local/bin`）。
 - 修改 Command 後需重啟 herdr server 才會用新的 PATH：在非 herdr 的終端機執行 `herdr server stop`（會關閉所有 pane 與 agent），再開新的 `Herdr` profile 視窗；以 `ps eww -p $(pgrep -f "herdr server") | tr ' ' '\n' | grep ^PATH=` 確認含 `/opt/homebrew/bin`。
-- File Viewer 沿用共用的 [herdr-file-viewer.toml](config/herdr-file-viewer.toml)，不需要以絕對路徑指定 renderer；複製到 `~/.config/herdr/plugins/config/herdr-file-viewer/config.toml`。若 File Viewer 又回報 renderer not found，先檢查 server 的 PATH。
+- File Viewer 使用共用設定，將 `editor = "vi"` 合併到 `~/.config/herdr/plugins/config/herdr-file-viewer/config.toml`，按 `e` 可用 `vi` 開啟檔案。若 File Viewer 回報 renderer not found，先檢查 server 的 PATH。[File Viewer 設定](config/herdr-file-viewer.toml)
+- `Prefix, U` 開啟 Claude／Codex 用量 popup。合併 macOS 設定中的 `prefix+u`，並在本機安裝 `quota-cli`。[安裝方式](#quota-cli)
 
 ## Plugins
 
@@ -182,6 +183,8 @@ Windows 使用 `\\sshfs.kr\<host>` 以 key 認證掛載遠端 `/`. SSHFS-Win 使
 - 用量先查詢並暫存, 完成後清畫面, 再一起顯示粗體亮青色的「Agent 用量」、空白行與結果, 避免查詢期間覆蓋標題. 無結果或查詢失敗時同樣保留標題並顯示 `quota-cli failed`.
 
 - 不安裝完整Quota (`pinkpixel-dev/quota/herdr-plugin`), 僅保留 `quota-cli`, 由 `Prefix, U` popup 執行 `quota-cli usage` 並只顯示 claude/codex 兩行 (repo 的 `prefix+u` command 可直接合併至 Windows config; WSL 改用註解中的 bash command)
+
+- macOS 用 `brew install rust` 安裝工具鏈，再執行 `cargo install quota-cli --version 0.4.0 --locked --root "$HOME/.cargo"`。popup 直接執行 `~/.cargo/bin/quota-cli`，沿用本機 Claude Code 與 Codex 的登入狀態。若 macOS 詢問是否允許存取 Claude Code 的 Keychain 項目，依系統提示選擇。[quota-cli 文件](https://github.com/pinkpixel-dev/quota/tree/main/quota-cli)
 
 ## 暫時保留與未定事項
 
