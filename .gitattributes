@@ -1,0 +1,2 @@
+# WSL 直接執行的 script, checkout 時維持 LF
+wezterm/src/herdr-rec.sh text eol=lf

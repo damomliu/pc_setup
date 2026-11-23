@@ -1529,6 +1529,53 @@ end)
 local open_herdr_goto_blocked = act.SendString '\x02gb'
 local open_herdr_goto_done = act.SendString '\x02gd'
 
+-- 另開 tab 以 asciinema 錄製第二個 WSL Herdr client; 就緒後只在錄影 client 收起 sidebar.
+local function spawn_herdr_rec(window, line)
+  local ok, tab, rec_pane = pcall(function()
+    return window:mux_window():spawn_tab {
+      cwd = wezterm.home_dir,
+      args = {
+        (os.getenv('SystemRoot') or 'C:\\Windows') .. '\\System32\\wsl.exe',
+        '--distribution', 'Ubuntu-24.04', '--cd', '~', '--exec', '/bin/bash', '-lc',
+        'exec "$HOME/.local/bin/herdr-rec" "$1"', 'herdr-rec', line,
+      },
+    }
+  end)
+  if not ok then
+    notify_spawn_error(window, tab)
+    return
+  end
+  tab:activate()
+
+  local tries = 0
+  local function hide_sidebar()
+    tries = tries + 1
+    local alive, ready = pcall(function() return rec_pane:is_alt_screen_active() end)
+    if not alive then
+      return
+    end
+    if ready then
+      -- 剛進入 TUI 時可能還沒開始讀 input, 稍等再送 Ctrl+B, B.
+      wezterm.time.call_after(0.8, function()
+        pcall(function() rec_pane:send_text('\x02b') end)
+      end)
+    elseif tries < 100 then
+      wezterm.time.call_after(0.1, hide_sidebar)
+    end
+  end
+  hide_sidebar()
+end
+
+local open_herdr_rec = act.PromptInputLine {
+  description = '錄製 Herdr tab: 錄影畫面從主畫面目前的 tab 開始, 若不是目標 tab, 請在錄影畫面自行切過去.\n'
+    .. '輸入錄影名稱 (可留空), Enter 開始, Esc 取消; 錄影中按 Ctrl+B, Q 停止.',
+  action = wezterm.action_callback(function(window, _, line)
+    if line then
+      spawn_herdr_rec(window, line)
+    end
+  end),
+}
+
 wezterm.on('augment-command-palette', function()
   return {
     {
@@ -1554,6 +1601,12 @@ wezterm.on('augment-command-palette', function()
       doc = '傳送 Ctrl+B, g, d 至目前 pane, 開啟 Herdr Go To 並篩選 Done',
       icon = 'md_search',
       action = open_herdr_goto_done,
+    },
+    {
+      brief = '錄製 Herdr tab',
+      doc = '另開 tab 以 asciinema 錄製第二個 WSL Herdr client, 存至 ~/recordings/herdr',
+      icon = 'md_record_rec',
+      action = open_herdr_rec,
     },
     {
       brief = 'RyokoTower Simulators (新分頁)',
