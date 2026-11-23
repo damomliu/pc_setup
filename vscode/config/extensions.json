@@ -2,6 +2,7 @@
     "Default": [
         "anan.jetbrains-darcula-theme",
         "anthropic.claude-code",
+        "donjayamanne.githistory",
         "iliazeus.vscode-ansi",
         "jjju.claude-codex-usage-monitor",
         "johnpapa.vscode-peacock",
@@ -22,6 +23,7 @@
         "anan.jetbrains-darcula-theme",
         "anthropic.claude-code",
         "charliermarsh.ruff",
+        "donjayamanne.githistory",
         "iliazeus.vscode-ansi",
         "janisdd.vscode-edit-csv",
         "jjju.claude-codex-usage-monitor",
@@ -47,6 +49,7 @@
     ".NET": [
         "anan.jetbrains-darcula-theme",
         "anthropic.claude-code",
+        "donjayamanne.githistory",
         "dotjoshjohnson.xml",
         "iliazeus.vscode-ansi",
         "jjju.claude-codex-usage-monitor",
@@ -72,6 +75,7 @@
         "catppuccin.catppuccin-vsc-icons",
         "dart-code.dart-code",
         "dart-code.flutter",
+        "donjayamanne.githistory",
         "iliazeus.vscode-ansi",
         "jeroen-meijer.pubspec-assist",
         "jjju.claude-codex-usage-monitor",

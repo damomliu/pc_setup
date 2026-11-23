@@ -15,6 +15,7 @@
 | `openai.codex-audio` | Codex 語音（chatgpt 相依） |
 | `jjju.claude-codex-usage-monitor` | Claude Code／Codex 用量監看 |
 | `mhutchie.git-graph` | Git Graph |
+| `donjayamanne.githistory` | Git 歷史紀錄 |
 | `ms-vscode-remote.remote-containers` | Dev Containers |
 | `ms-vscode-remote.remote-ssh` | Remote SSH |
 | `ms-vscode-remote.remote-ssh-edit` | Remote SSH 編輯 ssh config（remote-ssh 相依） |
