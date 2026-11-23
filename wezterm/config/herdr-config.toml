@@ -27,6 +27,7 @@ previous_tab = "ctrl+alt+left"
 next_tab = "ctrl+alt+right"
 previous_workspace = "ctrl+alt+up"
 next_workspace = "ctrl+alt+down"
+last_pane = "prefix+;"
 
 # Windows command; on WSL replace command with:
 # python3 "$HOME/.config/herdr/herdr-move-pane.py"

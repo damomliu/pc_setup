@@ -38,6 +38,7 @@
 - `Alt+Shift+方向鍵` -- 調整 pane 大小
 - `Ctrl+Alt+Shift+方向鍵` -- 與該方向的 pane 交換位置; 保留 `Prefix, Shift+H/J/K/L` 對應左/下/上/右
 - `Alt+Z` -- 切換 pane zoom
+- `Ctrl+B` 放開後 `;` (`Prefix, ;`) -- 回到前次聚焦的 pane, 可跨 tab/workspace
 - `Prefix, \` -- 左右分割 pane
 
 **Workspace/Tab操作**
