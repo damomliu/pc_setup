@@ -1576,6 +1576,25 @@ local open_herdr_rec = act.PromptInputLine {
   end),
 }
 
+-- 另開 tab 執行 herdr-play (本機 server), 並以瀏覽器開啟錄影播放頁; 關閉 tab 即停止 server.
+local open_herdr_play = wezterm.action_callback(function(window)
+  local ok, tab = pcall(function()
+    return window:mux_window():spawn_tab {
+      cwd = wezterm.home_dir,
+      args = {
+        (os.getenv('SystemRoot') or 'C:\\Windows') .. '\\System32\\wsl.exe',
+        '--distribution', 'Ubuntu-24.04', '--cd', '~', '--exec', '/bin/bash', '-lc',
+        '"$HOME/.local/bin/herdr-play" || { read -rsn1 -p "按任意鍵關閉"; }',
+      },
+    }
+  end)
+  if not ok then
+    notify_spawn_error(window, tab)
+    return
+  end
+  tab:activate()
+end)
+
 wezterm.on('augment-command-palette', function()
   return {
     {
@@ -1607,6 +1626,12 @@ wezterm.on('augment-command-palette', function()
       doc = '另開 tab 以 asciinema 錄製第二個 WSL Herdr client, 存至 ~/recordings/herdr',
       icon = 'md_record_rec',
       action = open_herdr_rec,
+    },
+    {
+      brief = '播放 Herdr 錄影',
+      doc = '另開 tab 執行 herdr-play, 以瀏覽器開啟 ~/recordings/herdr 錄影播放頁; 關閉 tab 即停止',
+      icon = 'md_play',
+      action = open_herdr_play,
     },
     {
       brief = 'RyokoTower Simulators (新分頁)',

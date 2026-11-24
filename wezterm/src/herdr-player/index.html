@@ -1,0 +1,731 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Herdr 錄影播放</title>
+<link rel="stylesheet" href="vendor/asciinema-player.css">
+<style>
+  :root {
+    --bg: #1e1e2e; --panel: #181825; --line: #313244; --fg: #cdd6f4; --dim: #a6adc8; --accent: #89b4fa;
+    --mono: 'Noto Sans Mono CJK TC', 'Cascadia Mono', Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { display: flex; background: var(--bg); color: var(--fg); font: 13px/1.4 system-ui, 'Microsoft JhengHei', sans-serif; }
+  aside { width: 260px; flex: none; display: flex; flex-direction: column; background: var(--panel); border-right: 1px solid var(--line); }
+  aside header { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-bottom: 1px solid var(--line); font-weight: 600; }
+  aside ul { list-style: none; margin: 0; padding: 4px; overflow-y: auto; flex: 1; min-height: 0; }
+  aside header.sub { border-top: 1px solid var(--line); }
+  #markers li { display: flex; align-items: center; gap: 2px; }
+  #markers li .jump { flex: 1; min-width: 0; display: flex; gap: 8px; }
+  #markers li.current .jump { background: #45475a; outline: 1px solid var(--accent); }
+  #markers .time { flex: none; font-family: var(--mono); color: var(--dim); }
+  #markers .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #markers li button.act { width: auto; flex: none; padding: 4px 6px; color: var(--dim); }
+  #markers li button.act.armed { color: #f38ba8; }
+  #markers .src { flex: none; padding: 0 6px; color: var(--dim); font-size: 11px; }
+  #markers .empty { padding: 8px; color: var(--dim); }
+  input.edit { flex: 1; min-width: 0; font: inherit; background: var(--bg); color: var(--fg); border: 1px solid var(--accent); border-radius: 4px; padding: 4px 6px; }
+  aside li button { width: 100%; text-align: left; padding: 6px 8px; border: 0; border-radius: 4px; background: none; color: var(--fg); cursor: pointer; font: inherit; }
+  aside li button:hover { background: var(--line); }
+  aside li button.current { background: #45475a; outline: 1px solid var(--accent); }
+  aside li .name { display: block; word-break: break-all; }
+  aside li .meta { display: block; color: var(--dim); font-size: 11px; }
+  aside.hidden { display: none; }
+  main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  #stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 6px; }
+  #player { width: 100%; height: 100%; }
+  /* vendor 的 .ap-wrapper 已是 flex + justify-content:center, 這裡明確寫出, 讓終端機與 #controls 的播放鍵共用 #player 中線. */
+  #player .ap-wrapper { width: 100%; justify-content: center; }
+  /* minmax(0, 1fr): 左欄內容較寬時兩欄仍等寬, 播放鍵維持在影片中線. */
+  #controls { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; padding: 6px; }
+  #controls input.edit { flex: none; width: 110px; padding: 2px 6px; }
+  #controls input.edit:disabled { opacity: .4; }
+  /* 「M」與 ⏮ 相隔約兩顆按鈕寬 (84px + 兩側 gap), 同右側的速度群組; 視窗太窄時縮小 (至少 12px), 名稱框才不會被擠出畫面. */
+  #controls .mark-gap { flex: 0 1 78px; min-width: 0; }
+  #controls .left, #controls .right { display: flex; align-items: center; gap: 6px; }
+  #controls .left { justify-content: flex-end; }
+  /* 與「結尾」相隔約兩顆按鈕寬 (84px + gap 6px). */
+  #controls .speed { margin-left: 84px; display: flex; align-items: center; gap: 6px; font-family: var(--mono); }
+  #controls .center { padding: 0 12px; }
+  /* vendor 時間軸只在操作後 2 秒內顯示且寫死; 以 #player.hud 自行延長 (HUD_MS). */
+  #player.hud div.ap-control-bar { opacity: 1; }
+  #controls button:disabled { opacity: .4; cursor: default; }
+  #controls button.play { font-size: 18px; min-width: 56px; padding: 4px 14px; background: var(--accent); color: var(--panel); border-color: var(--accent); }
+  #empty { color: var(--dim); }
+  #bar { display: flex; gap: 14px; align-items: center; padding: 6px 10px; border-top: 1px solid var(--line); background: var(--panel); font-family: var(--mono); white-space: nowrap; overflow: hidden; }
+  #bar > * { flex: none; }
+  /* 視窗窄時只讓錯誤訊息與快速鍵提示收縮 (省略號), 右下角 ? 永遠可見. */
+  #bar .grow { flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  #bar .err { color: #f38ba8; }
+  #bar .hint { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--dim); }
+  button.small { background: var(--line); color: var(--fg); border: 1px solid #45475a; border-radius: 4px; padding: 2px 8px; font: inherit; cursor: pointer; }
+  #help { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgb(0 0 0 / .6); z-index: 10; }
+  #help[hidden] { display: none; }
+  #help div { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px 20px; }
+  #help table { border-collapse: collapse; }
+  #help td { padding: 3px 10px; }
+  #help td:first-child { font-family: var(--mono); color: var(--accent); text-align: right; }
+  #prompt { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgb(0 0 0 / .4); z-index: 11; }
+  #prompt[hidden] { display: none; }
+  #prompt > div { display: flex; flex-direction: column; gap: 8px; width: 320px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
+  #prompt .note { color: var(--dim); font-size: 11px; }
+</style>
+</head>
+<body>
+<aside id="side">
+  <header><span>~/recordings/herdr</span><button class="small" id="refresh" title="重新整理清單">↻</button></header>
+  <ul id="list"></ul>
+  <header class="sub"><span id="markers-head">Markers</span></header>
+  <ul id="markers"></ul>
+</aside>
+<main>
+  <div id="stage"><div id="empty">從左側選擇錄影</div><div id="player" hidden></div></div>
+  <div id="controls">
+    <div class="left">
+      <input class="edit" id="c-mark-name" maxlength="100" autocomplete="off" title="marker 名稱; 空白時使用灰色的預設名稱 (Enter 新增, Esc 取消)">
+      <button class="small" id="c-mark" title="新增 marker (m)">M</button>
+      <span class="mark-gap"></span>
+      <button class="small" id="c-home" title="上一個 marker, 沒有則開頭 (p / PgUp)">⏮</button>
+      <button class="small" id="c-back30" title="-30 秒 (Shift+←)">-30s</button>
+      <button class="small" id="c-back5" title="-5 秒 (←)">-5s</button>
+    </div>
+    <div class="center">
+      <button class="small play" id="c-play" title="播放 / 暫停 (Space)">▶</button>
+    </div>
+    <div class="right">
+      <button class="small" id="c-fwd5" title="+5 秒 (→)">+5s</button>
+      <button class="small" id="c-fwd30" title="+30 秒 (Shift+→)">+30s</button>
+      <button class="small" id="c-end" title="下一個 marker, 沒有則結尾 (n / PgDn)">⏭</button>
+      <div class="speed">
+        <button class="small" id="c-slower" title="降速 (-)">−</button>
+        <span id="c-speed">4x</span>
+        <button class="small" id="c-faster" title="加速 (=)">+</button>
+      </div>
+    </div>
+  </div>
+  <div id="bar">
+    <button class="small" id="toggle-side" title="顯示/隱藏清單 (l)">清單</button>
+    <span id="frame">frame - / -</span>
+    <span id="time">--:-- / --:--</span>
+    <span id="speed-text">速度 4x</span>
+    <span id="idle"></span>
+    <span id="marker-count"></span>
+    <span class="grow" id="msg"></span>
+    <span class="hint">Space 播放/暫停 · ←/→ ±5 秒 · -/= 降速/加速</span>
+    <button class="small" id="show-help" title="快速鍵 (?)">?</button>
+  </div>
+</main>
+<div id="help" hidden><div>
+  <table>
+    <tr><td>Space</td><td>播放 / 暫停</td></tr>
+    <tr><td>, / .</td><td>上一 / 下一 frame</td></tr>
+    <tr><td>&lt; / &gt;</td><td>±10 frames</td></tr>
+    <tr><td>[ / ]</td><td>±50 frames</td></tr>
+    <tr><td>{ / }</td><td>±200 frames</td></tr>
+    <tr><td>← / →</td><td>±5 秒 (Shift: ±30 秒)</td></tr>
+    <tr><td>- / =</td><td>降速 / 加速</td></tr>
+    <tr><td>0</td><td>速度回 1x</td></tr>
+    <tr><td>Home / End</td><td>開頭 / 結尾</td></tr>
+    <tr><td>m</td><td>以預設名稱新增 marker (A-Z, 之後 M27...)</td></tr>
+    <tr><td>M</td><td>輸入名稱新增 marker</td></tr>
+    <tr><td>p / PgUp</td><td>上一個 marker</td></tr>
+    <tr><td>n / PgDn</td><td>下一個 marker</td></tr>
+    <tr><td>f</td><td>全螢幕</td></tr>
+    <tr><td>l</td><td>顯示 / 隱藏清單</td></tr>
+    <tr><td>?</td><td>顯示 / 隱藏本說明</td></tr>
+  </table>
+</div></div>
+<div id="prompt" hidden><div>
+  <label for="prompt-input">新增 marker 名稱</label>
+  <input class="edit" id="prompt-input" maxlength="100" autocomplete="off">
+  <span class="note">Enter 確定, Esc 取消</span>
+</div></div>
+<script src="vendor/asciinema-player.min.js"></script>
+<script>
+'use strict';
+const SPEEDS = [0.25, 0.5, 1, 2, 4, 8, 16];
+// 同一 frame 的事件跨度上限; Herdr TUI 一次重繪會拆成多個 output 事件.
+const FRAME_GAP = 1 / 60;
+// seek 到 frame 最後一個事件時加的餘量, 小於 cast 時間精度 (1ms).
+const EPS = 0.0003;
+
+const $ = id => document.getElementById(id);
+const params = new URLSearchParams(location.search);
+const posNum = (v, d) => { const n = parseFloat(v); return Number.isFinite(n) && n > 0 ? n : d; };
+
+const st = {
+  file: null, text: null, frames: [], duration: 0,
+  speed: posNum(params.get('speed'), 4),
+  idle: posNum(params.get('idle'), 2),
+  player: null, playing: false, gen: 0,
+  // 連按 frame 鍵時 seek 尚未完成, 以此記住目標 frame, 其他操作會清掉.
+  anchor: null, lastUrlT: null,
+  // createPlayer 進行中的目標 {t, play}.
+  rebuild: null,
+  // 每個事件的原始時間 / 播放時間 (已套 idle 壓縮), 供 marker 換算.
+  origs: [], plays: [],
+  // cast 內建 m 事件 (唯讀) 與旁掛檔的 marker, 皆為 {orig, label}.
+  castMarkers: [], userMarkers: [],
+  // 下一個預設名稱編號 (1 = A), 存於旁掛檔; 刪除 marker 不倒退.
+  nextIndex: null,
+  // 合併後依播放時間排序: {t, orig, label, src: 'cast' | 'user', ref}.
+  markers: [],
+};
+
+function fmtTime(s) {
+  if (!Number.isFinite(s)) return '--:--';
+  // 加極小容差: marker 換算回來可能是 59.9999..., 不要顯示成 00:59.
+  s = Math.max(0, s + 1e-6);
+  const m = Math.floor(s / 60), sec = Math.floor(s % 60);
+  return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+}
+function fmtSize(n) { return n >= 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.ceil(n / 1024)} KB`; }
+function setMsg(text, isErr) { const m = $('msg'); m.textContent = text || ''; m.className = 'grow' + (isErr ? ' err' : ''); }
+
+// 解析 cast, 以與 player 相同的 idle 壓縮計算 output frame 在 player timeline 上的時間.
+function parseFrames(text, idle) {
+  const lines = text.split('\n');
+  const version = JSON.parse(lines[0]).version;
+  const frames = [], origs = [], plays = [], castMarkers = [];
+  let abs = 0, prev = 0, shift = 0, groupStart = -Infinity, last = 0;
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i];
+    if (!line || line[0] === '#') continue;
+    const ev = JSON.parse(line);
+    // v3 存與前一事件的間隔, v2 存絕對時間.
+    abs = version === 3 ? abs + ev[0] : ev[0];
+    const delay = abs - prev;
+    prev = abs;
+    if (delay > idle) shift += delay - idle;
+    const t = abs - shift;
+    last = t;
+    origs.push(abs);
+    plays.push(t);
+    if (ev[1] === 'm') castMarkers.push({ orig: abs, label: String(ev[2] || '(cast)') });
+    if (ev[1] !== 'o') continue;
+    if (t - groupStart < FRAME_GAP) {
+      frames[frames.length - 1] = t;
+    } else {
+      frames.push(t);
+      groupStart = t;
+    }
+  }
+  return { frames, duration: last, origs, plays, castMarkers };
+}
+
+// 最後一個 arr[i] <= x 的 index, 沒有則 -1.
+function lastLE(arr, x) {
+  let lo = 0, hi = arr.length - 1, ans = -1;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    if (arr[mid] <= x) { ans = mid; lo = mid + 1; } else hi = mid - 1;
+  }
+  return ans;
+}
+
+// 原始時間 -> 播放時間; 落在被壓縮的閒置區間時夾到下一事件.
+function toPlayTime(orig) {
+  const { origs, plays } = st;
+  const i = lastLE(origs, orig);
+  if (i < 0) return Math.min(orig, plays[0] ?? orig);
+  const next = i + 1 < plays.length ? plays[i + 1] : st.duration;
+  return Math.min(plays[i] + (orig - origs[i]), Math.max(next, plays[i]));
+}
+
+// 播放時間 -> 原始時間 (存檔用, 不受 idle 設定影響).
+function toOrigTime(play) {
+  const { origs, plays } = st;
+  const i = lastLE(plays, play);
+  if (i < 0) return Math.max(0, play);
+  return origs[i] + (play - plays[i]);
+}
+
+// 目前時間所在的 frame index (最後一個 time <= now 的 frame), 開頭之前回傳 -1.
+function frameIndexAt(now) {
+  const f = st.frames;
+  let lo = 0, hi = f.length - 1, ans = -1;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    if (f[mid] <= now + EPS * 2) { ans = mid; lo = mid + 1; } else hi = mid - 1;
+  }
+  return ans;
+}
+
+function currentTime() {
+  const t = st.player ? st.player.getCurrentTime() : 0;
+  return Number.isFinite(t) ? t : 0;
+}
+
+async function createPlayer(startAt, autoPlay) {
+  const gen = ++st.gen;
+  if (st.player) {
+    try { st.player.pause(); } catch (_) {}
+    st.player.dispose();
+  }
+  const el = $('player');
+  el.replaceChildren();
+  el.hidden = false;
+  $('empty').hidden = true;
+  st.playing = false;
+  const p = AsciinemaPlayer.create({ data: st.text }, el, {
+    speed: st.speed,
+    idleTimeLimit: st.idle,
+    autoPlay: false,
+    preload: true,
+    fit: 'both',
+    // 傳入後 player 會忽略 cast 內建 m 事件, 所以 st.markers 已含內建的.
+    markers: st.markers.map(m => [m.t, m.label]),
+    terminalFontFamily: "'Noto Sans Mono CJK TC', 'Cascadia Mono', Consolas, monospace",
+  });
+  st.player = p;
+  p.addEventListener('play', () => { if (gen === st.gen) { st.playing = true; st.anchor = null; } });
+  p.addEventListener('playing', () => { if (gen === st.gen) st.playing = true; });
+  p.addEventListener('pause', () => { if (gen === st.gen) st.playing = false; });
+  p.addEventListener('ended', () => { if (gen === st.gen) st.playing = false; });
+  p.addEventListener('error', e => { if (gen === st.gen) setMsg(`播放錯誤: ${e?.message ?? e}`, true); });
+  st.rebuild = { t: startAt, play: autoPlay };
+  try {
+    if (startAt > 0) await p.seek(startAt);
+    if (autoPlay && gen === st.gen) await p.play();
+  } finally {
+    if (gen === st.gen) st.rebuild = null;
+  }
+}
+
+async function openFile(name, startAt, autoPlay) {
+  setMsg(`載入 ${name} ...`);
+  try {
+    const resp = await fetch(`cast/${encodeURIComponent(name)}`, { cache: 'no-store' });
+    if (!resp.ok) throw new Error(`${resp.status} ${resp.statusText}`);
+    const text = await resp.text();
+    const { frames, duration, origs, plays, castMarkers } = parseFrames(text, st.idle);
+    Object.assign(st, { file: name, text, frames, duration, origs, plays, castMarkers, userMarkers: [], nextIndex: null, anchor: null });
+    try {
+      const mr = await fetch(`api/markers/${encodeURIComponent(name)}`, { cache: 'no-store' });
+      if (!mr.ok) throw new Error(`${mr.status} ${mr.statusText}`);
+      const data = await mr.json();
+      // 舊格式為純陣列 (沒有 next), 下次存檔時轉成 {next, markers}.
+      const list = Array.isArray(data) ? data : data.markers;
+      st.userMarkers = list.map(m => ({ orig: m.t, label: m.label }));
+      if (!Array.isArray(data) && Number.isInteger(data.next)) st.nextIndex = data.next;
+    } catch (e) {
+      setMsg(`無法讀取 marker: ${e.message}`, true);
+    }
+    refreshMarkers();
+    // 有記錄則沿用 (刪除 marker 不倒退); 舊檔沒有記錄時, 以 marker 數與既有預設名稱 (A-Z, M27...) 的最大編號起算, 避免重複.
+    const usedMax = Math.max(0, ...st.markers.map(m => labelIndex(m.label)));
+    st.nextIndex = Math.max(st.nextIndex ?? 0, st.markers.length + 1, usedMax + 1);
+    updateMarkPlaceholder();
+    document.title = `${name} - Herdr 錄影播放`;
+    markCurrent();
+    await createPlayer(Math.min(startAt || 0, duration), autoPlay);
+    if (!$('msg').classList.contains('err')) setMsg('');
+  } catch (e) {
+    setMsg(`無法開啟 ${name}: ${e.message}`, true);
+  }
+}
+
+async function setSpeed(speed) {
+  if (speed === st.speed) return;
+  st.speed = speed;
+  if (!st.player) return;
+  updateUrl(st.rebuild ? st.rebuild.t : currentTime());
+  // speed 只能在 create 時設定, 記下位置與播放狀態後重建.
+  await rebuildPlayer();
+}
+
+// 在目前位置與播放狀態重建 player (變速, marker 變更時用).
+// 連續重建時上一次可能還沒 seek 完, 沿用它的目標位置.
+async function rebuildPlayer() {
+  const r = st.rebuild;
+  await createPlayer(r ? r.t : currentTime(), r ? r.play : st.playing);
+}
+
+// ---- marker ----
+
+const defaultLabel = n => n <= 26 ? String.fromCharCode(64 + n) : `M${n}`;
+// defaultLabel 的反向: 'C' -> 3, 'M27' -> 27; 非預設名稱回傳 0.
+function labelIndex(label) {
+  if (/^[A-Z]$/.test(label)) return label.charCodeAt(0) - 64;
+  const m = /^M(\d+)$/.exec(label);
+  return m && +m[1] > 26 ? +m[1] : 0;
+}
+// 下一個預設名稱, 依 st.nextIndex (每部錄影記在旁掛檔, 新增 +1, 刪除不倒退).
+const nextDefaultLabel = () => defaultLabel(st.nextIndex ?? st.markers.length + 1);
+const nowTime = () => st.rebuild ? st.rebuild.t : currentTime();
+
+// 由 castMarkers + userMarkers 重算 st.markers, 並重繪側欄.
+function refreshMarkers() {
+  const all = [
+    ...st.castMarkers.map(m => ({ orig: m.orig, label: m.label, src: 'cast', ref: m })),
+    ...st.userMarkers.map(m => ({ orig: m.orig, label: m.label, src: 'user', ref: m })),
+  ];
+  for (const m of all) m.t = toPlayTime(m.orig);
+  all.sort((a, b) => a.t - b.t);
+  st.markers = all;
+  renderMarkers();
+  updateMarkPlaceholder();
+}
+
+// 控制列 marker 名稱框: 空白時以灰色 placeholder 顯示預設名稱, focus 時清掉.
+function updateMarkPlaceholder() {
+  const input = $('c-mark-name');
+  input.placeholder = document.activeElement === input ? '' : nextDefaultLabel();
+}
+
+// 控制列「M」/ Enter: 有輸入用輸入, 否則用預設名稱; 完成後清空並離開輸入框.
+function addMarkerFromControls() {
+  const input = $('c-mark-name');
+  const label = input.value.trim() || nextDefaultLabel();
+  input.value = '';
+  input.blur();
+  showHud();
+  addMarker(label);
+}
+
+// 儲存 user marker 與下一個預設編號, 並重建 player 更新時間軸刻度; 失敗時還原.
+async function commitMarkers(next, okMsg, nextIndex = st.nextIndex) {
+  const prev = st.userMarkers, prevIndex = st.nextIndex;
+  st.userMarkers = next;
+  st.nextIndex = nextIndex;
+  refreshMarkers();
+  try {
+    const resp = await fetch(`api/markers/${encodeURIComponent(st.file)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ next: nextIndex, markers: next.map(m => ({ t: m.orig, label: m.label })) }),
+    });
+    if (!resp.ok) throw new Error(`${resp.status} ${(await resp.text()).trim() || resp.statusText}`);
+  } catch (e) {
+    st.userMarkers = prev;
+    st.nextIndex = prevIndex;
+    refreshMarkers();
+    setMsg(`marker 儲存失敗: ${e.message}`, true);
+    return false;
+  }
+  setMsg(okMsg);
+  await rebuildPlayer();
+  showHud();
+  return true;
+}
+
+function addMarker(label) {
+  if (!st.player) return;
+  const t = nowTime();
+  const dup = st.markers.find(m => Math.abs(m.t - t) < 0.01);
+  if (dup) { setMsg(`此位置已有 marker ${dup.label}`); return; }
+  label = label.trim().slice(0, 100);
+  if (!label) return;
+  // 不論預設或自訂名稱, 每新增一個都佔用一個編號 (A, "text2" 之後為 C).
+  commitMarkers([...st.userMarkers, { orig: toOrigTime(t), label }], `已新增 marker ${label} @ ${fmtTime(t)}`, st.nextIndex + 1);
+}
+
+function renameMarker(ref, label) {
+  label = label.trim().slice(0, 100);
+  if (!label) { setMsg('marker 名稱不可空白', true); renderMarkers(); return; }
+  if (label === ref.label) { renderMarkers(); return; }
+  const old = ref.label;
+  commitMarkers(st.userMarkers.map(m => m === ref ? { orig: m.orig, label } : m), `marker ${old} 已改名為 ${label}`);
+}
+
+function deleteMarker(ref) {
+  commitMarkers(st.userMarkers.filter(m => m !== ref), `已刪除 marker ${ref.label}`);
+}
+
+function jumpMarker(m) {
+  seekTime(m.t);
+  showHud();
+  setMsg(`marker ${st.markers.indexOf(m) + 1}/${st.markers.length}: ${m.label}`);
+}
+
+// 上一個: 留 0.5 秒緩衝, 播放中連按才能一路往前; 沒有則回開頭.
+function prevMarker() {
+  if (!st.player) return;
+  const t = nowTime();
+  const m = st.markers.filter(x => x.t < t - 0.5).pop();
+  if (m) jumpMarker(m); else { seekTime(0); showHud(); setMsg('已是第一個 marker 之前, 跳到開頭'); }
+}
+
+// 下一個: 已過最後一個 marker 則跳到結尾.
+function nextMarker() {
+  if (!st.player) return;
+  const t = nowTime();
+  const m = st.markers.find(x => x.t > t + 0.01);
+  if (m) jumpMarker(m); else { seekTime(st.duration); showHud(); setMsg('已無下一個 marker, 跳到結尾'); }
+}
+
+// 目前位置所在的 marker index (最後一個 t <= 目前時間), 沒有則 -1.
+const currentMarkerIndex = t => lastLE(st.markers.map(m => m.t), t + 0.01);
+
+function highlightMarker(t) {
+  const cur = currentMarkerIndex(t);
+  for (const li of document.querySelectorAll('#markers li[data-i]')) li.classList.toggle('current', +li.dataset.i === cur);
+}
+
+function renderMarkers() {
+  const ul = $('markers');
+  $('markers-head').textContent = st.file ? `Markers (${st.markers.length})` : 'Markers';
+  if (!st.file || !st.markers.length) {
+    const li = document.createElement('li');
+    li.className = 'empty';
+    li.textContent = st.file ? '沒有 marker (按 m 新增)' : '尚未開啟錄影';
+    ul.replaceChildren(li);
+    return;
+  }
+  ul.replaceChildren(...st.markers.map((m, i) => {
+    const li = document.createElement('li');
+    li.dataset.i = i;
+    const jump = document.createElement('button');
+    jump.className = 'jump';
+    jump.title = '跳到此 marker';
+    const time = document.createElement('span');
+    time.className = 'time';
+    time.textContent = fmtTime(m.t);
+    const label = document.createElement('span');
+    label.className = 'label';
+    label.textContent = m.label;
+    jump.append(time, label);
+    jump.addEventListener('click', () => { jump.blur(); jumpMarker(m); });
+    li.append(jump);
+    if (m.src === 'cast') {
+      const src = document.createElement('span');
+      src.className = 'src';
+      src.textContent = '(cast)';
+      li.append(src);
+    } else {
+      const ren = document.createElement('button');
+      ren.className = 'act rename';
+      ren.textContent = '✎';
+      ren.title = '重新命名';
+      ren.addEventListener('click', () => startRename(li, m));
+      const del = document.createElement('button');
+      del.className = 'act delete';
+      del.textContent = '✕';
+      del.title = '刪除 (再按一次確定)';
+      del.addEventListener('click', () => {
+        del.blur();
+        // 不用 window.confirm (會擋住頁面): 3 秒內再按一次才刪除.
+        if (del.classList.contains('armed')) { deleteMarker(m.ref); return; }
+        del.classList.add('armed');
+        del.textContent = '確定?';
+        setTimeout(() => { del.classList.remove('armed'); del.textContent = '✕'; }, 3000);
+      });
+      li.append(ren, del);
+    }
+    return li;
+  }));
+  if (st.player) highlightMarker(nowTime());
+}
+
+function startRename(li, m) {
+  const input = document.createElement('input');
+  input.className = 'edit';
+  input.maxLength = 100;
+  input.value = m.label;
+  let done = false;
+  const finish = ok => {
+    if (done) return;
+    done = true;
+    if (ok) renameMarker(m.ref, input.value); else renderMarkers();
+  };
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); finish(true); }
+    else if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+  });
+  input.addEventListener('blur', () => finish(false));
+  li.replaceChildren(input);
+  input.focus();
+  input.select();
+}
+
+// M: 頁面內輸入框 (不用 window.prompt, 避免擋住頁面).
+function openPrompt() {
+  if (!st.player) return;
+  const box = $('prompt'), input = $('prompt-input');
+  input.value = nextDefaultLabel();
+  box.hidden = false;
+  input.focus();
+  input.select();
+}
+function closePrompt(ok) {
+  const box = $('prompt');
+  if (box.hidden) return;
+  box.hidden = true;
+  if (ok) addMarker($('prompt-input').value);
+}
+$('prompt-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); closePrompt(true); }
+  else if (e.key === 'Escape') { e.preventDefault(); closePrompt(false); }
+});
+$('prompt').addEventListener('mousedown', e => { if (e.target === $('prompt')) closePrompt(false); });
+
+$('c-mark-name').addEventListener('focus', updateMarkPlaceholder);
+$('c-mark-name').addEventListener('blur', updateMarkPlaceholder);
+$('c-mark-name').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); addMarkerFromControls(); }
+  else if (e.key === 'Escape') { e.preventDefault(); e.currentTarget.value = ''; e.currentTarget.blur(); }
+});
+$('c-mark').addEventListener('click', e => { e.currentTarget.blur(); addMarkerFromControls(); });
+
+function stepSpeed(dir) {
+  const next = dir > 0
+    ? SPEEDS.find(s => s > st.speed) ?? SPEEDS[SPEEDS.length - 1]
+    : [...SPEEDS].reverse().find(s => s < st.speed) ?? SPEEDS[0];
+  setSpeed(next);
+}
+
+function stepFrames(n) {
+  if (!st.player || !st.frames.length) return;
+  if (st.playing) st.player.pause();
+  const cur = st.anchor ?? frameIndexAt(currentTime());
+  const idx = Math.min(Math.max(cur + n, 0), st.frames.length - 1);
+  st.anchor = idx;
+  st.player.seek(st.frames[idx] + EPS);
+}
+
+function seekTime(t) {
+  if (!st.player) return;
+  st.anchor = null;
+  st.player.seek(Math.min(Math.max(t, 0), st.duration));
+}
+
+function togglePlay() {
+  if (!st.player) return;
+  st.anchor = null;
+  if (st.playing) st.player.pause(); else st.player.play();
+}
+
+function markCurrent() {
+  for (const b of document.querySelectorAll('#list button')) b.classList.toggle('current', b.dataset.name === st.file);
+}
+
+async function loadList() {
+  const ul = $('list');
+  try {
+    const resp = await fetch('api/list', { cache: 'no-store' });
+    if (!resp.ok) throw new Error(`${resp.status} ${resp.statusText}`);
+    const items = await resp.json();
+    ul.replaceChildren(...items.map(it => {
+      const li = document.createElement('li');
+      const b = document.createElement('button');
+      b.dataset.name = it.name;
+      const name = document.createElement('span');
+      name.className = 'name';
+      name.textContent = it.name.replace(/\.cast$/, '');
+      const meta = document.createElement('span');
+      meta.className = 'meta';
+      meta.textContent = `${new Date(it.mtime * 1000).toLocaleString('zh-TW', { hour12: false })} · ${fmtSize(it.size)}`;
+      b.append(name, meta);
+      b.addEventListener('click', () => { b.blur(); openFile(it.name, 0, true); });
+      li.append(b);
+      return li;
+    }));
+    if (!items.length) ul.innerHTML = '<li style="padding:8px;color:var(--dim)">沒有錄影</li>';
+    markCurrent();
+  } catch (e) {
+    setMsg(`無法讀取清單: ${e.message}`, true);
+  }
+}
+
+function updateUrl(t) {
+  const q = new URLSearchParams();
+  if (st.file) q.set('file', st.file);
+  q.set('speed', st.speed);
+  if (st.idle !== 2) q.set('idle', st.idle);
+  if (st.file && t >= 1) q.set('t', Math.floor(t));
+  history.replaceState(null, '', `?${q}`);
+}
+
+function tick() {
+  $('idle').textContent = `idle ${st.idle}s`;
+  $('speed-text').textContent = `速度 ${st.speed}x`;
+  $('c-speed').textContent = `${st.speed}x`;
+  for (const b of document.querySelectorAll('#controls button, #controls input')) b.disabled = !st.player;
+  $('c-play').textContent = st.playing ? '⏸' : '▶';
+  if (!st.player) return;
+  const t = st.rebuild ? st.rebuild.t : currentTime();
+  const idx = st.anchor ?? frameIndexAt(t);
+  $('frame').textContent = `frame ${idx + 1} / ${st.frames.length}`;
+  $('time').textContent = `${fmtTime(t)} / ${fmtTime(st.duration)}`;
+  $('marker-count').textContent = `marker ${st.markers.length}`;
+  highlightMarker(t);
+  const sec = Math.floor(t);
+  if (sec !== st.lastUrlT) { st.lastUrlT = sec; updateUrl(t); }
+}
+
+const FRAME_KEYS = { ',': -1, '.': 1, '<': -10, '>': 10, '[': -50, ']': 50, '{': -200, '}': 200 };
+
+// capture 階段攔截, 避免與 player 內建快速鍵衝突.
+window.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.altKey || e.metaKey) return;
+  // 輸入 marker 名稱時 (新增框或側欄改名), 快速鍵全部暫停.
+  if (e.target instanceof HTMLInputElement || !$('prompt').hidden) return;
+  const k = e.key;
+  if (k === '?') { $('help').hidden = !$('help').hidden; }
+  else if (k === 'Escape') { $('help').hidden = true; }
+  else if (k === 'l') { $('side').classList.toggle('hidden'); }
+  else if (k === 'f') { document.fullscreenElement ? document.exitFullscreen() : document.querySelector('main').requestFullscreen(); }
+  else if (k === ' ') { togglePlay(); }
+  else if (k in FRAME_KEYS) { stepFrames(FRAME_KEYS[k]); }
+  else if (k === 'ArrowLeft') { seekTime(currentTime() - (e.shiftKey ? 30 : 5)); }
+  else if (k === 'ArrowRight') { seekTime(currentTime() + (e.shiftKey ? 30 : 5)); }
+  else if (k === '-' || k === '_') { stepSpeed(-1); }
+  else if (k === '=' || k === '+') { stepSpeed(1); }
+  else if (k === '0') { setSpeed(1); }
+  else if (k === 'Home') { seekTime(0); }
+  else if (k === 'End') { seekTime(st.duration); }
+  else if (k === 'm') { addMarker(nextDefaultLabel()); }
+  else if (k === 'M') { openPrompt(); }
+  else if (k === 'p' || k === 'PageUp') { prevMarker(); }
+  else if (k === 'n' || k === 'PageDown') { nextMarker(); }
+  else return;
+  e.preventDefault();
+  e.stopPropagation();
+}, true);
+
+// 控制列: 動作沿用快速鍵的函式, 點擊後 blur 避免 Space 再觸發該按鈕.
+const CONTROLS = {
+  'c-home': () => prevMarker(),
+  'c-back30': () => seekTime(currentTime() - 30),
+  'c-back5': () => seekTime(currentTime() - 5),
+  'c-play': () => togglePlay(),
+  'c-fwd5': () => seekTime(currentTime() + 5),
+  'c-fwd30': () => seekTime(currentTime() + 30),
+  'c-end': () => nextMarker(),
+  'c-slower': () => stepSpeed(-1),
+  'c-faster': () => stepSpeed(1),
+};
+for (const [id, fn] of Object.entries(CONTROLS)) {
+  $(id).addEventListener('click', e => { e.currentTarget.blur(); showHud(); fn(); });
+}
+
+// 時間軸 (player 內建控制列) 在滑鼠移動或按控制列按鈕後顯示 HUD_MS, 滑鼠移出影片不立即隱藏.
+const HUD_MS = 5000;
+let hudTimer;
+function showHud() {
+  $('player').classList.add('hud');
+  clearTimeout(hudTimer);
+  hudTimer = setTimeout(() => $('player').classList.remove('hud'), HUD_MS);
+}
+$('player').addEventListener('mousemove', showHud);
+$('refresh').addEventListener('click', e => { e.currentTarget.blur(); loadList(); });
+$('toggle-side').addEventListener('click', e => { e.currentTarget.blur(); $('side').classList.toggle('hidden'); });
+$('show-help').addEventListener('click', e => { e.currentTarget.blur(); $('help').hidden = false; });
+$('help').addEventListener('click', () => { $('help').hidden = true; });
+// 在 player 上點擊 (例如進度條) 會改變位置, frame 目標改回以實際時間計算.
+$('player').addEventListener('pointerdown', () => { st.anchor = null; });
+
+loadList();
+renderMarkers();
+updateMarkPlaceholder();
+setInterval(tick, 100);
+tick();
+if (params.get('file')) {
+  const t = parseFloat(params.get('t'));
+  openFile(params.get('file'), Number.isFinite(t) ? t : 0, true);
+}
+</script>
+</body>
+</html>

@@ -175,30 +175,7 @@ Windows 使用 `\\sshfs.kr\<host>` 以 key 認證掛載遠端 `/`. SSHFS-Win 使
 
 ## 錄影
 
-以 WezTerm 命令面板的 `錄製 Herdr tab` 錄製 WSL Herdr 的畫面 (見 [wezterm.md](wezterm.md#快速鍵設定)). 做法是另開 WezTerm tab, 以 asciinema 包住第二個 Herdr client; 主畫面可照常切到其他 tab, 不影響錄影. 只錄目前 WSL Herdr, WIN 的 pane 只在畫面上出現時一併錄到.
-
-- 錄影 client 從主畫面目前的 tab 開始, 不是目標時在錄影畫面自行切換. 開始後只在錄影 client 收起 sidebar, 主畫面不變.
-- 停止: 在錄影畫面按 `Ctrl+B, Q` detach. 錄影期間 `Ctrl+\` 會被 asciinema 攔截, 用於暫停/繼續錄影.
-- 存放: WSL `~/recordings/herdr/YYYYMMDD-HHMMSS[-名稱].cast` (目錄 700, 檔案 600), 不自動刪除. 只留本機, 不進 git, 不上傳 asciinema.org.
-- 重看: `asciinema play -s 4 -i 2 <檔案>`. 錄影保留原始時間; agent 工作時 spinner 持續更新, 閒置上限不一定有效, 主要靠加速.
-- 轉 GIF: `agg --text-font-family 'Noto Sans Mono CJK TC' --speed 4 --idle-time-limit 2 --select 1:00..2:30 <檔案> <輸出>.gif`, 只剪 1~2 分鐘片段. `--select` 的時間以加速後為準. 分享前人工檢視, 錄影可能含客戶名稱, IP 或 token.
-
-**已知限制** (Herdr 0.9.5 實測)
-
-- zoom 是 tab 共用狀態: 任一 client 或 CLI 在被錄的 tab 執行 zoom, 錄影畫面也會只剩被 zoom 的 pane.
-- CLI `herdr tab focus` / `--focus` 會帶走所有 client, 錄影 client 會跳到別的 tab; 鍵盤切換只影響自己的 client.
-- 兩個 client 看同一個 tab 時, pane 大小跟著最後操作的 client; 錄影 tab 開在同一個 WezTerm 視窗, 大小一致就不會裁切.
-- 不支援自動跟隨 workspace 新增的 tab.
-
-**安裝** (WSL)
-
-| 項目 | 來源 | 位置 |
-|---|---|---|
-| asciinema 3.2.1 | [GitHub release](https://github.com/asciinema/asciinema/releases/tag/v3.2.1) `asciinema-x86_64-unknown-linux-gnu` | `~/.local/bin/asciinema` |
-| agg 1.9.0 | [GitHub release](https://github.com/asciinema/agg/releases/tag/v1.9.0) `agg-x86_64-unknown-linux-gnu` | `~/.local/bin/agg` |
-| 錄影 helper | [herdr-rec.sh](src/herdr-rec.sh) (LF) | `~/.local/bin/herdr-rec` |
-
-下載後比對 release 頁面的 sha256 digest, 再以 `install -m 755` 放到 `~/.local/bin`. agg 的中文字型使用 Ubuntu 套件 `fonts-noto-cjk` 的 Noto Sans Mono CJK TC.
+以 WezTerm 命令面板的 `錄製 Herdr tab` 以 asciinema 錄製 WSL Herdr, `播放 Herdr 錄影` 以本機 HTML 播放頁重看 (可逐 frame 前後跳, 中途變速). 用法, 已知限制與安裝見 [recordings.md](recordings.md).
 
 ## 其他
 

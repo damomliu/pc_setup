@@ -1,2 +1,5 @@
 # WSL 直接執行的 script, checkout 時維持 LF
 wezterm/src/herdr-rec.sh text eol=lf
+wezterm/src/herdr-play.py text eol=lf
+# vendor 檔維持原始位元組, 方便比對 sha256
+wezterm/src/herdr-player/vendor/* -text
