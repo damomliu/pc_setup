@@ -4,11 +4,13 @@
 
 ## 錄影
 
-以 WezTerm 命令面板的 `錄製 Herdr tab` 錄製. 做法是另開 WezTerm tab, 以 asciinema 包住第二個 Herdr client; 主畫面可照常切到其他 tab, 不影響錄影. 只錄目前 WSL Herdr, WIN 的 pane 只在畫面上出現時一併錄到.
+以 WezTerm 命令面板的 `錄製 Herdr tab` 錄製. 選擇在目前視窗開新 tab 或另開視窗, 以 asciinema 包住第二個 Herdr client. 主畫面可照常切到其他 tab, 不影響錄影. 只錄目前 WSL Herdr, WIN 的 pane 只在畫面上出現時一併錄到.
 
 - 錄影 client 從主畫面目前的 tab 開始, 不是目標時在錄影畫面自行切換. 開始後只在錄影 client 收起 sidebar, 主畫面不變.
 - 停止: 在錄影畫面按 `Ctrl+B, Q` detach. 錄影期間 `Ctrl+\` 會被 asciinema 攔截, 用於暫停/繼續錄影.
-- 存放: WSL `~/recordings/herdr/YYYYMMDD-HHMMSS[-名稱].cast` (目錄 700, 檔案 600), 不自動刪除. 播放頁新增的 marker 存在旁掛的 `<同名>.markers.json` (600). 只留本機, 不進 git, 不上傳 asciinema.org.
+- 檔名輸入框預填當下本機時間 `YYYYMMDD-HHMMSS`, 可直接按 Enter 採用, 或編輯整段名稱. 清空後按 Enter 會使用當次預填值, Esc 取消. 存檔時會補上 `.cast`.
+- 重名時在錄影 pane 按 Enter 或輸入 `r` 改新錄影的檔名, 每次送出都會重新檢查. 輸入 `d` 刪除原錄影與其 marker 並沿用檔名. 取代時先暫存原檔, 新錄影成功後才刪除. 輸入 `q` 或按 Ctrl+C 可取消.
+- 存放: WSL `~/recordings/herdr/<檔名>.cast` (目錄 700, 檔案 600). 播放頁新增的 marker 存在旁掛的 `<同名>.markers.json` (600). 只留本機, 不進 git, 不上傳 asciinema.org.
 - 終端機重看: `asciinema play -s 4 -i 2 <檔案>`. 錄影保留原始時間; agent 工作時 spinner 持續更新, 閒置上限不一定有效, 主要靠加速. 要逐 frame 查看或中途變速改用下方播放頁.
 - 轉 GIF: `agg --text-font-family 'Noto Sans Mono CJK TC' --speed 4 --idle-time-limit 2 --select 1:00..2:30 <檔案> <輸出>.gif`, 只剪 1~2 分鐘片段. `--select` 的時間以加速後為準. 分享前人工檢視, 錄影可能含客戶名稱, IP 或 token.
 
@@ -77,10 +79,11 @@
 
 asciinema 與 agg 下載後比對 release 頁面的 sha256 digest, 再以 `install -m 755` 放到 `~/.local/bin`. agg 的中文字型使用 Ubuntu 套件 `fonts-noto-cjk` 的 Noto Sans Mono CJK TC.
 
-播放 server 與播放頁從 repo 安裝 (更新 repo 後重跑):
+錄影 helper、播放 server 與播放頁從 repo 安裝 (更新 repo 後重跑):
 
 ```bash
 src=/mnt/c/Users/user/Documents/pc_setup/wezterm/src
+install -m 755 "$src/herdr-rec.sh" ~/.local/bin/herdr-rec
 install -m 755 "$src/herdr-play.py" ~/.local/bin/herdr-play
 mkdir -p ~/.local/share/herdr-player && cp -r "$src/herdr-player/." ~/.local/share/herdr-player/
 ```

@@ -1529,17 +1529,21 @@ end)
 local open_herdr_goto_blocked = act.SendString '\x02gb'
 local open_herdr_goto_done = act.SendString '\x02gd'
 
--- 另開 tab 以 asciinema 錄製第二個 WSL Herdr client; 就緒後只在錄影 client 收起 sidebar.
-local function spawn_herdr_rec(window, line)
+-- 以 asciinema 錄製第二個 WSL Herdr client; 就緒後只在錄影 client 收起 sidebar.
+local function spawn_herdr_rec(window, line, separate_window)
   local ok, tab, rec_pane = pcall(function()
-    return window:mux_window():spawn_tab {
+    local options = {
       cwd = wezterm.home_dir,
       args = {
         (os.getenv('SystemRoot') or 'C:\\Windows') .. '\\System32\\wsl.exe',
         '--distribution', 'Ubuntu-24.04', '--cd', '~', '--exec', '/bin/bash', '-lc',
-        'exec "$HOME/.local/bin/herdr-rec" "$1"', 'herdr-rec', line,
+        'exec "$HOME/.local/bin/herdr-rec" --interactive-file "$1"', 'herdr-rec', line,
       },
     }
+    if separate_window then
+      return mux.spawn_window(options)
+    end
+    return window:mux_window():spawn_tab(options)
   end)
   if not ok then
     notify_spawn_error(window, tab)
@@ -1547,17 +1551,23 @@ local function spawn_herdr_rec(window, line)
   end
   tab:activate()
 
+  local pane_id = rec_pane:pane_id()
   local tries = 0
   local function hide_sidebar()
-    tries = tries + 1
-    local alive, ready = pcall(function() return rec_pane:is_alt_screen_active() end)
-    if not alive then
+    if not mux.get_pane(pane_id) then
       return
     end
-    if ready then
+    if rec_pane:get_user_vars().PC_SETUP_HERDR_REC_READY ~= '1' then
+      wezterm.time.call_after(0.5, hide_sidebar)
+      return
+    end
+    tries = tries + 1
+    if rec_pane:is_alt_screen_active() then
       -- 剛進入 TUI 時可能還沒開始讀 input, 稍等再送 Ctrl+B, B.
       wezterm.time.call_after(0.8, function()
-        pcall(function() rec_pane:send_text('\x02b') end)
+        if mux.get_pane(pane_id) and rec_pane:is_alt_screen_active() then
+          pcall(function() rec_pane:send_text('\x02b') end)
+        end
       end)
     elseif tries < 100 then
       wezterm.time.call_after(0.1, hide_sidebar)
@@ -1566,15 +1576,35 @@ local function spawn_herdr_rec(window, line)
   hide_sidebar()
 end
 
-local open_herdr_rec = act.PromptInputLine {
-  description = '錄製 Herdr tab: 錄影畫面從主畫面目前的 tab 開始, 若不是目標 tab, 請在錄影畫面自行切過去.\n'
-    .. '輸入錄影名稱 (可留空), Enter 開始, Esc 取消; 錄影中按 Ctrl+B, Q 停止.',
-  action = wezterm.action_callback(function(window, _, line)
-    if line then
-      spawn_herdr_rec(window, line)
-    end
-  end),
-}
+local function prompt_herdr_rec_name(window, pane, separate_window)
+  local default_name = os.date('%Y%m%d-%H%M%S')
+  window:perform_action(act.PromptInputLine {
+    description = '錄製 Herdr tab: 錄影畫面從主畫面目前的 tab 開始, 若不是目標 tab, 請在錄影畫面自行切過去.\n'
+      .. 'Enter 開始, Esc 取消; 錄影中按 Ctrl+B, Q 停止\n'
+      .. '請輸入錄影檔名:',
+    initial_value = default_name,
+    action = wezterm.action_callback(function(rec_window, _, line)
+      if line then
+        spawn_herdr_rec(rec_window, line == '' and default_name or line, separate_window)
+      end
+    end),
+  }, pane)
+end
+
+local open_herdr_rec = wezterm.action_callback(function(window, pane)
+  window:perform_action(act.InputSelector {
+    title = '選擇 Herdr 錄影視窗',
+    choices = {
+      { id = 'tab', label = '在目前 WezTerm 視窗開新 tab' },
+      { id = 'window', label = '另開 WezTerm 視窗' },
+    },
+    action = wezterm.action_callback(function(rec_window, rec_pane, id)
+      if id then
+        prompt_herdr_rec_name(rec_window, rec_pane, id == 'window')
+      end
+    end),
+  }, pane)
+end)
 
 -- 另開 tab 執行 herdr-play (本機 server), 並以瀏覽器開啟錄影播放頁; 關閉 tab 即停止 server.
 local open_herdr_play = wezterm.action_callback(function(window)
@@ -1623,7 +1653,7 @@ wezterm.on('augment-command-palette', function()
     },
     {
       brief = '錄製 Herdr tab',
-      doc = '另開 tab 以 asciinema 錄製第二個 WSL Herdr client, 存至 ~/recordings/herdr',
+      doc = '在目前視窗開新 tab 或另開視窗錄製 WSL Herdr, 存至 ~/recordings/herdr',
       icon = 'md_record_rec',
       action = open_herdr_rec,
     },
