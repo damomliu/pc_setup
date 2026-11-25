@@ -50,7 +50,7 @@
 - `Prefix, I` -- 顯示目前 tab ID
 - `Prefix, M` -- 依目前 workspace 的 tab 順序選擇目的地, 將 pane 移至該 tab 右側並聚焦. 初始反白停在 `(current)` 下一列, 若目前是最後一個 tab 就停在 `N. 新增 tab`. 確認 `(current)` 會留在選單. 按 N 可直接新增 tab 並移入 pane.
 - `Prefix, Shift+M` -- 選擇 workspace, 將目前 pane 移至該 workspace 的 active tab 右側並聚焦該 pane. 選單依 workspace 順序顯示, linked worktree 列在同 repo 的主 workspace 下方並加上 `>`. 初始反白停在 `(current)`, 確認該列會留在選單.
-- `Prefix, U` -- popup 顯示 Claude/Codex usage (5h/Wk 剩餘與重置時間), 任一鍵關閉; 需要 [quota-cli](#quota-cli)
+- `Prefix, U` -- popup 以彩色進度條顯示 Claude/Codex usage (5h/Wk), `U` 切換剩餘/已使用, `T` 切換相對/重置時間, `R` 重新查詢, `Space`/`Esc`/`Enter` 關閉; 需要 [quota-cli](#quota-cli)
 - `Prefix, Y` -- 右側 split 開 Yazi, 瀏覽目前 pane 的本機或 SSH 遠端目錄; 見 [Yazi / SSHFS](#yazi--sshfs)
 - `Prefix, Shift+S` -- 列出 sshfs 掛載點, 選擇後卸載
 - `Prefix, S` 維持 Herdr 預設的 Settings
@@ -126,7 +126,7 @@ WSL 使用 [herdr-list-ids.py](src/herdr-list-ids.py), 複製至 `~/.config/herd
 - iTerm2 直接執行 profile 的 Command 時不經過 shell，herdr server 的 PATH 只有 `/usr/bin:/bin:/usr/sbin:/sbin`，File Viewer 會回報三個 renderer 都 not found。因此 profile 的 Command 為 `/bin/zsh -lic 'exec /Users/yuenlungliu/.local/bin/herdr'`，由 login + interactive zsh 讀入 `~/.zprofile`（Homebrew）與 `~/.zshrc`（`~/.local/bin`）。
 - 修改 Command 後需重啟 herdr server 才會用新的 PATH：在非 herdr 的終端機執行 `herdr server stop`（會關閉所有 pane 與 agent），再開新的 `Herdr` profile 視窗；以 `ps eww -p $(pgrep -f "herdr server") | tr ' ' '\n' | grep ^PATH=` 確認含 `/opt/homebrew/bin`。
 - File Viewer 使用共用設定，將 `editor = "vi"` 合併到 `~/.config/herdr/plugins/config/herdr-file-viewer/config.toml`，按 `e` 可用 `vi` 開啟檔案。若 File Viewer 回報 renderer not found，先檢查 server 的 PATH。[File Viewer 設定](config/herdr-file-viewer.toml)
-- `Prefix, U` 開啟 Claude／Codex 用量 popup。合併 macOS 設定中的 `prefix+u`，並在本機安裝 `quota-cli`。[安裝方式](#quota-cli)
+- `Prefix, U` 開啟 Claude／Codex 用量 popup。將 [herdr-usage.py](src/herdr-usage.py) 複製到 `~/.config/herdr/`，合併 macOS 設定中的 `prefix+u`，並在本機安裝 `quota-cli`。[安裝方式](#quota-cli)
 
 ## Plugins
 
@@ -183,11 +183,19 @@ Windows 使用 `\\sshfs.kr\<host>` 以 key 認證掛載遠端 `/`. SSHFS-Win 使
 
 ### quota-cli
 
-- 用量 popup 固定 12 行高 (含外框), 避免原本 15% 高度在一般視窗只有約 4 行內容, 導致標題被用量換行捲出畫面. Windows 以 Console 直接輸出結果, 避免 PowerShell 自動格式化改變排版.
+- `Prefix, U` 由 [herdr-usage.py](src/herdr-usage.py) 執行 `quota-cli usage --json`, 以四條彩色進度條顯示 Claude/Codex 的 5h 與 Wk 額度. 三個平台共用同一支 Python 3 script (Windows 也用 Python, 不另寫 ps1), 並以 [test_herdr_usage.py](src/test_herdr_usage.py) 測試.
 
-- 用量先查詢並暫存, 完成後清畫面, 再一起顯示粗體亮青色的「Agent 用量」、空白行與結果, 避免查詢期間覆蓋標題. 無結果或查詢失敗時同樣保留標題並顯示 `quota-cli failed`.
+| 平台 | 部署位置 | `prefix+u` command |
+|---|---|---|
+| Windows | `%APPDATA%\herdr\herdr-usage.py` (需要 `python` 在 PATH) | `python "%APPDATA%\herdr\herdr-usage.py"` |
+| WSL | `~/.config/herdr/herdr-usage.py` (LF) | `python3 "$HOME/.config/herdr/herdr-usage.py"` |
+| macOS | `~/.config/herdr/herdr-usage.py` | `/usr/bin/python3 "$HOME/.config/herdr/herdr-usage.py"` |
 
-- 不安裝完整Quota (`pinkpixel-dev/quota/herdr-plugin`), 僅保留 `quota-cli`, 由 `Prefix, U` popup 執行 `quota-cli usage` 並只顯示 claude/codex 兩行 (repo 的 `prefix+u` command 可直接合併至 Windows config; WSL 改用註解中的 bash command)
+- 版面: popup 寬度足夠時 Claude 在左, Codex 在右; 內容寬度不足時改為上下排列. popup 固定 12 行高 (含外框), 上下排列時剛好填滿. Bar 寬度隨 popup 欄寬伸縮 (10~40 格), 以 1/8 格精細度顯示.
+- 配色取自 `one-dark`: 依剩餘比例 >= 50% 綠 `#98C379`, 20~49% 黃 `#E5C07B`, < 20% 紅 `#E06C75`, 百分比數字同色; 已使用模式仍依剩餘比例上色. 品牌字樣以粗體加底色顯示: Claude 白字橘底 `#D97757`, Codex 深字藍底 `#61AFEF`. 未填滿格、方案名稱與時間為暗灰 `#5C6370`. 使用 truecolor ANSI.
+- 按鍵: `U` 切換剩餘/已使用, `T` 切換相對時間 (`4h42m`, `5d 0h`) 與重置時間 (`今天 18:44`, `明天 04:20`, `週一 09:30`, 7 天以上為 `12/02 09:30`), `R` 重新查詢, `Space`/`Esc`/`Enter` 關閉, 其他鍵忽略. 切換狀態存於 Windows `%LOCALAPPDATA%\herdr\usage-view.json`, WSL/macOS `~/.cache/herdr/usage-view.json`, 下次開啟沿用.
+- 標題列左側為粗體亮青色「Agent 用量」, 右側顯示目前模式與「更新 HH:MM」, 查詢期間顯示「查詢中…」. 單一 agent 無資料時該 agent 顯示灰色 `N/A`; quota-cli 完全失敗時顯示 `quota-cli failed`.
+- 不安裝完整Quota (`pinkpixel-dev/quota/herdr-plugin`), 僅保留 `quota-cli`; 可用環境變數 `QUOTA_CLI` 指定執行檔路徑.
 
 - macOS 用 `brew install rust` 安裝工具鏈，再執行 `cargo install quota-cli --version 0.4.0 --locked --root "$HOME/.cargo"`。popup 直接執行 `~/.cargo/bin/quota-cli`，沿用本機 Claude Code 與 Codex 的登入狀態。若 macOS 詢問是否允許存取 Claude Code 的 Keychain 項目，依系統提示選擇。[quota-cli 文件](https://github.com/pinkpixel-dev/quota/tree/main/quota-cli)
 

@@ -56,15 +56,7 @@ height = "35%"
 [[keys.command]]
 key = "prefix+u"
 type = "popup"
-command = '''/bin/bash -c '
-if output=$("$HOME/.cargo/bin/quota-cli" usage 2>/dev/null); then
-    output=$(printf "%s\n" "$output" | /usr/bin/grep -E "^(claude|codex)[[:space:]]")
-else
-    output=
-fi
-printf "\033[H\033[2J\033[1;96mAgent 用量\033[0m\n\n%s\n\n" "${output:-quota-cli failed}"
-read -rsn1 -p "press any key to close"
-' '''
+command = '/usr/bin/python3 "$HOME/.config/herdr/herdr-usage.py"'
 description = "show Claude/Codex usage"
 width = "60%"
 height = 12
