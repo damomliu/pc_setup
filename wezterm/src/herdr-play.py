@@ -12,6 +12,7 @@ import tempfile
 import shutil
 import subprocess
 import sys
+import threading
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -28,6 +29,7 @@ MARKERS_MAX_BODY = 256 * 1024
 MARKERS_MAX_COUNT = 1000
 LABEL_MAX = 100
 NEXT_MAX = 100000
+RECORDINGS_LOCK = threading.Lock()
 
 
 def safe_child(base, name, suffixes):
@@ -45,6 +47,43 @@ def safe_child(base, name, suffixes):
 def markers_path(cast):
     """錄影旁掛的 marker 檔: <名稱>.markers.json."""
     return cast.with_suffix('.markers.json')
+
+
+def rename_recording(files, targets):
+    """用 hard link 保留原檔, 並確保目標存在時不覆蓋."""
+    linked = []
+    removed = []
+    try:
+        for source, target in zip(files, targets):
+            os.link(source, target)
+            linked.append(target)
+        for source, target in zip(files, targets):
+            source.unlink()
+            removed.append((source, target))
+    except OSError:
+        for source, target in removed:
+            os.link(target, source)
+        for target in linked:
+            target.unlink()
+        raise
+
+
+def delete_recording(files):
+    stage = Path(tempfile.mkdtemp(dir=REC_DIR, prefix='.delete-'))
+    moved = []
+    try:
+        for source in files:
+            target = stage / source.name
+            source.rename(target)
+            moved.append((source, target))
+    except OSError:
+        for source, target in reversed(moved):
+            target.rename(source)
+        stage.rmdir()
+        raise
+    for _, target in moved:
+        target.unlink()
+    stage.rmdir()
 
 
 def validate_markers(data):
@@ -110,13 +149,17 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def send_file(self, path, ctype):
-        self.send_response(200)
-        self.send_header('Content-Type', ctype)
-        self.send_header('Content-Length', str(path.stat().st_size))
-        self.send_header('Cache-Control', 'no-store')
-        self.send_header(MARK_HEADER, '1')
-        self.end_headers()
-        with path.open('rb') as f:
+        try:
+            f = path.open('rb')
+        except FileNotFoundError:
+            return self.fail(404, 'not found')
+        with f:
+            self.send_response(200)
+            self.send_header('Content-Type', ctype)
+            self.send_header('Content-Length', str(os.fstat(f.fileno()).st_size))
+            self.send_header('Cache-Control', 'no-store')
+            self.send_header(MARK_HEADER, '1')
+            self.end_headers()
             shutil.copyfileobj(f, self.wfile)
 
     def fail(self, status, msg):
@@ -141,10 +184,8 @@ class Handler(BaseHTTPRequestHandler):
         if ctype != 'application/json':
             return self.fail(415, 'expect application/json')
         path = urllib.parse.urlsplit(self.path).path
-        if not path.startswith('/api/markers/'):
-            return self.fail(404, 'not found')
-        cast = self.marker_cast(path)
-        if not cast:
+        prefix = next((p for p in ('/api/markers/', '/api/recordings/') if path.startswith(p)), None)
+        if prefix is None:
             return self.fail(404, 'not found')
         try:
             length = int(self.headers.get('Content-Length') or '-1')
@@ -153,13 +194,58 @@ class Handler(BaseHTTPRequestHandler):
         if length < 0 or length > MARKERS_MAX_BODY:
             return self.fail(413 if length > MARKERS_MAX_BODY else 411, 'bad length')
         try:
-            payload = validate_payload(json.loads(self.rfile.read(length)))
-        except (ValueError, UnicodeDecodeError):
-            payload = None
+            payload = json.loads(self.rfile.read(length))
+        except ValueError:
+            return self.fail(400, 'invalid JSON')
+        with RECORDINGS_LOCK:
+            if prefix == '/api/recordings/':
+                return self.change_recording(urllib.parse.unquote(path[len(prefix):]), payload)
+            return self.save_markers(path, payload)
+
+    def save_markers(self, path, payload):
+        cast = self.marker_cast(path)
+        if not cast:
+            return self.fail(404, 'not found')
+        payload = validate_payload(payload)
         if payload is None:
             return self.fail(400, 'invalid markers')
         write_private(markers_path(cast), json.dumps(payload, ensure_ascii=False, indent=1) + '\n')
         body = json.dumps(payload, ensure_ascii=False).encode()
+        return self.send_body(200, body, 'application/json; charset=utf-8')
+
+    def change_recording(self, name, payload):
+        cast = safe_child(REC_DIR, name, {'.cast'})
+        if not cast or cast.is_symlink():
+            return self.fail(404, '找不到錄影')
+        sidecar = markers_path(cast)
+        if sidecar.is_symlink() or (sidecar.exists() and not sidecar.is_file()):
+            return self.fail(409, 'marker 檔案無法移動或刪除')
+        files = [cast, sidecar] if sidecar.is_file() else [cast]
+        if not isinstance(payload, dict):
+            return self.fail(400, '無效的錄影操作')
+        try:
+            if payload == {'action': 'delete'}:
+                delete_recording(files)
+                return self.send_body(204, b'', 'text/plain')
+            stem = payload.get('stem')
+            if set(payload) != {'action', 'stem'} or payload['action'] != 'rename' or not isinstance(stem, str):
+                return self.fail(400, '無效的錄影操作')
+            stem = stem.strip()
+            if not stem or stem.startswith('.') or re.search(r'[\x00-\x1f\x7f/\\:*?"<>|\ud800-\udfff]', stem):
+                return self.fail(400, '錄影名稱空白或含有不允許的字元')
+            target = cast.with_name(stem + '.cast')
+            target_sidecar = markers_path(target)
+            if len(os.fsencode(target_sidecar.name)) > 255:
+                return self.fail(400, '錄影名稱過長')
+            if target != cast:
+                if target_sidecar.exists() or target_sidecar.is_symlink():
+                    raise FileExistsError(target_sidecar)
+                rename_recording(files, [target, target_sidecar])
+        except FileExistsError:
+            return self.fail(409, '錄影名稱或 marker 檔案已存在')
+        except OSError as e:
+            return self.fail(500, f'檔案操作未完成 ({e.strerror or e})')
+        body = json.dumps({'name': target.name}, ensure_ascii=False).encode()
         return self.send_body(200, body, 'application/json; charset=utf-8')
 
     def do_GET(self):
@@ -168,12 +254,13 @@ class Handler(BaseHTTPRequestHandler):
             return self.fail(403, 'forbidden host')
         path = urllib.parse.urlsplit(self.path).path
         if path.startswith('/api/markers/'):
-            cast = self.marker_cast(path)
-            if not cast:
-                return self.fail(404, 'not found')
-            mp = markers_path(cast)
-            # 舊格式為純陣列, 由頁面相容處理; 沒有旁掛檔時 next 為 null (頁面自行起算).
-            body = mp.read_bytes() if mp.is_file() else b'{"next": null, "markers": []}'
+            with RECORDINGS_LOCK:
+                cast = self.marker_cast(path)
+                if not cast:
+                    return self.fail(404, 'not found')
+                mp = markers_path(cast)
+                # 舊格式為純陣列, 由頁面相容處理; 沒有旁掛檔時 next 為 null (頁面自行起算).
+                body = mp.read_bytes() if mp.is_file() else b'{"next": null, "markers": []}'
             return self.send_body(200, body, 'application/json; charset=utf-8')
         if path == '/':
             index = STATIC_DIR / 'index.html'
@@ -189,11 +276,15 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_file(file, f'{ctype}; charset=utf-8')
         if path == '/api/list':
             items = []
-            if REC_DIR.is_dir():
+            with RECORDINGS_LOCK:
                 for f in REC_DIR.glob('*.cast'):
-                    if f.is_file():
+                    if not f.is_file():
+                        continue
+                    try:
                         st = f.stat()
-                        items.append({'name': f.name, 'size': st.st_size, 'mtime': st.st_mtime})
+                    except FileNotFoundError:
+                        continue
+                    items.append({'name': f.name, 'size': st.st_size, 'mtime': st.st_mtime})
             items.sort(key=lambda x: x['mtime'], reverse=True)
             body = json.dumps(items, ensure_ascii=False).encode()
             return self.send_body(200, body, 'application/json; charset=utf-8')

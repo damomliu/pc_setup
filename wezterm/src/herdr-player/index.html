@@ -13,19 +13,25 @@
   * { box-sizing: border-box; }
   html, body { height: 100%; margin: 0; }
   body { display: flex; background: var(--bg); color: var(--fg); font: 13px/1.4 system-ui, 'Microsoft JhengHei', sans-serif; }
-  aside { width: 260px; flex: none; display: flex; flex-direction: column; background: var(--panel); border-right: 1px solid var(--line); }
+  aside { position: relative; width: 260px; flex: none; display: flex; flex-direction: column; padding-right: 7px; background: var(--panel); border-right: 1px solid var(--line); }
   aside header { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-bottom: 1px solid var(--line); font-weight: 600; }
   aside ul { list-style: none; margin: 0; padding: 4px; overflow-y: auto; flex: 1; min-height: 0; }
   aside header.sub { border-top: 1px solid var(--line); }
-  #markers li { display: flex; align-items: center; gap: 2px; }
+  #list-tools { display: flex; gap: 6px; padding: 6px 8px; }
+  #list-order { flex: none; white-space: nowrap; }
+  #side-resize { position: absolute; inset: 0 0 0 auto; width: 7px; cursor: col-resize; touch-action: none; }
+  #side-resize:hover, #side-resize:focus-visible, .side-resizing #side-resize { background: var(--accent); }
+  body.side-resizing { cursor: col-resize; user-select: none; }
+  #list li, #markers li { display: flex; align-items: center; gap: 2px; }
+  #list .open { flex: 1; min-width: 0; }
   #markers li .jump { flex: 1; min-width: 0; display: flex; gap: 8px; }
   #markers li.current .jump { background: #45475a; outline: 1px solid var(--accent); }
   #markers .time { flex: none; font-family: var(--mono); color: var(--dim); }
   #markers .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  #markers li button.act { width: auto; flex: none; padding: 4px 6px; color: var(--dim); }
-  #markers li button.act.armed { color: #f38ba8; }
+  aside li button.act { width: auto; flex: none; padding: 4px 6px; color: var(--dim); }
+  aside li button.act.armed { color: #f38ba8; }
   #markers .src { flex: none; padding: 0 6px; color: var(--dim); font-size: 11px; }
-  #markers .empty { padding: 8px; color: var(--dim); }
+  aside li.empty { padding: 8px; color: var(--dim); }
   input.edit { flex: 1; min-width: 0; font: inherit; background: var(--bg); color: var(--fg); border: 1px solid var(--accent); border-radius: 4px; padding: 4px 6px; }
   aside li button { width: 100%; text-align: left; padding: 6px 8px; border: 0; border-radius: 4px; background: none; color: var(--fg); cursor: pointer; font: inherit; }
   aside li button:hover { background: var(--line); }
@@ -76,9 +82,14 @@
 <body>
 <aside id="side">
   <header><span>~/recordings/herdr</span><button class="small" id="refresh" title="重新整理清單">↻</button></header>
+  <div id="list-tools">
+    <input class="edit" type="search" id="list-filter" aria-label="篩選錄影檔名" placeholder="篩選檔名" autocomplete="off">
+    <button type="button" class="small" id="list-order" title="切換修改時間排序" aria-label="依修改時間排序，目前舊到新">舊→新</button>
+  </div>
   <ul id="list"></ul>
   <header class="sub"><span id="markers-head">Markers</span></header>
   <ul id="markers"></ul>
+  <div id="side-resize" role="separator" aria-orientation="vertical" aria-controls="side" aria-label="調整側邊欄寬度" tabindex="0"></div>
 </aside>
 <main>
   <div id="stage"><div id="empty">從左側選擇錄影</div><div id="player" hidden></div></div>
@@ -160,6 +171,7 @@ const st = {
   speed: posNum(params.get('speed'), 4),
   idle: posNum(params.get('idle'), 2),
   player: null, playing: false, gen: 0,
+  opening: false, savingMarkers: false, changingRecording: false,
   // 連按 frame 鍵時 seek 尚未完成, 以此記住目標 frame, 其他操作會清掉.
   anchor: null, lastUrlT: null,
   // createPlayer 進行中的目標 {t, play}.
@@ -295,6 +307,8 @@ async function createPlayer(startAt, autoPlay) {
 }
 
 async function openFile(name, startAt, autoPlay) {
+  if (recordingBusy()) return;
+  st.opening = true;
   setMsg(`載入 ${name} ...`);
   try {
     const resp = await fetch(`cast/${encodeURIComponent(name)}`, { cache: 'no-store' });
@@ -324,6 +338,8 @@ async function openFile(name, startAt, autoPlay) {
     if (!$('msg').classList.contains('err')) setMsg('');
   } catch (e) {
     setMsg(`無法開啟 ${name}: ${e.message}`, true);
+  } finally {
+    st.opening = false;
   }
 }
 
@@ -387,10 +403,13 @@ function addMarkerFromControls() {
 
 // 儲存 user marker 與下一個預設編號, 並重建 player 更新時間軸刻度; 失敗時還原.
 async function commitMarkers(next, okMsg, nextIndex = st.nextIndex) {
+  if (recordingBusy()) { renderMarkers(); return false; }
+  st.savingMarkers = true;
   const prev = st.userMarkers, prevIndex = st.nextIndex;
   st.userMarkers = next;
   st.nextIndex = nextIndex;
   refreshMarkers();
+  let saved = false;
   try {
     const resp = await fetch(`api/markers/${encodeURIComponent(st.file)}`, {
       method: 'POST',
@@ -398,17 +417,22 @@ async function commitMarkers(next, okMsg, nextIndex = st.nextIndex) {
       body: JSON.stringify({ next: nextIndex, markers: next.map(m => ({ t: m.orig, label: m.label })) }),
     });
     if (!resp.ok) throw new Error(`${resp.status} ${(await resp.text()).trim() || resp.statusText}`);
+    saved = true;
+    setMsg(okMsg);
+    await rebuildPlayer();
+    showHud();
+    return true;
   } catch (e) {
-    st.userMarkers = prev;
-    st.nextIndex = prevIndex;
-    refreshMarkers();
-    setMsg(`marker 儲存失敗: ${e.message}`, true);
+    if (!saved) {
+      st.userMarkers = prev;
+      st.nextIndex = prevIndex;
+      refreshMarkers();
+    }
+    setMsg(`${saved ? '無法更新播放器' : 'marker 儲存失敗'}: ${e.message}`, true);
     return false;
+  } finally {
+    st.savingMarkers = false;
   }
-  setMsg(okMsg);
-  await rebuildPlayer();
-  showHud();
-  return true;
 }
 
 function addMarker(label) {
@@ -500,18 +524,7 @@ function renderMarkers() {
       ren.textContent = '✎';
       ren.title = '重新命名';
       ren.addEventListener('click', () => startRename(li, m));
-      const del = document.createElement('button');
-      del.className = 'act delete';
-      del.textContent = '✕';
-      del.title = '刪除 (再按一次確定)';
-      del.addEventListener('click', () => {
-        del.blur();
-        // 不用 window.confirm (會擋住頁面): 3 秒內再按一次才刪除.
-        if (del.classList.contains('armed')) { deleteMarker(m.ref); return; }
-        del.classList.add('armed');
-        del.textContent = '確定?';
-        setTimeout(() => { del.classList.remove('armed'); del.textContent = '✕'; }, 3000);
-      });
+      const del = deleteButton('刪除', '確定?', () => deleteMarker(m.ref));
       li.append(ren, del);
     }
     return li;
@@ -520,17 +533,39 @@ function renderMarkers() {
 }
 
 function startRename(li, m) {
+  editName(li, m.label, 'marker 名稱', renderMarkers, value => renameMarker(m.ref, value), 100);
+}
+
+function deleteButton(label, confirmation, action) {
+  const button = document.createElement('button');
+  button.className = 'act delete';
+  button.textContent = '✕';
+  button.title = `${label} (3 秒內再按一次確定)`;
+  button.addEventListener('click', () => {
+    button.blur();
+    if (button.classList.contains('armed')) { action(); return; }
+    button.classList.add('armed');
+    button.textContent = confirmation;
+    setTimeout(() => { button.classList.remove('armed'); button.textContent = '✕'; }, 3000);
+  });
+  return button;
+}
+
+function editName(li, value, label, cancel, save, maxLength) {
   const input = document.createElement('input');
   input.className = 'edit';
-  input.maxLength = 100;
-  input.value = m.label;
+  input.setAttribute('aria-label', label);
+  input.title = `${label} (Enter 儲存, Esc 取消)`;
+  if (maxLength) input.maxLength = maxLength;
+  input.value = value;
   let done = false;
   const finish = ok => {
     if (done) return;
     done = true;
-    if (ok) renameMarker(m.ref, input.value); else renderMarkers();
+    if (ok) save(input.value); else if (input.isConnected) cancel();
   };
   input.addEventListener('keydown', e => {
+    if (e.isComposing || e.keyCode === 229) return;
     if (e.key === 'Enter') { e.preventDefault(); finish(true); }
     else if (e.key === 'Escape') { e.preventDefault(); finish(false); }
   });
@@ -598,35 +633,132 @@ function togglePlay() {
 }
 
 function markCurrent() {
-  for (const b of document.querySelectorAll('#list button')) b.classList.toggle('current', b.dataset.name === st.file);
+  for (const b of document.querySelectorAll('#list .open')) b.classList.toggle('current', b.dataset.name === st.file);
+}
+
+const recordingBusy = () => st.opening || st.savingMarkers || st.changingRecording;
+let recordings = [];
+let listRequest = 0;
+let oldestFirst = true;
+
+function renderList() {
+  const ul = $('list');
+  const query = $('list-filter').value.trim().toLowerCase();
+  const direction = oldestFirst ? 1 : -1;
+  const items = recordings.filter(it => it.name.slice(0, -5).toLowerCase().includes(query));
+  items.sort((a, b) => direction * (a.mtime - b.mtime) || a.name.localeCompare(b.name));
+  if (!items.length) {
+    const li = document.createElement('li');
+    li.className = 'empty';
+    li.textContent = recordings.length ? '沒有符合的錄影' : '沒有錄影';
+    ul.replaceChildren(li);
+    return;
+  }
+  ul.replaceChildren(...items.map(it => {
+    const li = document.createElement('li');
+    const b = document.createElement('button');
+    b.className = 'open';
+    b.dataset.name = it.name;
+    const name = document.createElement('span');
+    name.className = 'name';
+    name.textContent = it.name.slice(0, -5);
+    const meta = document.createElement('span');
+    meta.className = 'meta';
+    meta.textContent = `${new Date(it.mtime * 1000).toLocaleString('zh-TW', { hour12: false })} · ${fmtSize(it.size)}`;
+    b.append(name, meta);
+    b.addEventListener('click', () => { b.blur(); openFile(it.name, 0, true); });
+    const ren = document.createElement('button');
+    ren.className = 'act rename';
+    ren.textContent = '✎';
+    ren.title = '更名錄影';
+    ren.addEventListener('click', () => {
+      if (recordingBusy()) return;
+      const restore = () => li.replaceChildren(b, ren, del);
+      editName(li, name.textContent, '錄影名稱 (.cast)', restore, stem => {
+        restore();
+        changeRecording(it.name, { action: 'rename', stem });
+      });
+    });
+    const del = deleteButton('永久刪除錄影及 marker', '永久刪除?', () => changeRecording(it.name, { action: 'delete' }));
+    li.append(b, ren, del);
+    return li;
+  }));
+  markCurrent();
 }
 
 async function loadList() {
-  const ul = $('list');
+  const request = ++listRequest;
   try {
     const resp = await fetch('api/list', { cache: 'no-store' });
     if (!resp.ok) throw new Error(`${resp.status} ${resp.statusText}`);
     const items = await resp.json();
-    ul.replaceChildren(...items.map(it => {
-      const li = document.createElement('li');
-      const b = document.createElement('button');
-      b.dataset.name = it.name;
-      const name = document.createElement('span');
-      name.className = 'name';
-      name.textContent = it.name.replace(/\.cast$/, '');
-      const meta = document.createElement('span');
-      meta.className = 'meta';
-      meta.textContent = `${new Date(it.mtime * 1000).toLocaleString('zh-TW', { hour12: false })} · ${fmtSize(it.size)}`;
-      b.append(name, meta);
-      b.addEventListener('click', () => { b.blur(); openFile(it.name, 0, true); });
-      li.append(b);
-      return li;
-    }));
-    if (!items.length) ul.innerHTML = '<li style="padding:8px;color:var(--dim)">沒有錄影</li>';
-    markCurrent();
+    if (request !== listRequest) return false;
+    recordings = items;
+    renderList();
+    return true;
   } catch (e) {
-    setMsg(`無法讀取清單: ${e.message}`, true);
+    if (request === listRequest) setMsg(`無法讀取清單: ${e.message}`, true);
+    return false;
   }
+}
+
+async function changeRecording(name, payload) {
+  if (recordingBusy()) return;
+  st.changingRecording = true;
+  const deleting = payload.action === 'delete';
+  try {
+    const resp = await fetch(`api/recordings/${encodeURIComponent(name)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!resp.ok) throw new Error(`${resp.status} ${(await resp.text()).trim() || resp.statusText}`);
+    ++listRequest;
+    if (deleting) {
+      recordings = recordings.filter(it => it.name !== name);
+      if (st.file === name) closeRecording();
+      setMsg(`已永久刪除 ${name}`);
+    } else {
+      const { name: renamed } = await resp.json();
+      const item = recordings.find(it => it.name === name);
+      if (item) item.name = renamed;
+      if (st.file === name) {
+        st.file = renamed;
+        document.title = `${renamed} - Herdr 錄影播放`;
+        updateUrl(nowTime());
+      }
+      setMsg(`錄影已更名為 ${renamed}`);
+    }
+    renderList();
+  } catch (e) {
+    const refreshed = await loadList();
+    if (deleting && refreshed && st.file === name && !recordings.some(it => it.name === name)) closeRecording();
+    setMsg(`${deleting ? '錄影刪除失敗' : '錄影更名失敗'}: ${e.message}`, true);
+  } finally {
+    st.changingRecording = false;
+  }
+}
+
+function closeRecording() {
+  ++st.gen;
+  st.player?.dispose();
+  Object.assign(st, {
+    file: null, text: null, frames: [], duration: 0, player: null, playing: false,
+    anchor: null, lastUrlT: null, rebuild: null, origs: [], plays: [],
+    castMarkers: [], userMarkers: [], nextIndex: null,
+  });
+  $('player').replaceChildren();
+  $('player').hidden = true;
+  $('empty').hidden = false;
+  $('frame').textContent = 'frame - / -';
+  $('time').textContent = '--:-- / --:--';
+  $('marker-count').textContent = '';
+  $('c-mark-name').value = '';
+  $('prompt').hidden = true;
+  document.title = 'Herdr 錄影播放';
+  refreshMarkers();
+  updateUrl(0);
+  tick();
 }
 
 function updateUrl(t) {
@@ -660,8 +792,10 @@ const FRAME_KEYS = { ',': -1, '.': 1, '<': -10, '>': 10, '[': -50, ']': 50, '{':
 // capture 階段攔截, 避免與 player 內建快速鍵衝突.
 window.addEventListener('keydown', e => {
   if (e.ctrlKey || e.altKey || e.metaKey) return;
-  // 輸入 marker 名稱時 (新增框或側欄改名), 快速鍵全部暫停.
+  // 保留輸入框、排序按鈕和側欄把手的操作按鍵.
   if (e.target instanceof HTMLInputElement || !$('prompt').hidden) return;
+  if (e.target === $('list-order') && (e.key === ' ' || e.key === 'Enter')) return;
+  if (e.target === $('side-resize') && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) return;
   const k = e.key;
   if (k === '?') { $('help').hidden = !$('help').hidden; }
   else if (k === 'Escape') { $('help').hidden = true; }
@@ -710,12 +844,79 @@ function showHud() {
   hudTimer = setTimeout(() => $('player').classList.remove('hud'), HUD_MS);
 }
 $('player').addEventListener('mousemove', showHud);
-$('refresh').addEventListener('click', e => { e.currentTarget.blur(); loadList(); });
+$('refresh').addEventListener('click', e => { e.currentTarget.blur(); if (!st.changingRecording) loadList(); });
+$('list-filter').addEventListener('input', renderList);
+$('list-order').addEventListener('click', e => {
+  oldestFirst = !oldestFirst;
+  e.currentTarget.textContent = oldestFirst ? '舊→新' : '新→舊';
+  e.currentTarget.setAttribute('aria-label', `依修改時間排序，目前${oldestFirst ? '舊到新' : '新到舊'}`);
+  renderList();
+});
 $('toggle-side').addEventListener('click', e => { e.currentTarget.blur(); $('side').classList.toggle('hidden'); });
 $('show-help').addEventListener('click', e => { e.currentTarget.blur(); $('help').hidden = false; });
 $('help').addEventListener('click', () => { $('help').hidden = true; });
 // 在 player 上點擊 (例如進度條) 會改變位置, frame 目標改回以實際時間計算.
 $('player').addEventListener('pointerdown', () => { st.anchor = null; });
+
+const sidebar = $('side');
+const sidebarHandle = $('side-resize');
+const SIDEBAR_WIDTH_KEY = 'herdr-player.sidebar-width';
+let preferredSidebarWidth = 260;
+let shownSidebarWidth;
+let sidebarDrag = null;
+try {
+  const saved = Number(localStorage.getItem(SIDEBAR_WIDTH_KEY));
+  if (Number.isFinite(saved) && saved > 0) preferredSidebarWidth = saved;
+} catch (_) {}
+
+function showSidebarWidth(requested) {
+  const viewport = document.documentElement.clientWidth;
+  const min = Math.min(180, Math.floor(viewport / 2));
+  const max = Math.max(min, Math.min(Math.floor(viewport * 0.6), viewport - 640));
+  shownSidebarWidth = Math.min(max, Math.max(min, Math.round(requested)));
+  sidebar.style.width = `${shownSidebarWidth}px`;
+  sidebarHandle.setAttribute('aria-valuemin', min);
+  sidebarHandle.setAttribute('aria-valuemax', max);
+  sidebarHandle.setAttribute('aria-valuenow', shownSidebarWidth);
+}
+
+function rememberSidebarWidth() {
+  preferredSidebarWidth = shownSidebarWidth;
+  try { localStorage.setItem(SIDEBAR_WIDTH_KEY, preferredSidebarWidth); } catch (_) {}
+}
+
+sidebarHandle.addEventListener('pointerdown', e => {
+  if (e.button !== 0 || sidebarDrag) return;
+  sidebarDrag = { id: e.pointerId, x: e.clientX, width: shownSidebarWidth };
+  sidebarHandle.setPointerCapture(e.pointerId);
+  document.body.classList.add('side-resizing');
+});
+window.addEventListener('pointermove', e => {
+  if (sidebarDrag?.id === e.pointerId) showSidebarWidth(sidebarDrag.width + e.clientX - sidebarDrag.x);
+});
+window.addEventListener('pointerup', e => {
+  if (sidebarDrag?.id !== e.pointerId) return;
+  if (shownSidebarWidth !== sidebarDrag.width) rememberSidebarWidth();
+  sidebarDrag = null;
+  document.body.classList.remove('side-resizing');
+});
+function cancelSidebarDrag(e) {
+  if (sidebarDrag?.id !== e.pointerId) return;
+  sidebarDrag = null;
+  document.body.classList.remove('side-resizing');
+  showSidebarWidth(preferredSidebarWidth);
+}
+window.addEventListener('pointercancel', cancelSidebarDrag);
+sidebarHandle.addEventListener('lostpointercapture', cancelSidebarDrag);
+sidebarHandle.addEventListener('keydown', e => {
+  if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+  e.preventDefault();
+  const previous = shownSidebarWidth;
+  showSidebarWidth(previous + (e.key === 'ArrowLeft' ? -16 : 16));
+  if (shownSidebarWidth !== previous) rememberSidebarWidth();
+});
+window.addEventListener('resize', () => showSidebarWidth(preferredSidebarWidth));
+showSidebarWidth(preferredSidebarWidth);
 
 loadList();
 renderMarkers();

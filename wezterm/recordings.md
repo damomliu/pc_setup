@@ -23,7 +23,10 @@
 
 以 WezTerm 命令面板的 `播放 Herdr 錄影` 開啟. 做法是另開 tab 執行 WSL `herdr-play`, 在 WSL eth0 IP 的 `:47615` 啟動本機 server (例如 `http://172.21.236.176:47615/`) 並以 Windows 預設瀏覽器開啟播放頁; 關閉該 tab 或按 `Ctrl+C` 即停止. server 已在執行時只開瀏覽器, tab 隨即關閉.
 
-- 頁面左側列出 `~/recordings/herdr/*.cast` (新到舊), 點選即開啟播放.
+- 頁面左側列出 `~/recordings/herdr/*.cast`, 預設依修改時間由舊到新. 按「舊→新」或「新→舊」按鈕可切換方向. 可輸入檔名的一部分即時篩選 (忽略大小寫), 點選錄影即開啟播放.
+- 拖曳側邊欄右緣可調整寬度, 也可按 Tab 聚焦把手後用左右方向鍵調整. 同一播放器網址重新整理或開新頁時, 瀏覽器會沿用記住的寬度.
+- 錄影列的 ✎ 可直接編輯完整檔名 (`.cast` 固定保留), Enter 儲存, Esc 或移開焦點取消. 更名會一併更新同名的 marker 旁掛檔. 正在播放的錄影更名後, 會保留播放位置和播放狀態, 網址也會更新.
+- 錄影列的 ✕ 按兩下 (3 秒內), 會永久刪除錄影及其 marker 旁掛檔. 若刪除的是目前播放的錄影, 播放器及 marker 清單會清空.
 - 頁面下方有播放控制列 (marker 名稱框與 M 按鈕, 上一個 marker, ±30/±5 秒, 播放/暫停, 下一個 marker, 降速/加速), 按鈕提示含對應快速鍵. 滑鼠在影片上移動或按控制列按鈕後, 影片下緣的時間軸 (asciinema-player 內建進度條) 顯示 5 秒 (內建為 2 秒, 由頁面的 `HUD_MS` 延長); 底部狀態列只顯示速度, 右側列常用快速鍵, 完整說明按右下角 `?`.
 - WSL 內也可直接執行 `herdr-play [檔名] [--speed N]`, 開啟指定錄影.
 - URL 參數: `file` 檔名, `speed` 速度 (預設 4), `idle` 閒置上限秒數 (預設 2), `t` 起始秒數. 播放中 URL 會跟著更新, 重新整理回到同一位置.
@@ -38,7 +41,7 @@
   - 儲存在 `~/recordings/herdr/<同名>.markers.json`, 格式為 `{"next": 下一個預設編號, "markers": [{"t", "label"}]}` (舊版的純陣列仍可讀, 下次存檔時轉換). 時間為原始時間 (未套閒置上限), 改 `idle` 參數也不會偏移. 原始 `.cast` 不變; cast 內建的 marker (asciinema 錄影時加的) 也會列出, 標 `(cast)`, 唯讀.
 - 網址: WSL eth0 IP 每次 WSL 啟動可能改變, 不要把網址存成書籤, 一律從命令面板或 `herdr-play` 開啟.
 - 為何不用 127.0.0.1: 本機 WSL localhost forwarding (`wslrelay`) 轉不到只綁 WSL `127.0.0.1` 的服務 (Windows 端連線會卡住); 綁 `0.0.0.0` 的服務 (如 sshd) 則正常. 這與 `pc-wsl` 的 SSH 2222 不同, 後者是 `WslSshForward.ps1` 以 netsh portproxy 轉到 WSL eth0 IP:22.
-- 安全: WSL 為 NAT 模式, eth0 IP 只有本機 Windows 連得到, LAN / Tailscale 連不到. server 只接受 Host 等於綁定的 `IP:47615`, 只提供播放頁, vendor 檔與錄影目錄下的 `.cast`. 唯一的寫入 API 是 marker (`POST /api/markers/<檔名>.cast`), 要求 `Content-Type: application/json` 與相符的 `Origin` (擋跨站請求), 並驗證格式與大小.
+- 安全: WSL 為 NAT 模式, eth0 IP 只有本機 Windows 連得到, LAN / Tailscale 連不到. server 只接受 Host 等於綁定的 `IP:47615`. marker 儲存 (`POST /api/markers/<檔名>.cast`) 與錄影操作 (`POST /api/recordings/<檔名>.cast`) 要求 `Content-Type: application/json` 與相符的 `Origin`, 並驗證格式與大小. 錄影操作的 JSON 為 `{"action":"rename","stem":"新名稱"}` 或 `{"action":"delete"}`, 限於錄影目錄內的 `.cast` 及其同名旁掛檔. 更名遇到既有的錄影或旁掛檔會拒絕覆蓋.
 
 **快速鍵**
 
