@@ -89,7 +89,8 @@
 | 按鍵 | 動作 |
 |---|---|
 | `Alt+B`／`Alt+I`／`Alt+M` | 粗體／斜體／數學式（Markdown All in One，所有 profile） |
-| `Ctrl+K Shift+V` | 在側邊開啟鎖定的 Markdown Preview Enhanced |
+| `Ctrl+K V` | 在側邊面板開啟 Markdown Preview Enhanced(若目前是 Markdown Editor / Preview，先切回 Text Editor；取代 MPE 開在側邊) |
+| `Ctrl+K Shift+V` | Markdown Preview Enhanced 開在側邊(原 `Ctrl+K V`) |
 | `Ctrl+Alt+M` | 開關 MPE 同步捲動 |
 | `F5`（Markdown 檔或 preview 內） | 重新整理 preview |
 
@@ -126,7 +127,6 @@ Claude Code 切換 model：按 `Ctrl+L` 聚焦輸入框後，輸入 `/model` 開
 | `Ctrl+F12` | 移至實作 |
 | `Ctrl+Shift+F12` | 預覽實作 |
 | `Ctrl+Shift+Alt+Y` | 開關 Debug Console |
-| `Ctrl+K V` | Markdown Preview 開在側邊（Markdown 檔） |
 | `Ctrl+Shift+Enter`／`Shift+Enter`（Markdown 檔） | MPE 執行 code chunk |
 | `Ctrl+K M` | Notebook cell 切換語言 |
 | `Ctrl+Shift+I` | Chat 開啟 Agent |

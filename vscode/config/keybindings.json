@@ -424,9 +424,33 @@
         "when": "!notebookEditorFocused && editorLangId == 'markdown'"
     },
     {
+        // MPE 預設的 Ctrl+K V 改到 Ctrl+K Shift+V
+        "key": "ctrl+k v",
+        "command": "-markdown-preview-enhanced.openPreviewToTheSide",
+        "when": "resourceExtname =~ /\\.(md|markdown|mdown|mkdn|mkd|rmd|qmd|mdx)$/ || editorLangId =~ /^(markdown|quarto|prompt|instructions|chatagent|skill)$/"
+    },
+    {
         "key": "ctrl+k shift+v",
-        "command": "markdown-preview-enhanced.openLockedPreviewToTheSide",
+        "command": "markdown-preview-enhanced.openPreviewToTheSide",
+        "when": "resourceExtname =~ /\\.(md|markdown|mdown|mkdn|mkd|rmd|qmd|mdx)$/ || editorLangId =~ /^(markdown|quarto|prompt|instructions|chatagent|skill)$/"
+    },
+    {
+        // Text editor 中的 Markdown-like 檔: 直接開 MPE side panel preview
+        "key": "ctrl+k v",
+        "command": "markdown-preview-enhanced.openPreviewInSidePanel",
         "when": "editorLangId =~ /^(markdown|quarto|prompt|instructions|chatagent|skill)$/"
+    },
+    {
+        // Markdown 檔在非 text editor (內建 Markdown Editor / Preview): 先切回 text editor 再開
+        "key": "ctrl+k v",
+        "command": "runCommands",
+        "args": {
+            "commands": [
+                "workbench.action.reopenTextEditor",
+                "markdown-preview-enhanced.openPreviewInSidePanel"
+            ]
+        },
+        "when": "activeEditor && activeEditor != 'workbench.editors.files.textFileEditor' && resourceExtname =~ /^\\.(md|mkd|mkdn|mdwn|mdown|markdown|markdn|mdtxt|mdtext|qmd)$/i"
     },
     {
         "key": "ctrl+k shift+l",
