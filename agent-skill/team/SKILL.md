@@ -22,7 +22,7 @@ Team 進度：
 - [ ] 3. 依 Approval Gate 範本撰寫 plan/spec，Review 紀錄於第 4 項後補 (§4 步驟 1)
 - [ ] 4. Review loop：VERDICT: APPROVE，或第二輪後已取得使用者裁決並寫入 plan/spec (§4 步驟 2)
 - [ ] 5. Approval Gate：使用者明確核准 plan/spec；拆 tickets 時，每張 ticket 含範本必要段落且正式 tickets 已核准 (§4 步驟 3-4)
-- [ ] 6. 開 Worker 派工 (§4 步驟 5、§5)
+- [ ] 6. 開 Worker 派工，Worker 回報完成；期間的 blocker 已處理，裁決已寫入 Review 紀錄 (§4 步驟 5、§5)
 - [ ] 7. Code review：RESULT: PASS，或第二輪後已取得使用者裁決 (§4 步驟 5)
 - [ ] 8. 最終驗收，回報使用者 (§4 步驟 5)
 ```
@@ -66,8 +66,10 @@ PM 的廠牌由當前 agent 決定：Claude Code 為 Claude，Codex 為 GPT。�
    - 第二輪仍是 `CHANGES_REQUESTED`：不再送審，列出分歧、選項與建議，等使用者裁決；裁決寫進 plan/spec 後進入下一步。
 3. 把定版 plan/spec 交給使用者審查 (Approval Gate)。plan/spec 依下方「Approval Gate 範本」，每個段落都要填。
 4. 若拆成 tickets：每張 ticket 都要包含範本的「目標」到「超出範圍時」各段，且正式 tickets 經使用者核准後才派工。
-5. 開 Worker 派工；依權限矩陣掌握進度、安排 code review，最後做最終驗收。
-   - Code review 比照 review loop：第一輪 `RESULT: FAIL` 時，Worker 修正後送同一位 Reviewer 審第二輪；第二輪仍是 `FAIL` 就不再送審，列出問題、選項與建議，等使用者裁決。拆成 tickets 時，每張 ticket 各自計算輪數。
+5. 開 Worker 派工；依權限矩陣掌握進度，最後做最終驗收。成員之間的交接都經過 PM。
+   - Blocker：Worker 回報 blocker 時，PM 先自行查證事實 (讀 code、跑指令)。牽涉 plan 決策時交使用者裁決，把裁決寫進 plan/spec 的 Review 紀錄，再通知 Worker 繼續。
+   - Code review 由 PM 發起：Worker 回報完成後，PM 依「啟動模式」開一個新的 Reviewer session 做 code review (Worker 在 worktree 時以 `--add-dir <worktree>` 加入；直接改 main repo 時不需要)，第一個 prompt 帶 §5 的 `RESULT:` 格式行。
+   - Code review 比照 review loop：第一輪 `RESULT: FAIL` 時，PM 把問題轉給 Worker，Worker 修正後回報 PM，PM 再送同一位 Reviewer 審第二輪；第二輪仍是 `FAIL` 就不再送審，列出問題、選項與建議，等使用者裁決。拆成 tickets 時，每張 ticket 各自計算輪數。
 
 ### Approval Gate 範本
 
@@ -99,7 +101,7 @@ PM 的廠牌由當前 agent 決定：Claude Code 為 Claude，Codex 為 GPT。�
 
 ## Review 紀錄
 - <Reviewer 角色名>：<輪數>，`VERDICT: <結果>`
-- 未決分歧與使用者裁決：<無 / 內容>
+- 未決分歧與使用者裁決 (含實作 blocker)：<無 / 內容>
 ```
 
 ## 5. 建立成員
@@ -130,4 +132,5 @@ PM 的廠牌由當前 agent 決定：Claude Code 為 Claude，Codex 為 GPT。�
    依功能再加一行：
    - Reviewer 審 plan/spec：`回報 PM 的最後一行必須是 VERDICT: APPROVE 或 VERDICT: CHANGES_REQUESTED。`
    - Reviewer 做 code review：`回報 PM 的最後一行必須是 RESULT: PASS 或 RESULT: FAIL。`
-   - Worker：`完成後也通知負責審你的 Reviewer：<Reviewer alias>。`
+   - Worker：`完成或遇到 blocker 時只回報 PM；blocker 要說明卡住的事實與已查證的內容。`
+   - Claude Code Worker：`改檔用 Edit / Write 工具；指令直接在 pane cwd 執行，檔案路徑以參數帶入，不加 cd 前綴。`

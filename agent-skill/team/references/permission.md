@@ -25,7 +25,7 @@
 | git commit | 僅文件 | ❌ | ✅ 僅 worktree | ❌ | ❌ |
 | merge / push / 刪 worktree | 🔒 | ❌ | ❌ | ❌ | ❌ |
 | `herdr agent` 開新成員 | ✅ (Grant-Helper 🔒) | ❌ | ❌ | ❌ | ❌ |
-| 傳訊息給其他 pane | 全部 | PM、受審 Worker | PM、負責審自己的 Reviewer | PM | PM |
+| 傳訊息給其他 pane | 全部 | PM | PM | PM | PM |
 | 新增 dependency | 🔒 | ❌ | 提給 PM → 🔒 | ❌ | ❌ |
 | 判定 PASS / FAIL | 最終驗收 | code review | ❌ | ❌ (僅建議) | ❌ |
 | 網路查詢 | ✅ | ✅ | ✅ 僅查文件 | ✅ | ✅ |
@@ -34,11 +34,11 @@
 
 ## 啟動模式
 
-開成員時依功能選 sandbox / permission。唯讀模式會擋掉寫暫存檔的 test，所以只用在不跑 test 也不改檔的功能；其餘功能的改檔範圍由第一個 prompt 限制。
+開成員時依功能選 sandbox / permission。唯讀模式會擋掉寫暫存檔的 test，所以只用在不跑 test 也不改檔的功能；其餘功能的改檔範圍由第一個 prompt 限制。Claude Code 用 `auto`，例行的 Bash 指令也能自動放行，成員不會卡在逐次確認。
 
 | 功能 | Codex | Claude Code |
 |---|---|---|
-| Reviewer、Worker、Grant-Helper | `--sandbox workspace-write` | `--permission-mode acceptEdits` |
+| Reviewer、Worker、Grant-Helper | `--sandbox workspace-write` | `--permission-mode auto` |
 | Helper | `--sandbox read-only` | `--permission-mode plan` |
 
 可寫範圍：
