@@ -507,6 +507,81 @@ class ReviewPalModelsTest(unittest.TestCase):
                 self.assertNotEqual(self.data["reviewers"][key]["agent"], engineer)
 
 
+class TeamModelsTest(unittest.TestCase):
+    """team/models.json 的結構檢查，以及與 teams/team-*.md 的一致性 (SKILL.md 依賴這些欄位)。"""
+
+    TEAMS = ("nexense", "claude", "gpt")
+    FUNCTIONS = ("Reviewer", "Worker", "Helper", "Grant-Helper")
+
+    def setUp(self):
+        import json
+        self.root = sync.SOURCE_ROOT / "team"
+        self.data = json.loads((self.root / "models.json").read_text(encoding="utf-8"))
+
+    def _check_effort(self, effort):
+        self.assertTrue(effort is None or (isinstance(effort, str) and effort))
+
+    def test_team_keys(self):
+        self.assertEqual(set(self.data["teams"]), set(self.TEAMS))
+
+    def test_members_fields(self):
+        for team, spec in self.data["teams"].items():
+            self.assertTrue(spec["members"], team)
+            for key, m in spec["members"].items():
+                with self.subTest(team=team, key=key):
+                    self.assertRegex(key, r"^[a-z][a-z0-9_-]{0,31}$")  # 同時是 Herdr alias 基底
+                    self.assertIn(m["function"], self.FUNCTIONS)
+                    self.assertIn(m["agent"], ("codex", "claude"))
+                    self.assertIsInstance(m["model"], str)
+                    self.assertTrue(m["model"])
+                    self._check_effort(m["effort"])
+
+    def test_pm_fields(self):
+        for team, spec in self.data["teams"].items():
+            pm = spec.get("pm", {})
+            self.assertLessEqual(set(pm), {"claude", "codex"}, team)
+            for agent, options in pm.items():
+                with self.subTest(team=team, agent=agent):
+                    self.assertTrue(options)
+                    for o in options:
+                        self.assertIsInstance(o["model"], str)
+                        self.assertTrue(o["model"])
+                        self._check_effort(o["effort"])
+
+    def test_team_files_match_json(self):
+        import re
+        for team in self.TEAMS:
+            with self.subTest(team=team):
+                text = (self.root / "teams" / f"team-{team}.md").read_text(encoding="utf-8")
+                self.assertNotRegex(text, r"\b(?:claude|gpt)-[0-9a-z.-]+")  # 模型只寫在 models.json
+                in_md = {(n.lower(), f) for n, f in re.findall(r"`(\w+) \(([\w-]+)\)`", text) if f != "PM"}
+                in_json = {(k, m["function"]) for k, m in self.data["teams"][team]["members"].items()}
+                self.assertEqual(in_md, in_json)
+
+    def test_model_guide_roles_exist(self):
+        """model-guide-detail.md 第 4 節表格的角色名須是現行成員或 PM (避免殘留舊角色名)。"""
+        import re
+        text = (self.root / "references" / "model-guide-detail.md").read_text(encoding="utf-8")
+        section = re.search(r"^## 4\..*?(?=^## )", text, re.S | re.M).group(0)
+        allowed = {k for t in self.data["teams"].values() for k in t["members"]}
+        for team in self.TEAMS:
+            md = (self.root / "teams" / f"team-{team}.md").read_text(encoding="utf-8")
+            allowed |= {n.lower() for n in re.findall(r"`(\w+) \(PM\)`", md)}
+        checked = 0
+        for line in section.splitlines():
+            if not line.startswith("|"):
+                continue
+            first = line.split("|")[1].strip()
+            if first == "角色" or set(first) <= set("-:") or "非既有角色" in first:
+                continue
+            for name in first.split(" / "):
+                name = re.sub(r"\s*[（(].*$", "", name).strip().lower()
+                with self.subTest(name=name):
+                    self.assertIn(name, allowed)
+                checked += 1
+        self.assertGreater(checked, 0)
+
+
 class SkillContentTest(unittest.TestCase):
     def test_relative_links_exist(self):
         import re

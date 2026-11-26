@@ -7,7 +7,7 @@
 | 功能 | 職責 |
 |---|---|
 | PM | 當前 agent；撰寫 plan/spec、開成員、派工、掌握進度、最終驗收 |
-| Reviewer | 審 PM 的 plan/spec 與 Worker 的程式，判定 code review PASS / FAIL |
+| Reviewer | 審 PM 的 plan/spec 與 Worker 的程式，判定 APPROVE-PLAN / APPROVE-IMPLEMENT 或 CHANGES_REQUESTED |
 | Worker | 依核准的 plan/spec 或 ticket 實作程式 |
 | Helper | 調查與其他雜項 |
 | Grant-Helper | Escalation Specialist；處理困難、複雜的問題，成本高 |
@@ -27,7 +27,7 @@
 | `herdr agent` 開新成員 | ✅ (Grant-Helper 🔒) | ❌ | ❌ | ❌ | ❌ |
 | 傳訊息給其他 pane | 全部 | PM | PM | PM | PM |
 | 新增 dependency | 🔒 | ❌ | 提給 PM → 🔒 | ❌ | ❌ |
-| 判定 PASS / FAIL | 最終驗收 | code review | ❌ | ❌ (僅建議) | ❌ |
+| 判定 APPROVE-PLAN / APPROVE-IMPLEMENT / CHANGES_REQUESTED | 最終驗收 | plan/spec 與 code review | ❌ | ❌ (僅建議) | ❌ |
 | 網路查詢 | ✅ | ✅ | ✅ 僅查文件 | ✅ | ✅ |
 
 - 矩陣外的動作一律先問 PM；PM 不確定就問使用者
@@ -41,6 +41,6 @@
 | Reviewer、Worker、Grant-Helper | `--sandbox workspace-write` | `--permission-mode auto` |
 | Helper | `--sandbox read-only` | `--permission-mode plan` |
 
-可寫範圍：
+可寫範圍 (本檔的 main repo 指 PM 的 cwd，可能是使用者預先建立的 worktree)：
 - Worker：pane cwd 設在被指派的 worktree；獲准直接改 main repo 時 (簡單的 plan/spec) 設在 main repo。
-- Reviewer：pane cwd 設在 main repo (可寫 review / verification 檔)。Code review 時，以 `--add-dir <worktree>` 加入每個待審的 worktree (Codex、Claude Code 同名參數)；審 plan/spec 時開的 session 沒有這些目錄，code review 要重新啟動。
+- Reviewer：pane cwd 設在 main repo (可寫 review / verification 檔)。Code review 重用 plan review 的 Reviewer session 還是新建，依 [../SKILL.md](../SKILL.md) §4 步驟 5 的條件。新建且 Worker 在另開的 worktree 時，以 `--add-dir <worktree>` 加入每個待審的 worktree (Codex、Claude Code 同名參數)，因為 `--add-dir` 只能在啟動時加，plan review 的 session 沒有這些目錄。

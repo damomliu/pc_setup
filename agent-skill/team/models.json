@@ -1,0 +1,40 @@
+{
+  "teams": {
+    "nexense": {
+      "pm": {
+        "claude": [{ "model": "claude-opus-5-5", "effort": null }],
+        "codex": [
+          { "model": "gpt-6.1-sol", "effort": "high" },
+          { "model": "gpt-6-astra", "effort": "medium" }
+        ]
+      },
+      "members": {
+        "athena": { "function": "Reviewer",     "agent": "codex",  "model": "gpt-6.1-sol",       "effort": "high" },
+        "themis": { "function": "Reviewer",     "agent": "claude", "model": "claude-opus-5-5",   "effort": null },
+        "thor":   { "function": "Worker",       "agent": "claude", "model": "claude-opus-5-5",   "effort": null },
+        "ares":   { "function": "Worker",       "agent": "claude", "model": "claude-sonnet-5-5", "effort": null },
+        "loki":   { "function": "Worker",       "agent": "claude", "model": "claude-haiku-5-5",  "effort": null },
+        "vulcan": { "function": "Worker",       "agent": "codex",  "model": "gpt-6.1-sol",       "effort": null },
+        "pan":    { "function": "Worker",       "agent": "codex",  "model": "gpt-6-luna",        "effort": null },
+        "hebe":   { "function": "Helper",       "agent": "codex",  "model": "gpt-6.1-sol",       "effort": "medium" },
+        "sophia": { "function": "Grant-Helper", "agent": "codex",  "model": "gpt-6-astra",       "effort": "medium" }
+      }
+    },
+    "claude": {
+      "members": {
+        "hufa":  { "function": "Reviewer", "agent": "codex",  "model": "gpt-6.1-sol",       "effort": "high" },
+        "shifu": { "function": "Worker",   "agent": "claude", "model": "claude-opus-5-5",   "effort": null },
+        "shiza": { "function": "Worker",   "agent": "claude", "model": "claude-sonnet-5-5", "effort": null },
+        "shidi": { "function": "Worker",   "agent": "claude", "model": "claude-haiku-5-5",  "effort": null }
+      }
+    },
+    "gpt": {
+      "members": {
+        "halley":  { "function": "Reviewer", "agent": "claude", "model": "claude-opus-5-5", "effort": "high" },
+        "jupiter": { "function": "Worker",   "agent": "codex",  "model": "gpt-6-astra",     "effort": null },
+        "saturn":  { "function": "Worker",   "agent": "codex",  "model": "gpt-6.1-sol",     "effort": null },
+        "luna":    { "function": "Worker",   "agent": "codex",  "model": "gpt-6-luna",      "effort": null }
+      }
+    }
+  }
+}

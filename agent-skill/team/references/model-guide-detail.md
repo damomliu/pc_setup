@@ -118,25 +118,26 @@ REF：GPT 價格列為 Standard、未快取的 input 與 output 單價；長 con
 
 ## 4. Team Nexense 角色對照與建議
 
-以下為團隊策略與起始設定；角色對等不代表不同模型已在相同條件下證實能力相等。API 預設 effort、Codex UI 可選項與團隊建議值須分別確認。
+以下為團隊策略與起始設定；角色對等不代表不同模型已在相同條件下證實能力相等。API 預設 effort、Codex UI 可選項與團隊建議值須分別確認。各成員實際使用的模型與 effort 見 [../models.json](../models.json)，本表不重複記錄。
 
-| 角色 | 目前設定 | 評估 | 建議 |
-|---|---|---|---|
-| PM | claude-opus | 合適：規劃、判斷力強 | 寫 spec / 拆票時 effort 提到 high |
-| MissWu | gpt-astra / medium | 建議：高難度、需求模糊、需持續判斷的任務 | 明確指定 `gpt-6-astra`；依驗收結果比較 medium、high 或 xhigh |
-| QA | gpt-sol / high | 合適：跨家族 review Claude 寫的 code，盲點互補 | 指定 `gpt-6.1-sol` |
-| ShiFu | claude-opus | 合適：多檔、架構性、需判斷的 ticket | 預設 medium，困難票 high |
-| PRO | claude-sonnet | 合適：範圍明確的實作、修 bug | 預設 high，避免 max |
-| SLAVE | claude-haiku | 僅適合小而明確的 ticket | 每票限單一檔案或單一函式、附驗收指令 |
-| QA2 | claude-opus | 建議：跨家族 review GPT 寫的 code | 核對完成證據、實際 diff 與授權範圍 |
-| PRO2 | gpt-sol | 建議：複雜 coding 與長任務；與 PRO 分工仍需實測 | 指定 `gpt-6.1-sol`，medium 起始；局部 / 視覺任務可比較 Terra |
-| PRO-Terra（可選；非既有角色）| **未設定** | 專責圖面 / UI / scoped code fix；介於 PRO2 與 SLAVE2 的任務範圍 | |
-| SLAVE2 | gpt-luna | 建議：範圍明確、可重複驗收的任務 | 指定 `gpt-6-luna`；coding 用 high 起始；反覆失敗則比較 Terra |
-| 秘書 | gpt-6.1-sol / medium | 合適：調查、雜項 | 需要定稿的調查報告可升 xhigh；明確圖面/表單可評估 Terra |
+| 角色 | 評估 | 建議 |
+|---|---|---|
+| ODIN / ZMen / SOLAR (PM) | 合適：規劃、判斷力強 (Claude PM 為 Opus) | 寫 spec / 拆票時 effort 提到 high |
+| SOPHIA | 建議：高難度、需求模糊、需持續判斷的任務 | 明確指定 `gpt-6-astra`；依驗收結果比較 medium、high 或 xhigh |
+| ATHENA / HuFa | 合適：跨家族 review Claude 寫的 code，盲點互補 | 指定 `gpt-6.1-sol` |
+| THOR / ShiFu | 合適：多檔、架構性、需判斷的 ticket | 預設 medium，困難票 high |
+| ARES / ShiZa | 合適：範圍明確的實作、修 bug | 預設 high，避免 max |
+| LOKI / ShiDi | 僅適合小而明確的 ticket | 每票限單一檔案或單一函式、附驗收指令 |
+| THEMIS / HALLEY | 建議：跨家族 review GPT 寫的 code | 核對完成證據、實際 diff 與授權範圍 |
+| VULCAN / SATURN | 建議：複雜 coding 與長任務；與 ARES 分工仍需實測 | 指定 `gpt-6.1-sol`，medium 起始；局部 / 視覺任務可比較 Terra |
+| JUPITER | 建議：高難度、需求模糊的實作 (GPT 隊的 Astra Worker，成本高) | 指定 `gpt-6-astra`；範圍明確的票改派 SATURN |
+| PRO-Terra（可選；非既有角色）| 專責圖面 / UI / scoped code fix；介於 VULCAN 與 PAN 的任務範圍 | |
+| PAN / LUNA | 建議：範圍明確、可重複驗收的任務 | 指定 `gpt-6-luna`；coding 用 high 起始；反覆失敗則比較 Terra |
+| HEBE | 合適：調查、雜項 | 需要定稿的調查報告可升 xhigh；明確圖面/表單可評估 Terra |
 
 派工通則：
 
-- **ticket 難度 → 人選**：架構 / 跨模組 → ShiFu；範圍明確的功能或 bug → PRO / PRO2；機械式小改 → SLAVE / SLAVE2。
+- **ticket 難度 → 人選**：架構 / 跨模組 → THOR / ShiFu；範圍明確的功能或 bug → ARES / ShiZa / VULCAN / SATURN；機械式小改 → LOKI / ShiDi / PAN / LUNA。
 - **比較 model 與 effort**：以代表性任務比較不同設定，選擇達到品質要求的最低成本組合；不要求先提高 effort 才能換模型。[參考][gpt-selection]
 - **跨家族 review**：維持 TeamA（Claude 寫、GPT 審）與 TeamB（GPT 寫、Claude 審）作為團隊策略，以實際缺陷發現與修正結果驗證互補效果。
 - **共同驗收**：所有實作角色都需提供完成證據，review 對照實際 diff、測試結果與授權範圍。
