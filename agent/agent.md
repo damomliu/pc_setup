@@ -143,7 +143,13 @@ Codex 與 Claude Code 共用 `Model · Workspace · 5h · weekly · Context · �
 Claude Code 另外依剩餘比例變色（5h／weekly 剩餘或 Context 剩餘 ≤25% 黃、≤10% 紅）；Codex 不隨數值變色，僅 `status_line_use_colors = true` 依 item 類型上色。
 
 ### Skills
-- [asana-ai-skill](https://github.com/elibosley/asana-ai-skill)
+- [asana-ai-skill](https://github.com/elibosley/asana-ai-skill)（Windows、WSL 各一份 checkout：`~/.agent-skills/sources/asana-ai-skill`；PAT／context／cache 放 `~/.agent-skills/asana/`，兩個 agent 共用）
+  - Claude：上游 installer 在 `~/.claude/skills/` 建立 `asana` 與 6 個 `asana-*` entrypoint 連結
+  - Codex：只在 `~/.agents/skills/asana` 建一個連結指向 checkout（Windows 用 Junction，WSL 用 `ln -sT`）；Codex 會遞迴掃描並自動找到 `entrypoints/*`，不另建 entrypoint 連結，避免名稱重複
+    `New-Item -ItemType Junction -Path $HOME\.agents\skills\asana -Target $HOME\.agent-skills\sources\asana-ai-skill`
+  - Codex 的 entrypoint 寫 `../asana/SKILL.md`，從子目錄解析不到，agent 會改從 `asana` 根目錄載入，實測 Win／WSL 都正常
+  - Codex sandbox 會擋 Asana API 連線，Windows 還會擋讀取 PAT，所以呼叫時要提權（auto_review 審核）
+  - `update-core.ps1`／`update.sh` 會 `git pull` 更新內容；skill 內建的 `update_skill.py` 只 reconcile `~/.claude/skills`、`~/.codex/skills`，不會處理 `~/.agents/skills`
 - [herdr-skill]（Windows、WSL 各執行一次；裝到 `~/.agents/skills/herdr`，Codex 直接讀取，Claude Code 以 symlink 連結）：
   `npx skills add herdrdev/herdr --skill herdr -g -a claude-code -a codex -y`
 - [wezterm-skill] 本機技能正本放 `.agents/skills/`，`.claude/skills/` 底下用 junction 指過去（git 不會保留 junction，clone 後要重建）：
