@@ -98,8 +98,9 @@ width = "50%"
 height = "25%"
 
 # Open git-graph-tui (ggt) in a new tab for the focused pane's repo; quitting ggt closes the tab.
-# WSL: use the upstream plugin (allient/git-graph-tui/integrations/herdr) instead:
-#   type = "plugin_action", command = "git-graph-tui.open" (drop width/height)
+# WSL: python3 "$HOME/.config/herdr/herdr-git-graph.py"
+#   (needs plugin allient/git-graph-tui/integrations/herdr for its graph pane; its own
+#   git-graph-tui.open action leaves the new tab unfocused, so the helper focuses it)
 [[keys.command]]
 key = "prefix+t"
 type = "popup"
