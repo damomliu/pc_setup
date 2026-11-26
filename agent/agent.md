@@ -163,9 +163,12 @@ Claude Code 另外依剩餘比例變色（5h／weekly 剩餘或 Context 剩餘 �
   - Codex：`~/.agents/skills/diagram-design/agents/openai.yaml` 設 `policy.allow_implicit_invocation: false`，只能 `$diagram-design` 叫用；skills 重裝會清掉此檔，`update-core.ps1` / `update.sh` 在 `npx skills update` 後補回
 - team（本機 global skill，manual only）：以 Herdr 組建多 agent 團隊，當前 agent 為 PM；`/team nexense|claude`（Claude）、`$team nexense|gpt`（Codex）
   - 正本：[agent-skill/team/](../agent-skill/team/SKILL.md)；舊版文件保留在 `agent-team-legacy/`
-  - 佈署：`python agent-skill/sync.py --check` / `--push`，mirror 到 `~/.claude/skills/team` 與 `~/.agents/skills/team`（複製，不用 symlink）；Windows 執行時一併處理 WSL（`--distro`、`--win-only`），WSL 只處理本機
+  - 佈署：`python agent-skill/sync.py --check` / `--push`，把 `team`、`review-pal` 兩個 skill 各自 mirror 到 `~/.claude/skills/<skill>` 與 `~/.agents/skills/<skill>`（複製，不用 symlink）；Windows 執行時一併處理 WSL（`--distro`、`--win-only`），WSL 只處理本機
   - Manual only 設定跟著 skill：`SKILL.md` frontmatter `disable-model-invocation: true`、`agents/openai.yaml` `policy.allow_implicit_invocation: false`
   - 測試：`python agent-skill/test_sync.py`
+- review-pal（本機 global skill，manual only）：`team` 的精簡版，不分 PM/Worker；當前 agent 是 Engineer，自己做 plan 與實作，用 Herdr 開一位或多位 Reviewer 先審 plan (`APPROVE-PLAN`)、實作後再審實作 (`APPROVE-IMPLEMENT`)；`/review-pal [<key>[/effort] ...]`（Claude）、`$review-pal [<key>[/effort] ...]`（Codex），不帶引數開一位跨廠牌 Reviewer
+  - 正本：[agent-skill/review-pal/](../agent-skill/review-pal/SKILL.md)；佈署與測試同 team
+  - key 與模型的對照在 [models.json](../agent-skill/review-pal/models.json)（`sol`、`astra`、`opus`、`fable`、`sonnet`），模型換版只改這個檔
 
 ## Project 初始化慣例
 

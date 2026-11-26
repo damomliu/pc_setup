@@ -1,4 +1,4 @@
-"""agent-skill/sync.py 的隔離測試（標準函式庫 unittest）。
+"""agent-skill/sync.py 的隔離測試（team、review-pal 兩個 skill）（標準函式庫 unittest）。
 
 以 --test-win-home / --test-wsl-root 指向暫存目錄，不碰真實 home、不呼叫真實 WSL。
 YAML 欄位檢查需要 PyYAML，沒有則 skip。
@@ -26,6 +26,8 @@ import sync  # noqa: E402
 
 WIN = sys.platform == "win32"
 FOUR = ("Win-Claude", "Win-Codex", "WSL-Claude", "WSL-Codex")
+SKILLS = sync.SKILLS
+N = len(FOUR) * len(SKILLS)  # 目標總數
 
 
 def make_junction(link: Path, target: Path) -> None:
@@ -40,11 +42,14 @@ class SyncTest(unittest.TestCase):
         self.wsl = self.tmp / "wsl"
         self.win.mkdir()
         self.wsl.mkdir()
-        self.src_files = sorted(p.relative_to(sync.SOURCE).as_posix()
-                                for p in sync.SOURCE.rglob("*") if p.is_file())
+        self.src_files = {sk: self.list_files(sync.SOURCE_ROOT / sk) for sk in SKILLS}
         patcher = mock.patch.object(sync.c, "detect_platform", return_value="windows")
         patcher.start()
         self.addCleanup(patcher.stop)
+
+    @staticmethod
+    def list_files(root: Path):
+        return sorted(p.relative_to(root).as_posix() for p in root.rglob("*") if p.is_file())
 
     def tearDown(self):
         # junction 先移除，避免 rmtree 走進 link 目標
@@ -63,19 +68,22 @@ class SyncTest(unittest.TestCase):
             rc = sync.main(argv)
         return rc, out.getvalue(), err.getvalue()
 
-    def targets(self):
+    def targets(self, skill="team"):
         return {
-            "Win-Claude": self.win / ".claude/skills/team",
-            "Win-Codex": self.win / ".agents/skills/team",
-            "WSL-Claude": self.wsl / ".claude/skills/team",
-            "WSL-Codex": self.wsl / ".agents/skills/team",
+            "Win-Claude": self.win / ".claude/skills" / skill,
+            "Win-Codex": self.win / ".agents/skills" / skill,
+            "WSL-Claude": self.wsl / ".claude/skills" / skill,
+            "WSL-Codex": self.wsl / ".agents/skills" / skill,
         }
 
-    def assert_mirror(self, root: Path):
-        got = sorted(p.relative_to(root).as_posix() for p in root.rglob("*") if p.is_file())
-        self.assertEqual(got, self.src_files)
+    def snapshot(self):
+        return {q: q.read_bytes() for q in self.tmp.rglob("*") if q.is_file()}
+
+    def assert_mirror(self, root: Path, skill="team"):
+        got = self.list_files(root)
+        self.assertEqual(got, self.src_files[skill])
         for rel in got:
-            self.assertEqual((root / rel).read_bytes(), (sync.SOURCE / rel).read_bytes())
+            self.assertEqual((root / rel).read_bytes(), (sync.SOURCE_ROOT / skill / rel).read_bytes())
 
     # --- check / push ---
 
@@ -83,47 +91,53 @@ class SyncTest(unittest.TestCase):
         rc, out, _ = self.run_sync("--check")
         self.assertEqual(rc, 1)
         for label in FOUR:
-            self.assertIn(f"[{label}]", out)
+            for sk in SKILLS:
+                self.assertIn(f"[{label}/{sk}]", out)
         self.assertIn("+ SKILL.md", out)
         self.assertEqual(list(self.win.iterdir()), [])
         self.assertEqual(list(self.wsl.iterdir()), [])
 
-    def test_push_writes_all_four_targets_then_check_clean(self):
+    def test_push_writes_all_targets_then_check_clean(self):
         rc, _, err = self.run_sync("--push")
         self.assertEqual(rc, 0, err)
-        for root in self.targets().values():
-            self.assert_mirror(root)
+        for sk in SKILLS:
+            for root in self.targets(sk).values():
+                self.assert_mirror(root, sk)
         rc, out, _ = self.run_sync("--check")
         self.assertEqual(rc, 0)
-        self.assertEqual(out.count("相同"), 4)
+        self.assertEqual(out.count("相同"), N)
 
     def test_check_reports_modified_and_removed_then_push_mirrors(self):
-        self.run_sync("--push")
-        root = self.targets()["WSL-Codex"]
-        (root / "SKILL.md").write_bytes(b"changed")
-        (root / "extra.md").write_text("x")
-        (root / "olddir").mkdir()
-        (root / "olddir" / "f.md").write_text("x")
-        rc, out, _ = self.run_sync("--check")
-        self.assertEqual(rc, 1)
-        self.assertIn("~ SKILL.md", out)
-        self.assertIn("- extra.md", out)
-        self.assertIn("- olddir/f.md", out)
-        self.assertIn("- olddir/", out)
-        self.assertEqual((root / "SKILL.md").read_bytes(), b"changed")  # check 不寫入
-        rc, _, _ = self.run_sync("--push")
-        self.assertEqual(rc, 0)
-        self.assert_mirror(root)
+        for sk in SKILLS:
+            with self.subTest(skill=sk):
+                self.run_sync("--push")
+                root = self.targets(sk)["WSL-Codex"]
+                (root / "SKILL.md").write_bytes(b"changed")
+                (root / "extra.md").write_text("x")
+                (root / "olddir").mkdir()
+                (root / "olddir" / "f.md").write_text("x")
+                rc, out, _ = self.run_sync("--check")
+                self.assertEqual(rc, 1)
+                self.assertIn("~ SKILL.md", out)
+                self.assertIn("- extra.md", out)
+                self.assertIn("- olddir/f.md", out)
+                self.assertIn("- olddir/", out)
+                self.assertEqual((root / "SKILL.md").read_bytes(), b"changed")  # check 不寫入
+                rc, _, _ = self.run_sync("--push")
+                self.assertEqual(rc, 0)
+                self.assert_mirror(root, sk)
 
     def test_type_conflict_dir_where_file_expected(self):
-        self.run_sync("--push")
-        root = self.targets()["Win-Claude"]
-        (root / "SKILL.md").unlink()
-        (root / "SKILL.md").mkdir()
-        (root / "SKILL.md" / "x").write_text("x")
-        rc, _, err = self.run_sync("--push")
-        self.assertEqual(rc, 0, err)
-        self.assert_mirror(root)
+        for sk in SKILLS:
+            with self.subTest(skill=sk):
+                self.run_sync("--push")
+                root = self.targets(sk)["Win-Claude"]
+                (root / "SKILL.md").unlink()
+                (root / "SKILL.md").mkdir()
+                (root / "SKILL.md" / "x").write_text("x")
+                rc, _, err = self.run_sync("--push")
+                self.assertEqual(rc, 0, err)
+                self.assert_mirror(root, sk)
 
     def test_win_only_skips_wsl(self):
         with mock.patch.object(sync.c, "query_wsl_home", side_effect=AssertionError("called WSL")):
@@ -131,7 +145,8 @@ class SyncTest(unittest.TestCase):
         self.assertEqual(rc, 0, err)
         self.assertNotIn("WSL", out)
         self.assertEqual(list(self.wsl.iterdir()), [])
-        self.assert_mirror(self.targets()["Win-Codex"])
+        for sk in SKILLS:
+            self.assert_mirror(self.targets(sk)["Win-Codex"], sk)
 
     def test_check_and_push_are_exclusive_and_required(self):
         with contextlib.redirect_stderr(io.StringIO()):
@@ -151,13 +166,14 @@ class SyncTest(unittest.TestCase):
             with contextlib.redirect_stdout(out):
                 rc = sync.main(["--push", "--test-wsl-root", str(self.wsl)])
         self.assertEqual(rc, 0)
-        self.assertEqual(out.getvalue().count("[WSL-"), 2)
+        self.assertEqual(out.getvalue().count("[WSL-"), 2 * len(SKILLS))
         self.assertEqual(list(self.win.iterdir()), [])
 
     def test_check_writes_no_files_including_pycache(self):
         # 在無快取的隔離 repo 複本執行子程序，確認 --check 不寫任何檔（含 __pycache__）
         repo = self.tmp / "repo"
-        shutil.copytree(sync.SOURCE, repo / "agent-skill" / "team")
+        for sk in SKILLS:
+            shutil.copytree(sync.SOURCE_ROOT / sk, repo / "agent-skill" / sk)
         shutil.copy2(HERE / "sync.py", repo / "agent-skill" / "sync.py")
         (repo / "agent" / "src").mkdir(parents=True)
         shutil.copy2(HERE.parent / "agent" / "src" / "sync_common.py", repo / "agent" / "src")
@@ -193,20 +209,19 @@ class SyncTest(unittest.TestCase):
     def test_source_file_named_like_temp_is_mirrored(self):
         # 暫存檔名唯一，不會與受管檔案同名而覆寫或移走
         name = ".SKILL.md.sync-tmp"
-        (self.tmp / "src").mkdir()
-        src = self.tmp / "src" / "team"
-        shutil.copytree(sync.SOURCE, src)
-        (src / name).write_text("keep")
-        with mock.patch.object(sync, "SOURCE", src):
-            self.src_files = sorted(q.relative_to(src).as_posix() for q in src.rglob("*") if q.is_file())
+        src_root = self.tmp / "src"
+        for sk in SKILLS:
+            shutil.copytree(sync.SOURCE_ROOT / sk, src_root / sk)
+        (src_root / "team" / name).write_text("keep")
+        with mock.patch.object(sync, "SOURCE_ROOT", src_root):
+            self.src_files = {sk: self.list_files(src_root / sk) for sk in SKILLS}
             rc, _, err = self.run_sync("--push")
             self.assertEqual(rc, 0, err)
             root = self.targets()["Win-Claude"]
             (root / "SKILL.md").write_bytes(b"changed")
             rc, _, err = self.run_sync("--push")
             self.assertEqual(rc, 0, err)
-            got = sorted(q.relative_to(root).as_posix() for q in root.rglob("*") if q.is_file())
-            self.assertEqual(got, self.src_files)
+            self.assertEqual(self.list_files(root), self.src_files["team"])
             self.assertEqual((root / name).read_text(), "keep")
 
     def test_scan_error_aborts_without_changes(self):
@@ -228,18 +243,25 @@ class SyncTest(unittest.TestCase):
         self.assertIn("無法掃描", err)
         self.assertEqual({q: q.read_bytes() for q in self.tmp.rglob("*") if q.is_file()}, snapshot)
 
-    def test_hard_link_target_does_not_modify_external_file(self):
+    def check_hard_link_target(self, skill):
         self.run_sync("--push")
         outside = self.tmp / "outside.md"
         outside.write_bytes(b"external")
-        target = self.targets()["Win-Codex"] / "SKILL.md"
+        target = self.targets(skill)["Win-Codex"] / "SKILL.md"
         target.unlink()
         os.link(outside, target)
         rc, out, err = self.run_sync("--push")
         self.assertEqual(rc, 0, err)
         self.assertIn("~ SKILL.md", out)
         self.assertEqual(outside.read_bytes(), b"external")
-        self.assert_mirror(self.targets()["Win-Codex"])
+        for sk in SKILLS:
+            self.assert_mirror(self.targets(sk)["Win-Codex"], sk)
+
+    def test_hard_link_target_does_not_modify_external_file_team(self):
+        self.check_hard_link_target("team")
+
+    def test_hard_link_target_does_not_modify_external_file_review_pal(self):
+        self.check_hard_link_target("review-pal")
 
     # --- link 防護 ---
 
@@ -270,23 +292,37 @@ class SyncTest(unittest.TestCase):
         self.link_dir(self.wsl / ".claude" / "skills", outside)
         self.assert_refused_without_writes(outside)
 
-    def test_refuses_linked_team_dir(self):
+    def check_linked_skill_dir(self, skill):
         outside = self.tmp / "outside"
         (outside / "keep.md").parent.mkdir(parents=True)
         (outside / "keep.md").write_text("keep")
-        self.link_dir(self.wsl / ".agents" / "skills" / "team", outside)
+        self.link_dir(self.wsl / ".agents" / "skills" / skill, outside)
         self.assert_refused_without_writes(outside)
         self.assertTrue((outside / "keep.md").exists())
 
-    def test_refuses_link_inside_team(self):
+    def test_refuses_linked_team_dir(self):
+        self.check_linked_skill_dir("team")
+
+    def test_refuses_linked_review_pal_dir(self):
+        self.check_linked_skill_dir("review-pal")
+
+    def check_link_inside_skill(self, skill):
         self.run_sync("--push")
         outside = self.tmp / "outside"
         (outside / "keep.md").parent.mkdir(parents=True)
         (outside / "keep.md").write_text("keep")
-        self.link_dir(self.targets()["WSL-Codex"] / "evil", outside)
+        self.link_dir(self.targets(skill)["WSL-Codex"] / "evil", outside)
         rc, _, err = self.run_sync("--push")
         self.assertEqual(rc, 2)
+        self.assertIn("symlink / junction", err)
         self.assertTrue((outside / "keep.md").exists())
+        self.assertEqual(sorted(p.name for p in outside.iterdir()), ["keep.md"])
+
+    def test_refuses_link_inside_team(self):
+        self.check_link_inside_skill("team")
+
+    def test_refuses_link_inside_review_pal(self):
+        self.check_link_inside_skill("review-pal")
 
     def test_inside_rejects_escape(self):
         root = self.tmp / "root"
@@ -303,6 +339,112 @@ class SyncTest(unittest.TestCase):
         with self.assertRaises(sync.c.SyncError):
             sync.inside(root_real, root / "evil" / "f.md")
 
+    # --- 跨 skill：任何預檢失敗，所有 skill 的所有目標都不寫入 ---
+
+    def make_team_dirty(self):
+        """先 push 乾淨，再讓 team 有待更新內容，回傳其目標與快照基準。"""
+        self.run_sync("--push")
+        team = self.targets("team")["Win-Claude"]
+        (team / "SKILL.md").write_bytes(b"dirty")
+        return team
+
+    def test_missing_second_skill_source_aborts_all(self):
+        src_root = self.tmp / "src"
+        for sk in SKILLS:
+            shutil.copytree(sync.SOURCE_ROOT / sk, src_root / sk)
+        team = self.make_team_dirty()
+        (src_root / "review-pal" / "SKILL.md").unlink()
+        before = self.snapshot()
+        with mock.patch.object(sync, "SOURCE_ROOT", src_root):
+            rc, _, err = self.run_sync("--push")
+        self.assertEqual(rc, 2)
+        self.assertIn("找不到來源", err)
+        self.assertEqual(self.snapshot(), before)
+        self.assertEqual((team / "SKILL.md").read_bytes(), b"dirty")
+
+    def test_second_skill_source_scan_error_aborts_all(self):
+        team = self.make_team_dirty()
+        before = self.snapshot()
+        real_walk = os.walk
+        bad = sync.SOURCE_ROOT / "review-pal"
+
+        def broken_walk(top, onerror=None, followlinks=False):
+            if Path(top) == bad and onerror:
+                onerror(PermissionError(13, "denied", str(top)))
+                return iter(())
+            return real_walk(top, onerror=onerror, followlinks=followlinks)
+
+        with mock.patch.object(sync.os, "walk", side_effect=broken_walk):
+            rc, _, err = self.run_sync("--push")
+        self.assertEqual(rc, 2)
+        self.assertIn("無法掃描", err)
+        self.assertEqual(self.snapshot(), before)
+        self.assertEqual((team / "SKILL.md").read_bytes(), b"dirty")
+
+    def test_second_skill_target_junction_aborts_all(self):
+        self.run_sync("--push")
+        team = self.targets("team")["Win-Claude"]
+        (team / "SKILL.md").write_bytes(b"dirty")
+        outside = self.tmp / "outside"
+        outside.mkdir()
+        (outside / "keep.md").write_text("keep")
+        pal = self.targets("review-pal")["WSL-Codex"]
+        shutil.rmtree(pal)
+        self.link_dir(pal, outside)
+        before_outside = sorted(outside.rglob("*"))
+        rc, _, err = self.run_sync("--push")
+        self.assertEqual(rc, 2)
+        self.assertIn("symlink / junction", err)
+        self.assertEqual((team / "SKILL.md").read_bytes(), b"dirty")
+        self.assertEqual(sorted(outside.rglob("*")), before_outside)
+
+    def test_second_skill_target_scan_error_aborts_all(self):
+        team = self.make_team_dirty()
+        pal = self.targets("review-pal")["WSL-Codex"]
+        (pal / "extra.md").write_text("x")
+        before = self.snapshot()
+        real_walk = os.walk
+
+        def broken_walk(top, onerror=None, followlinks=False):
+            if Path(top) == pal and onerror:
+                onerror(PermissionError(13, "denied", str(top)))
+                return iter(())
+            return real_walk(top, onerror=onerror, followlinks=followlinks)
+
+        with mock.patch.object(sync.os, "walk", side_effect=broken_walk):
+            rc, _, err = self.run_sync("--push")
+        self.assertEqual(rc, 2)
+        self.assertIn("無法掃描", err)
+        self.assertEqual(self.snapshot(), before)
+        self.assertEqual((team / "SKILL.md").read_bytes(), b"dirty")
+
+    def test_push_fixing_review_pal_leaves_team_bytes_unchanged(self):
+        self.run_sync("--push")
+        pal = self.targets("review-pal")["Win-Codex"]
+        (pal / "SKILL.md").write_bytes(b"changed")
+        (pal / "extra.md").write_text("x")
+        team_before = {q: q.read_bytes() for sk_root in self.targets("team").values()
+                       for q in sk_root.rglob("*") if q.is_file()}
+        rc, _, err = self.run_sync("--push")
+        self.assertEqual(rc, 0, err)
+        self.assert_mirror(pal, "review-pal")
+        team_after = {q: q.read_bytes() for sk_root in self.targets("team").values()
+                      for q in sk_root.rglob("*") if q.is_file()}
+        self.assertEqual(team_after, team_before)
+
+    def test_only_review_pal_differs_team_reported_same(self):
+        self.run_sync("--push")
+        (self.targets("review-pal")["WSL-Claude"] / "SKILL.md").write_bytes(b"changed")
+        rc, out, _ = self.run_sync("--check")
+        self.assertEqual(rc, 1)
+        self.assertEqual(out.count("相同"), N - 1)
+        for label in FOUR:
+            self.assertIn(f"[{label}/team]", out)
+            line = next(l for l in out.splitlines() if l.startswith(f"[{label}/team]"))
+            self.assertTrue(line.endswith("相同"), line)
+        line = next(l for l in out.splitlines() if l.startswith("[WSL-Claude/review-pal]"))
+        self.assertTrue(line.endswith("有差異"), line)
+
 
 class SkillMetadataTest(unittest.TestCase):
     """解析原始 YAML，確認 manual-only 欄位型別正確。"""
@@ -314,36 +456,72 @@ class SkillMetadataTest(unittest.TestCase):
             self.skipTest("需要 PyYAML")
         self.yaml = yaml
 
-    def frontmatter(self):
-        text = (sync.SOURCE / "SKILL.md").read_text(encoding="utf-8").replace("\r\n", "\n")
+    def frontmatter(self, skill):
+        text = (sync.SOURCE_ROOT / skill / "SKILL.md").read_text(encoding="utf-8").replace("\r\n", "\n")
         self.assertTrue(text.startswith("---\n"))
         return self.yaml.safe_load(text.split("---\n", 2)[1])
 
     def test_claude_disable_model_invocation(self):
-        fm = self.frontmatter()
-        self.assertEqual(fm["name"], "team")
-        self.assertIs(fm["disable-model-invocation"], True)
-        desc = fm["description"]
-        self.assertTrue(0 < len(desc) <= 1024)
-        self.assertNotRegex(desc, r"<[^>]+>")
+        for sk in SKILLS:
+            with self.subTest(skill=sk):
+                fm = self.frontmatter(sk)
+                self.assertEqual(fm["name"], sk)
+                self.assertIs(fm["disable-model-invocation"], True)
+                desc = fm["description"]
+                self.assertTrue(0 < len(desc) <= 1024)
+                self.assertNotRegex(desc, r"<[^>]+>")
 
     def test_codex_allow_implicit_invocation_false(self):
-        data = self.yaml.safe_load((sync.SOURCE / "agents" / "openai.yaml").read_text(encoding="utf-8"))
-        self.assertIs(data["policy"]["allow_implicit_invocation"], False)
+        for sk in SKILLS:
+            with self.subTest(skill=sk):
+                data = self.yaml.safe_load(
+                    (sync.SOURCE_ROOT / sk / "agents" / "openai.yaml").read_text(encoding="utf-8"))
+                self.assertIs(data["policy"]["allow_implicit_invocation"], False)
+
+
+class ReviewPalModelsTest(unittest.TestCase):
+    """review-pal/models.json 的結構檢查 (SKILL.md 依賴這些欄位)。"""
+
+    def setUp(self):
+        import json
+        self.data = json.loads((sync.SOURCE_ROOT / "review-pal" / "models.json").read_text(encoding="utf-8"))
+
+    def test_reviewers_fields(self):
+        reviewers = self.data["reviewers"]
+        self.assertTrue(reviewers)
+        for key, r in reviewers.items():
+            with self.subTest(key=key):
+                self.assertRegex(key, r"^[a-z][a-z0-9_-]{0,31}$")  # 同時是 Herdr alias
+                self.assertIn(r["agent"], ("codex", "claude"))
+                self.assertIsInstance(r["model"], str)
+                self.assertTrue(r["model"])
+                self.assertTrue(r["effort"] is None or (isinstance(r["effort"], str) and r["effort"]))
+
+    def test_default_reviewer_covers_both_agents_and_exists(self):
+        default = self.data["default_reviewer"]
+        self.assertEqual(set(default), {"claude", "codex"})
+        for engineer, key in default.items():
+            with self.subTest(engineer=engineer):
+                self.assertIn(key, self.data["reviewers"])
+                # 預設是跨廠牌：Reviewer 的 agent 不同於 Engineer
+                self.assertNotEqual(self.data["reviewers"][key]["agent"], engineer)
 
 
 class SkillContentTest(unittest.TestCase):
     def test_relative_links_exist(self):
         import re
-        for md in sync.SOURCE.rglob("*.md"):
-            for target in re.findall(r"\]\(([^)#]+)(?:#[^)]*)?\)", md.read_text(encoding="utf-8")):
-                if "://" in target:
-                    continue
-                self.assertTrue((md.parent / target).exists(), f"{md}: {target}")
+        for sk in SKILLS:
+            for md in (sync.SOURCE_ROOT / sk).rglob("*.md"):
+                for target in re.findall(r"\]\(([^)#]+)(?:#[^)]*)?\)", md.read_text(encoding="utf-8")):
+                    if "://" in target:
+                        continue
+                    self.assertTrue((md.parent / target).exists(), f"{md}: {target}")
 
     def test_skill_md_under_500_lines(self):
-        lines = (sync.SOURCE / "SKILL.md").read_text(encoding="utf-8").splitlines()
-        self.assertLess(len(lines), 500)
+        for sk in SKILLS:
+            with self.subTest(skill=sk):
+                lines = (sync.SOURCE_ROOT / sk / "SKILL.md").read_text(encoding="utf-8").splitlines()
+                self.assertLess(len(lines), 500)
 
 
 if __name__ == "__main__":

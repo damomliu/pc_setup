@@ -1,0 +1,10 @@
+{
+  "default_reviewer": { "claude": "sol", "codex": "opus" },
+  "reviewers": {
+    "sol":    { "agent": "codex",  "model": "gpt-6.1-sol",       "effort": "medium" },
+    "astra":  { "agent": "codex",  "model": "gpt-6-astra",       "effort": "medium" },
+    "opus":   { "agent": "claude", "model": "claude-opus-5-5",   "effort": "medium" },
+    "fable":  { "agent": "claude", "model": "claude-fable-5-2",  "effort": "medium" },
+    "sonnet": { "agent": "claude", "model": "claude-sonnet-5-5", "effort": "high" }
+  }
+}

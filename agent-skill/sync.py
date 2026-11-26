@@ -1,8 +1,8 @@
-"""同步 team skill：把 repo 的 agent-skill/team/ mirror 到 Claude Code 與 Codex 的 global skills 目錄。
+"""同步 skills：把 repo 的 agent-skill/<skill>/ (team、review-pal) mirror 到 Claude Code 與 Codex 的 global skills 目錄。
 
-目標（每個 home）：
-    <home>/.agents/skills/team   Codex
-    <home>/.claude/skills/team   Claude Code
+目標（每個 home、每個 skill）：
+    <home>/.agents/skills/<skill>   Codex
+    <home>/.claude/skills/<skill>   Claude Code
 
 平台：
     Windows：Windows home + WSL home（--distro，預設 Ubuntu-24.04；--win-only 完全略過 WSL）
@@ -13,10 +13,10 @@
     python agent-skill/sync.py --push    mirror 寫入；目標多出的檔案會刪除
 
 安全：
-    - 目標路徑元件（home、.agents、.agents/skills、.claude、.claude/skills、team 及其內容）任一為
-      symlink / junction 就拒絕，任何寫入前先檢查全部目標
+    - 目標路徑元件（home、.agents、.agents/skills、.claude、.claude/skills、<skill> 及其內容）任一為
+      symlink / junction 就拒絕，任何寫入前先檢查全部 skill 的全部目標（來源與目標預檢、diff 全部完成才開始寫入）
     - 目錄掃描錯誤一律中止，不以不完整的掃描結果計算 diff
-    - 寫入與刪除前都以解析後的實際路徑確認在 team/ 之下；寫入用同目錄暫存檔加 os.replace，
+    - 寫入與刪除前都以解析後的實際路徑確認在 <skill>/ 之下；寫入用同目錄暫存檔加 os.replace，
       不原地截斷（避免改到 hard link 的外部檔案）；目錄逐層建立並檢查；多出的目錄在清空後用 rmdir 移除
     - 只比對與寫入 bytes，保留換行字元
 
@@ -37,21 +37,26 @@ from dataclasses import dataclass  # noqa: E402
 
 import sync_common as c  # noqa: E402
 
-SKILL = "team"
-SOURCE = HERE / SKILL
-# (agent 標籤, home 底下的路徑元件)
-TOOLS = (("Claude", (".claude", "skills", SKILL)), ("Codex", (".agents", "skills", SKILL)))
+SKILLS = ("team", "review-pal")
+SOURCE_ROOT = HERE  # 來源為 SOURCE_ROOT/<skill>
+# (agent 標籤, home 底下的路徑元件；skill 名稱另外接在後面)
+TOOLS = (("Claude", (".claude", "skills")), ("Codex", (".agents", "skills")))
 
 
 @dataclass
 class Target:
     label: str
     home: Path
-    parts: tuple
+    parts: tuple  # 含 skill 名稱
+    skill: str
 
     @property
     def path(self) -> Path:
         return self.home.joinpath(*self.parts)
+
+    @property
+    def source(self) -> Path:
+        return SOURCE_ROOT / self.skill
 
 
 @dataclass
@@ -66,7 +71,7 @@ class Diff:
 
 def parse_args(argv):
     p = argparse.ArgumentParser(prog="sync.py", allow_abbrev=False,
-                                description="同步 team skill 到 global skills 目錄")
+                                description="同步 team、review-pal skill 到 global skills 目錄")
     mode = p.add_mutually_exclusive_group(required=True)
     mode.add_argument("--check", action="store_true", help="列出差異，不寫入")
     mode.add_argument("--push", action="store_true", help="mirror 寫入目標")
@@ -113,7 +118,8 @@ def build_targets(a, plat: str) -> list:
         homes.append((prefix, Path(a.test_wsl_root) if a.test_wsl_root is not None else c.local_home()))
     else:
         raise c.SyncError(f"不支援的平台：{plat}")
-    return [Target(f"{prefix}-{tool}", home, parts) for prefix, home in homes for tool, parts in TOOLS]
+    return [Target(f"{prefix}-{tool}/{skill}", home, (*parts, skill), skill)
+            for prefix, home in homes for tool, parts in TOOLS for skill in SKILLS]
 
 
 def walk(root: Path):
@@ -151,7 +157,7 @@ def check_links(t: Target) -> None:
         walk(t.path)
 
 
-def diff(src_files: set, src_dirs: set, dst: Path) -> Diff:
+def diff(src_files: set, src_dirs: set, dst: Path, source: Path) -> Diff:
     if not dst.exists():
         return Diff(sorted(src_files), [], [])
     dst_files, dst_dirs = walk(dst)
@@ -159,7 +165,7 @@ def diff(src_files: set, src_dirs: set, dst: Path) -> Diff:
     for rel in sorted(src_files):
         if rel not in dst_files:
             added.append(rel)
-        elif (SOURCE / rel).read_bytes() != (dst / rel).read_bytes():
+        elif (source / rel).read_bytes() != (dst / rel).read_bytes():
             modified.append(rel)
     removed = sorted(dst_files - src_files) + sorted(d + "/" for d in dst_dirs - src_dirs)
     return Diff(added, modified, removed)
@@ -228,7 +234,7 @@ def push(t: Target, d: Diff) -> None:
     for rel in d.added + d.modified:
         parts = rel.split("/")
         parent = make_dirs(root, parts[:-1], root_real)
-        write_file(root_real, parent / parts[-1], (SOURCE / rel).read_bytes())
+        write_file(root_real, parent / parts[-1], (t.source / rel).read_bytes())
 
 
 def main(argv=None) -> int:
@@ -236,13 +242,14 @@ def main(argv=None) -> int:
     argv = sys.argv[1:] if argv is None else list(argv)
     try:
         a = parse_args(argv)
-        if not (SOURCE / "SKILL.md").is_file():
-            raise c.SyncError(f"找不到來源：{SOURCE / 'SKILL.md'}")
-        src_files, src_dirs = walk(SOURCE)
+        for skill in SKILLS:  # 任何寫入前先檢查全部 skill 的來源
+            if not (SOURCE_ROOT / skill / "SKILL.md").is_file():
+                raise c.SyncError(f"找不到來源：{SOURCE_ROOT / skill / 'SKILL.md'}")
+        sources = {skill: walk(SOURCE_ROOT / skill) for skill in SKILLS}
         targets = build_targets(a, c.detect_platform())
         for t in targets:  # 任何寫入前先檢查全部目標
             check_links(t)
-        diffs = [(t, diff(src_files, src_dirs, t.path)) for t in targets]
+        diffs = [(t, diff(*sources[t.skill], t.path, t.source)) for t in targets]
         dirty = False
         for t, d in diffs:
             status = "相同" if d.empty() else ("已更新" if a.push else "有差異")
