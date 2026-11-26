@@ -1,0 +1,6 @@
+# git-graph-tui (ggt) config. Copy to ~/.config/git-graph-tui/config.toml
+# (Windows: %USERPROFILE%\.config\git-graph-tui\config.toml).
+# WezTerm already uses Nerd Fonts (Maple Mono NF CN / Sarasa Term TC Nerd Font), but
+# `auto` may not detect them inside WSL/herdr, so force the Nerd Font icons.
+# If icons show as empty boxes, the terminal font is not a Nerd Font: use "unicode".
+icons = "nerd"

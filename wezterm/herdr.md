@@ -145,7 +145,7 @@ WSL 使用 [herdr-list-ids.py](src/herdr-list-ids.py), 複製至 `~/.config/herd
 
 ### Git Graph
 
-`Prefix, T` 以 [git-graph-tui](https://github.com/allient/git-graph-tui) (`ggt`, VS Code Git Graph 風格) 在新 tab 開啟 focused pane 所在 repo 的 commit graph, 並 focus 該 tab, 按 `q` 離開並關閉 tab. 右鍵開啟 ggt 的 context menu (checkout/merge/rebase/cherry-pick 等); ggt 在 herdr 內會自動把右鍵交給自己, 若仍跳出 herdr 選單, 可改按 `m`.
+`Prefix, T` 以 [git-graph-tui](https://github.com/allient/git-graph-tui) (`ggt`, VS Code Git Graph 風格) 在新 tab 開啟 focused pane 所在 repo 的 commit graph, 並 focus 該 tab, 按 `q` 離開並關閉 tab. 右鍵開啟 ggt 的 context menu (checkout/merge/rebase/cherry-pick 等); ggt 在 herdr 內會自動把右鍵交給自己, 若仍跳出 herdr 選單, 可改按 `m`. Toolbar 以 `icons = "nerd"` 顯示 Nerd Font 圖示 (WezTerm 字型已是 Nerd Font, 不需另裝; `auto` 在 WSL/herdr 內不一定偵測得到); 若顯示成空白方框, 表示終端機字型不是 Nerd Font, 改為 `icons = "unicode"`.
 
 - WSL 使用 [herdr-git-graph.py](src/herdr-git-graph.py) popup, 以 focused pane 的 repo root 開官方 plugin `allient/git-graph-tui/integrations/herdr` 的 `graph` pane, 再 `tab focus`. 不直接綁 plugin action `git-graph-tui.open`, 因為從 TUI 觸發時新 tab 會留在背景. 不在 repo 時顯示錯誤.
 - 官方 plugin 只支援 Linux/macOS (sh scripts), Windows 改用 [herdr-git-graph.ps1](src/herdr-git-graph.ps1) popup: 不在 repo 時顯示錯誤; ggt 啟動失敗或非零結束時保留訊息, 按任意鍵才關閉 tab.
@@ -155,6 +155,7 @@ WSL 使用 [herdr-list-ids.py](src/herdr-list-ids.py), 複製至 `~/.config/herd
 | ggt | [release](https://github.com/allient/git-graph-tui/releases) `git-graph-tui-x86_64-pc-windows-msvc.zip` (驗 sha256), `ggt.exe` -> `%USERPROFILE%\.cargo\bin` | `git-graph-tui-x86_64-unknown-linux-gnu.tar.xz` (驗 sha256), `ggt` -> `~/.cargo/bin` (plugin 固定會找此路徑) |
 | 開啟方式 | [herdr-git-graph.ps1](src/herdr-git-graph.ps1) -> `%APPDATA%\herdr\herdr-git-graph.ps1` (UTF-8 with BOM) | `herdr plugin install allient/git-graph-tui/integrations/herdr --yes`, 並將 [herdr-git-graph.py](src/herdr-git-graph.py) -> `~/.config/herdr/herdr-git-graph.py` (LF) |
 | `prefix+t` | 合併 repo config 的 popup command | 同 popup, command 改為 `python3 "$HOME/.config/herdr/herdr-git-graph.py"` |
+| ggt 設定 | [git-graph-tui.toml](config/git-graph-tui.toml) -> `%USERPROFILE%\.config\git-graph-tui\config.toml` | 同一份 -> `~/.config/git-graph-tui/config.toml` |
 
 ### Yazi / SSHFS
 
