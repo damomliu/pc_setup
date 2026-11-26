@@ -56,7 +56,7 @@ Ubuntu Prefix 為 `Ctrl+U`（按下後有 2 秒可接下一鍵）：
     - 若 Windows `default` 跑在 Session 0，臨時 tab 會詢問是否重啟。輸入 `y` 或 `yes` 才會停止該 session 的所有 panes 與 agents，然後從 Windows 桌面重新啟動。取消、驗證失敗或逾時時，保留臨時 tab 供查看。
     - 若忽略臨時 tab 後只剩 WSL Herdr 和原 tab，且原 tab 仍只有一個尚未送出非空白指令的預設 PowerShell pane，WSL Herdr 就緒後也會關閉原 tab。需同步 profile 後開新的 PowerShell 殼層。清除 history 不會恢復未使用狀態。
     - WSL Herdr 結束後回到 Bash。`sync-wezterm.ps1` 同時安裝 Windows 啟動腳本，請用該腳本同步設定。
-  - 搜 `錄製`：`錄製 Herdr tab`，選擇在目前視窗開新 tab 或另開視窗，再輸入錄影檔名。輸入框預填當下日期時間，可編輯整段名稱，存檔時補上 `.cast`。重名時可改新錄影的檔名，或刪除原錄影與 marker 後沿用檔名。錄影畫面從主畫面目前的 tab 開始，若不是目標請在錄影畫面自行切過去。錄影 client 就緒後送 `Ctrl+B, B` 收起 sidebar。`Ctrl+B, Q` detach 即停止，顯示檔案資訊與重看／轉 GIF 指令後按任意鍵關閉。需先在 WSL 安裝 `herdr-rec`、asciinema 與 agg，限制與用法見 [recordings.md](recordings.md#錄影)。
+  - 搜 `錄製`：`錄製 Herdr tab`，選擇在目前視窗開新 tab 或另開視窗，再輸入錄影檔名。在目前視窗開新 tab 時, tab 標題使用最後確認的檔名, 省略 `.cast`。輸入框預填當下日期時間，可編輯整段名稱，存檔時補上 `.cast`。重名時可改新錄影的檔名，或刪除原錄影與 marker 後沿用檔名。錄影畫面從主畫面目前的 tab 開始，若不是目標請在錄影畫面自行切過去。錄影 client 就緒後送 `Ctrl+B, B` 收起 sidebar。`Ctrl+B, Q` detach 即停止，顯示檔案資訊與重看／轉 GIF 指令後按任意鍵關閉。需先在 WSL 安裝 `herdr-rec`、asciinema 與 agg，限制與用法見 [recordings.md](recordings.md#錄影)。
   - 搜 `播放`：`播放 Herdr 錄影`，開新 tab 執行 WSL `herdr-play`，在 WSL eth0 IP 的 `:47615` 啟動本機 server 並以瀏覽器開啟播放頁，可選錄影、逐 frame 前後跳與中途變速；關閉該 tab 即停止 server，已在執行時只開瀏覽器。需先在 WSL 安裝 `herdr-play` 與播放頁，用法與快速鍵見 [recordings.md](recordings.md#播放)。
   - 搜 `RyokoTower`：七個模擬器，佈局相同
     - `RyokoTower Simulators (新分頁)`：在目前視窗開一個 tab

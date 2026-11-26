@@ -140,6 +140,9 @@ if $interactive; then
     read -er -i "$name" -p '新錄影檔名 (Ctrl+C 取消): ' name || exit 0
     name=${name%.cast}
   done
+  if title_b64=$(printf '%s' "$name" | base64 -w 0); then
+    printf '\033]1337;SetUserVar=PC_SETUP_HERDR_REC_TITLE=%s\007' "$title_b64"
+  fi
   printf '\033]1337;SetUserVar=PC_SETUP_HERDR_REC_READY=MQ==\007'
 else
   file="$dir/${legacy_file:-$name.cast}"

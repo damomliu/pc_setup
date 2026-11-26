@@ -10,6 +10,7 @@
 - 停止: 在錄影畫面按 `Ctrl+B, Q` detach. 錄影期間 `Ctrl+\` 會被 asciinema 攔截, 用於暫停/繼續錄影.
 - 檔名輸入框預填當下本機時間 `YYYYMMDD-HHMMSS`, 可直接按 Enter 採用, 或編輯整段名稱. 清空後按 Enter 會使用當次預填值, Esc 取消. 存檔時會補上 `.cast`.
 - 重名時在錄影 pane 按 Enter 或輸入 `r` 改新錄影的檔名, 每次送出都會重新檢查. 輸入 `d` 刪除原錄影與其 marker 並沿用檔名. 取代時先暫存原檔, 新錄影成功後才刪除. 輸入 `q` 或按 Ctrl+C 可取消.
+- 在目前 WezTerm 視窗開新 tab 時, tab 標題使用最後確認的錄影檔名, 省略 `.cast`.
 - 存放: WSL `~/recordings/herdr/<檔名>.cast` (目錄 700, 檔案 600). 播放頁新增的 marker 存在旁掛的 `<同名>.markers.json` (600). 只留本機, 不進 git, 不上傳 asciinema.org.
 - 終端機重看: `asciinema play -s 4 -i 2 <檔案>`. 錄影保留原始時間; agent 工作時 spinner 持續更新, 閒置上限不一定有效, 主要靠加速. 要逐 frame 查看或中途變速改用下方播放頁.
 - 轉 GIF: `agg --text-font-family 'Noto Sans Mono CJK TC' --speed 4 --idle-time-limit 2 --select 1:00..2:30 <檔案> <輸出>.gif`, 只剪 1~2 分鐘片段. `--select` 的時間以加速後為準. 分享前人工檢視, 錄影可能含客戶名稱, IP 或 token.

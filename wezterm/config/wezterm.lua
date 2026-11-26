@@ -1557,9 +1557,14 @@ local function spawn_herdr_rec(window, line, separate_window)
     if not mux.get_pane(pane_id) then
       return
     end
-    if rec_pane:get_user_vars().PC_SETUP_HERDR_REC_READY ~= '1' then
+    local vars = rec_pane:get_user_vars()
+    if vars.PC_SETUP_HERDR_REC_READY ~= '1' then
       wezterm.time.call_after(0.5, hide_sidebar)
       return
+    end
+    local title = vars.PC_SETUP_HERDR_REC_TITLE
+    if tries == 0 and not separate_window and title and title ~= '' then
+      tab:set_title(title)
     end
     tries = tries + 1
     if rec_pane:is_alt_screen_active() then
