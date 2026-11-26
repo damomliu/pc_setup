@@ -1,0 +1,8 @@
+# Yazi 設定: Windows 部署至 %APPDATA%\yazi\config\yazi.toml; WSL 可部署至 ~/.config/yazi/yazi.toml
+# 文字檔 Enter 預設用 vim 在同一 pane 編輯(block); O 可改選 code
+[opener]
+edit = [
+	{ run = "vim %s",           desc = "vim",          for = "windows", block = true },
+	{ run = "code %s",          desc = "code",         for = "windows", orphan = true },
+	{ run = "${EDITOR:-vi} %s", desc = "$EDITOR",      for = "unix", block = true },
+]

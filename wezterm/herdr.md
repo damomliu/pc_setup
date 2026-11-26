@@ -20,7 +20,7 @@
 | Prefix, Shift+M | 移動 pane 至 workspace |
 | Prefix, I | Pane 總覽 |
 | Prefix, U | Agent 用量 |
-| Prefix, Y | 開啟 Yazi |
+| Prefix, Y / Prefix, Shift+Y | 開啟 Yazi |
 | Prefix, Shift+S | 卸載 SSHFS |
 
 ## 快速鍵
@@ -52,6 +52,7 @@
 - `Prefix, Shift+M` -- 選擇 workspace, 將目前 pane 移至該 workspace 的 active tab 右側並聚焦該 pane. 選單依 workspace 順序顯示, linked worktree 列在同 repo 的主 workspace 下方並加上 `>`. 初始反白停在 `(current)`, 確認該列會留在選單.
 - `Prefix, U` -- popup 以彩色進度條顯示 Claude/Codex usage (5h/Wk), `U` 切換剩餘/已使用, `T` 切換相對/重置時間, `R` 重新查詢, `Space`/`Esc`/`Enter` 關閉; 需要 [quota-cli](#quota-cli)
 - `Prefix, Y` -- 右側 split 開 Yazi, 瀏覽目前 pane 的本機或 SSH 遠端目錄; 見 [Yazi / SSHFS](#yazi--sshfs)
+- `Prefix, Shift+Y` -- 同 `Prefix, Y`, 但在目前 workspace 新增 tab 開 Yazi
 - `Prefix, Shift+S` -- 列出 sshfs 掛載點, 選擇後卸載
 - `Prefix, S` 維持 Herdr 預設的 Settings
 ### Pane 移動 popup 安裝
@@ -142,12 +143,13 @@ WSL 使用 [herdr-list-ids.py](src/herdr-list-ids.py), 複製至 `~/.config/herd
 
 ### Yazi / SSHFS
 
-`Prefix, Y` 在右側 split 開 Yazi: 一般 pane 開本機 cwd; SSH pane 掛載遠端 host 後開啟目錄. 離開 Yazi 後保留 shell. `Prefix, Shift+S` 選擇掛載點並卸載, 若有 pane 正在使用會先提示.
+`Prefix, Y` 在右側 split 開 Yazi, `Prefix, Shift+Y` 改為新 tab(`-Target tab` / `--tab`): 一般 pane 開本機 cwd; SSH pane 掛載遠端 host 後開啟目錄. 離開 Yazi 後保留 shell. `Prefix, Shift+S` 選擇掛載點並卸載, 若有 pane 正在使用會先提示.
 
 - 遠端首次開啟會詢問 RemotePath; 已掛載時沿用該 host 上次路徑. `-DefaultPath` / `--default-path` 可指定預設路徑.
 - host 使用 `~/.ssh/config` 的 alias, 不支援含 `RemoteCommand` 的 alias.
 - 遠端一律掛載 `/`, 換目錄不必重掛; 遇到舊式掛載會先確認再改掛.
 - 遠端大型 repo 使用 File Viewer 會很慢, 改用 Yazi 預設設定, 避免安裝會執行 git status 的外掛.
+- 編輯檔案: Yazi 沒有內建 editor, 由 [yazi.toml](config/yazi.toml) 的 `[opener] edit` 決定. Windows 文字檔 `Enter` 用 vim 在同一 pane 編輯, 離開後回到 Yazi; `O` 可改選 `code` (新視窗). WSL 用 `$EDITOR`, 未設定時為 vi.
 
 **安裝**
 
@@ -156,9 +158,10 @@ WSL 使用 [herdr-list-ids.py](src/herdr-list-ids.py), 複製至 `~/.config/herd
 | Yazi | `winget install --id sxyazi.yazi -e` | 從 [GitHub release](https://github.com/sxyazi/yazi/releases) 下載 `yazi-x86_64-unknown-linux-gnu.zip`, 將 `yazi`, `ya` 放到 `~/.local/bin` |
 | SSHFS | `winget install --id WinFsp.WinFsp -e` 與 `winget install --id SSHFS-Win.SSHFS-Win -e` | 安裝 `sshfs` |
 | 掛載 helper | [sshfs-mount.ps1](src/sshfs-mount.ps1) -> `%APPDATA%\herdr\sshfs-mount.ps1` | [sshfs-mount.sh](src/sshfs-mount.sh) -> `~/.local/bin/sshfs-mount` |
+| Yazi 設定 | [yazi.toml](config/yazi.toml) -> `%APPDATA%\yazi\config\yazi.toml` | 選用, -> `~/.config/yazi/yazi.toml` |
 | Popup helper | [herdr-sshfs.ps1](src/herdr-sshfs.ps1) -> `%APPDATA%\herdr\herdr-sshfs.ps1` (UTF-8 with BOM) | [herdr-sshfs.py](src/herdr-sshfs.py) -> `~/.config/herdr/herdr-sshfs.py` (LF) |
 
-合併 repo config 的 `prefix+y` 與 `prefix+shift+s` command; 預設為 Windows, WSL 依註解替換.
+合併 repo config 的 `prefix+y`, `prefix+shift+y` 與 `prefix+shift+s` command; 預設為 Windows, WSL 依註解替換.
 
 Windows 安裝或升級 SSHFS-Win 後, 需以系統管理員設定 `RunAs`, 否則可能出現 error 67:
 

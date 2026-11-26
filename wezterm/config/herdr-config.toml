@@ -78,6 +78,16 @@ description = "open yazi (local or sshfs remote)"
 width = "50%"
 height = "25%"
 
+# Same as prefix+y, but opens Yazi in a new tab of the current workspace.
+# WSL: python3 "$HOME/.config/herdr/herdr-sshfs.py" open --tab --default-path /opt/aiont-vibration-monitoring
+[[keys.command]]
+key = "prefix+shift+y"
+type = "popup"
+command = 'powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%APPDATA%\herdr\herdr-sshfs.ps1" -DefaultPath /opt/aiont-vibration-monitoring -Target tab'
+description = "open yazi in tab (local or sshfs remote)"
+width = "50%"
+height = "25%"
+
 # Pick an existing sshfs mount and unmount it. WSL: python3 "$HOME/.config/herdr/herdr-sshfs.py" unmount
 [[keys.command]]
 key = "prefix+shift+s"

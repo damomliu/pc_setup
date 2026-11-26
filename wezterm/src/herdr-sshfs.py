@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Herdr popup: open 在右側 split 開 Yazi(focused pane 正在 ssh 時先以 sshfs 掛載該 host 的 /, 否則開本機 cwd); unmount 選擇既有掛載後卸載.
+"""Herdr popup: open 在右側 split(--tab 則為新 tab)開 Yazi(focused pane 正在 ssh 時先以 sshfs 掛載該 host 的 /, 否則開本機 cwd); unmount 選擇既有掛載後卸載.
 
 部署至 ~/.config/herdr/herdr-sshfs.py; 需要 ~/.local/bin/sshfs-mount 與 yazi.
-用法: herdr-sshfs.py [open|unmount] [--default-path PATH]
+用法: herdr-sshfs.py [open|unmount] [--default-path PATH] [--tab]
 """
 import argparse
 import json
@@ -24,6 +24,8 @@ SSHFS_MOUNT = shutil.which("sshfs-mount") or os.path.expanduser("~/.local/bin/ss
 STATE_FILE = os.path.expanduser("~/.local/state/herdr-sshfs.json")
 # ssh 需要帶值的 option, 解析 host 時要跳過其值
 SSH_VALUE_OPTIONS = set("BbcDEeFIiJLlmOoPpQRSWw")
+# --tab: 在新 tab 開 Yazi, 由 main() 設定
+OPEN_IN_TAB = False
 
 
 POPUP_TITLE = (sys.argv[1:2] == ["unmount"] and "卸載 SSHFS" or "開啟 Yazi")
@@ -261,9 +263,14 @@ def open_browser(cli, sshfs_mount, pane, default_path):
 
 
 def open_yazi(cli, pane, root):
-    """在 active pane 右側 split 一個 shell, cd 到 root 後執行 yazi; 離開 yazi 後留下該 shell(cwd 為 root)."""
+    """在 active pane 右側 split(--tab 則為新 tab)開一個 shell, cd 到 root 後執行 yazi; 離開 yazi 後留下該 shell(cwd 為 root)."""
     # 不用 --cwd root: 以 sshfs 路徑為 cwd 開 pane, shell 要約 3.5s 才出 prompt; 先在 home 開再 cd 只要約 0.3s
-    new_pane = cli("pane", "split", "--pane", pane, "--direction", "right", "--cwd", os.path.expanduser("~"), "--focus")["pane"]["pane_id"]
+    home = os.path.expanduser("~")
+    if OPEN_IN_TAB:
+        workspace = os.environ.get("HERDR_ACTIVE_WORKSPACE_ID")
+        new_pane = cli("tab", "create", "--cwd", home, "--focus", *(["--workspace", workspace] if workspace else []))["root_pane"]["pane_id"]
+    else:
+        new_pane = cli("pane", "split", "--pane", pane, "--direction", "right", "--cwd", home, "--focus")["pane"]["pane_id"]
     # pane run 的輸出不是 JSON, 只看 exit code
     result = subprocess.run([os.environ["HERDR_BIN_PATH"], "pane", "run", new_pane, "cd -- " + shlex.quote(root) + " && yazi"],
                             capture_output=True, text=True)
@@ -303,7 +310,10 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("mode", nargs="?", default="open", choices=["open", "unmount"])
     parser.add_argument("--default-path", default="")
+    parser.add_argument("--tab", action="store_true", help="在新 tab 開 Yazi(預設為右側 split)")
     args = parser.parse_args()
+    global OPEN_IN_TAB
+    OPEN_IN_TAB = args.tab
     binary = os.environ["HERDR_BIN_PATH"]
     pane = os.environ["HERDR_ACTIVE_PANE_ID"]
 

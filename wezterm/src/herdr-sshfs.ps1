@@ -1,8 +1,9 @@
 ﻿param(
     [ValidateSet('open', 'unmount')][string]$Mode = 'open',
-    [string]$DefaultPath = ''
+    [string]$DefaultPath = '',
+    [ValidateSet('split', 'tab')][string]$Target = 'split'
 )
-# Herdr popup: open 在右側 split 開 Yazi(focused pane 正在 ssh 時先以 sshfs.kr 掛載該 host 的 /, 否則開本機 cwd); unmount 選擇既有掛載後卸載.
+# Herdr popup: open 在右側 split(-Target tab 則為新 tab)開 Yazi(focused pane 正在 ssh 時先以 sshfs.kr 掛載該 host 的 /, 否則開本機 cwd); unmount 選擇既有掛載後卸載.
 # 部署至 %APPDATA%\herdr\herdr-sshfs.ps1, 與 sshfs-mount.ps1 同目錄; 需要 WinFsp + SSHFS-Win 與 yazi.
 # 注意: 必須存成 UTF-8 with BOM, 否則 Windows PowerShell 5.1 會以 cp950 解析而壞掉.
 $ErrorActionPreference = 'Stop'
@@ -204,7 +205,7 @@ function Get-DrivePath {
     param([string]$Drive, [string]$Path)
     return $Drive + '\' + $Path.Trim('/').Replace('/', '\')
 }
-# 在 active pane 右側 split 一個 shell, cd 到 root 後執行 yazi; 離開 yazi 後留下該 shell(cwd 為 root)
+# 在 active pane 右側 split(或新 tab)開一個 shell, cd 到 root 後執行 yazi; 離開 yazi 後留下該 shell(cwd 為 root)
 function Open-Yazi {
     param([string]$Root)
     # herdr server 可能早於 yazi 安裝啟動, 新 pane 的 PATH 不一定有 yazi, 因此用絕對路徑
@@ -212,7 +213,13 @@ function Open-Yazi {
     if (!$yazi) { $yazi = Join-Path $env:LOCALAPPDATA 'Microsoft\WinGet\Links\yazi.exe' }
     if (!(Test-Path $yazi)) { throw '找不到 yazi, 請先安裝: winget install --id sxyazi.yazi -e' }
     # 不用 --cwd Root: 與 WSL 相同, 先在 home 開 pane 再 cd, 避免以 sshfs 路徑為 cwd 開 pane 的延遲
-    $newPane = (Invoke-Herdr @('pane', 'split', '--pane', $pane, '--direction', 'right', '--cwd', $HOME, '--focus')).pane.pane_id
+    if ($Target -eq 'tab') {
+        $arguments = @('tab', 'create', '--cwd', $HOME, '--focus')
+        if ($env:HERDR_ACTIVE_WORKSPACE_ID) { $arguments += @('--workspace', $env:HERDR_ACTIVE_WORKSPACE_ID) }
+        $newPane = (Invoke-Herdr $arguments).root_pane.pane_id
+    } else {
+        $newPane = (Invoke-Herdr @('pane', 'split', '--pane', $pane, '--direction', 'right', '--cwd', $HOME, '--focus')).pane.pane_id
+    }
     $quote = { param($text) "'" + $text.Replace("'", "''") + "'" }
     # Windows 的 pane cwd 來自 prompt 送出的 OSC 9;9; yazi 在同一行啟動, prompt 不會重畫, 因此先自行送出, 讓卸載能偵測到這個 pane
     $command = 'Set-Location -LiteralPath ' + (& $quote $Root) + '; if ($?) { [Console]::Write([char]27 + '']9;9;'' + $PWD.ProviderPath + [char]27 + ''\''); & ' + (& $quote $yazi) + ' }'
