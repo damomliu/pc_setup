@@ -166,6 +166,7 @@ Claude Code 另外依剩餘比例變色（5h／weekly 剩餘或 Context 剩餘 �
   - 成員模型在 [models.json](../agent-skill/team/models.json)（依隊名分 `nexense`、`claude`、`gpt`），模型換版只改這個檔
   - 佈署：`python agent-skill/sync.py --check` / `--push`，把 `team`、`review-pal`、`skill-review` 三個 skill 各自 mirror 到 `~/.claude/skills/<skill>` 與 `~/.agents/skills/<skill>`（複製，不用 symlink）；Windows 執行時一併處理 WSL（`--distro`、`--win-only`），WSL 只處理本機
   - Manual only 設定跟著 skill：`SKILL.md` frontmatter `disable-model-invocation: true`、`agents/openai.yaml` `policy.allow_implicit_invocation: false`
+  - `/team <隊名>` 要單獨下（或作為該 session 第一個 slash command），不能當成其他 slash command 的引數：`/grill-me #591 /team claude` 不會載入 team，PM 讀不到 `models.json`，會用本機預設模型開成員；要搭配 grilling 時先 `/team claude`，再於同一 session 下 `/grill-me ...`
   - 測試：`python agent-skill/test_sync.py`
 - review-pal（本機 global skill，manual only）：`team` 的精簡版，不分 PM/Worker；當前 agent 是 Engineer，自己做 plan 與實作，用 Herdr 開一位或多位 Reviewer 先審 plan (`APPROVE-PLAN`)、實作後再審實作 (`APPROVE-IMPLEMENT`)；`/review-pal [<key>[/effort] ...]`（Claude）、`$review-pal [<key>[/effort] ...]`（Codex），不帶引數開一位跨廠牌 Reviewer
   - 正本：[agent-skill/review-pal/](../agent-skill/review-pal/SKILL.md)；佈署與測試同 team
