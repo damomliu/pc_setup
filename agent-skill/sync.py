@@ -1,4 +1,4 @@
-"""同步 skills：把 repo 的 agent-skill/<skill>/ (team、review-pal) mirror 到 Claude Code 與 Codex 的 global skills 目錄。
+"""同步 skills：把 repo 的 agent-skill/<skill>/ (team、review-pal、skill-review) mirror 到 Claude Code 與 Codex 的 global skills 目錄。
 
 目標（每個 home、每個 skill）：
     <home>/.agents/skills/<skill>   Codex
@@ -37,7 +37,7 @@ from dataclasses import dataclass  # noqa: E402
 
 import sync_common as c  # noqa: E402
 
-SKILLS = ("team", "review-pal")
+SKILLS = ("team", "review-pal", "skill-review")
 SOURCE_ROOT = HERE  # 來源為 SOURCE_ROOT/<skill>
 # (agent 標籤, home 底下的路徑元件；skill 名稱另外接在後面)
 TOOLS = (("Claude", (".claude", "skills")), ("Codex", (".agents", "skills")))
@@ -71,7 +71,7 @@ class Diff:
 
 def parse_args(argv):
     p = argparse.ArgumentParser(prog="sync.py", allow_abbrev=False,
-                                description="同步 team、review-pal skill 到 global skills 目錄")
+                                description="同步 team、review-pal、skill-review skill 到 global skills 目錄")
     mode = p.add_mutually_exclusive_group(required=True)
     mode.add_argument("--check", action="store_true", help="列出差異，不寫入")
     mode.add_argument("--push", action="store_true", help="mirror 寫入目標")

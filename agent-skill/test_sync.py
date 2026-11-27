@@ -1,4 +1,4 @@
-"""agent-skill/sync.py 的隔離測試（team、review-pal 兩個 skill）（標準函式庫 unittest）。
+"""agent-skill/sync.py 的隔離測試 (team、review-pal、skill-review 三個 skill) (標準函式庫 unittest)。
 
 以 --test-win-home / --test-wsl-root 指向暫存目錄，不碰真實 home、不呼叫真實 WSL。
 YAML 欄位檢查需要 PyYAML，沒有則 skip。
