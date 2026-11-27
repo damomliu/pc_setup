@@ -6,3 +6,12 @@ edit = [
 	{ run = "code %s",          desc = "code",         for = "windows", orphan = true },
 	{ run = "${EDITOR:-vi} %s", desc = "$EDITOR",      for = "unix", block = true },
 ]
+glow = [
+	{ run = '''set "PAGER='%%ProgramFiles%%/Git/usr/bin/less.exe' -R" && glow --pager -- %s1''', desc = "Read with Glow", for = "windows", block = true },
+	{ run = "glow --tui -- %s1", desc = "Read with Glow", for = "unix", block = true },
+]
+
+[open]
+prepend_rules = [
+	{ url = "*.{md,markdown}", use = ["edit", "glow", "reveal"] },
+]

@@ -205,7 +205,7 @@ function Get-DrivePath {
     param([string]$Drive, [string]$Path)
     return $Drive + '\' + $Path.Trim('/').Replace('/', '\')
 }
-# 在 active pane 右側 split(或新 tab)開一個 shell, cd 到 root 後執行 yazi; 離開 yazi 後留下該 shell(cwd 為 root)
+# 在右側 split 或新 tab 執行 Yazi, 正常退出後關閉該 pane
 function Open-Yazi {
     param([string]$Root)
     # herdr server 可能早於 yazi 安裝啟動, 新 pane 的 PATH 不一定有 yazi, 因此用絕對路徑
@@ -222,7 +222,7 @@ function Open-Yazi {
     }
     $quote = { param($text) "'" + $text.Replace("'", "''") + "'" }
     # Windows 的 pane cwd 來自 prompt 送出的 OSC 9;9; yazi 在同一行啟動, prompt 不會重畫, 因此先自行送出, 讓卸載能偵測到這個 pane
-    $command = 'Set-Location -LiteralPath ' + (& $quote $Root) + '; if ($?) { [Console]::Write([char]27 + '']9;9;'' + $PWD.ProviderPath + [char]27 + ''\''); & ' + (& $quote $yazi) + ' }'
+    $command = 'Set-Location -LiteralPath ' + (& $quote $Root) + '; if ($?) { [Console]::Write([char]27 + '']9;9;'' + $PWD.ProviderPath + [char]27 + ''\''); & ' + (& $quote $yazi) + '; if ($? -and $LASTEXITCODE -eq 0) { exit } }'
     # Yazi 在 Windows 需要 file.exe 判斷 MIME; herdr server 的環境可能沒有 YAZI_FILE_ONE, 改用 Git for Windows 內附的 file.exe
     $file = Join-Path $env:ProgramFiles 'Git\usr\bin\file.exe'
     if (!$env:YAZI_FILE_ONE -and (Test-Path $file)) { $command = '$env:YAZI_FILE_ONE = ' + (& $quote $file) + '; ' + $command }

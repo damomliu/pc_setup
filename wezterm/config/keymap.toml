@@ -1,0 +1,6 @@
+[mgr]
+prepend_keymap = [
+	{ on = "e", run = 'shell --block -- if defined EDITOR (%%EDITOR%% %s) else (vim -- %s)', desc = "Edit files", for = "windows" },
+	{ on = "e", run = 'shell --block -- ${EDITOR:-vim} %s', desc = "Edit files", for = "unix" },
+	{ on = "o", run = "plugin render-markdown", desc = "Read Markdown with Glow" },
+]

@@ -159,23 +159,30 @@ WSL 使用 [herdr-list-ids.py](src/herdr-list-ids.py), 複製至 `~/.config/herd
 
 ### Yazi / SSHFS
 
-`Prefix, Y` 在右側 split 開 Yazi, `Prefix, Shift+Y` 改為新 tab(`-Target tab` / `--tab`): 一般 pane 開本機 cwd; SSH pane 掛載遠端 host 後開啟目錄. 離開 Yazi 後保留 shell. `Prefix, Shift+S` 選擇掛載點並卸載, 若有 pane 正在使用會先提示.
+`Prefix, Y` 在右側 split 開 Yazi, `Prefix, Shift+Y` 改為新 tab (`-Target tab` / `--tab`). 一般 pane 開本機 cwd, SSH pane 掛載遠端 host 後開啟目錄. 在 Yazi 按 `q` 正常退出會關閉專用 pane, 若該 pane 是 tab 裡唯一的 pane, 也會關閉 tab. 啟動失敗時可在 pane 查看錯誤. `Prefix, Shift+S` 選擇掛載點並卸載, 若有 pane 正在使用會先提示.
 
 - 遠端首次開啟會詢問 RemotePath; 已掛載時沿用該 host 上次路徑. `-DefaultPath` / `--default-path` 可指定預設路徑.
 - host 使用 `~/.ssh/config` 的 alias, 不支援含 `RemoteCommand` 的 alias.
 - 遠端一律掛載 `/`, 換目錄不必重掛; 遇到舊式掛載會先確認再改掛.
 - 遠端大型 repo 使用 File Viewer 會很慢, 改用 Yazi 預設設定, 避免安裝會執行 git status 的外掛.
-- 編輯檔案: Yazi 沒有內建 editor, 由 [yazi.toml](config/yazi.toml) 的 `[opener] edit` 決定. Windows 文字檔 `Enter` 用 vim 在同一 pane 編輯, 離開後回到 Yazi; `O` 可改選 `code` (新視窗). WSL 用 `$EDITOR`, 未設定時為 vi.
+- `e` 在同一 pane 用 `EDITOR` 編輯選取檔案或游標所在檔案. Windows 與 WSL 在 `EDITOR` 為空時都用 `vim`.
+- `o` 直接用 Glow 閱讀 `.md` 或 `.markdown`. 多選時讀第一個選取項目. Windows 使用 Git for Windows 隨附的 `less.exe` 翻頁, WSL 使用 Glow TUI. 在 renderer 按 `q` 回到 Yazi.
+- `Enter` 仍照 [yazi.toml](config/yazi.toml) 的 opener 開啟檔案. 文字檔在 Windows 用 `vim`, 在 WSL 用 `$EDITOR` (未設定時用 `vi`). `O` 開啟 Open with, Windows 可選 `code`, `Esc` 取消選單.
 
 **安裝**
 
 | 項目 | Windows | WSL |
 |---|---|---|
 | Yazi | `winget install --id sxyazi.yazi -e` | 從 [GitHub release](https://github.com/sxyazi/yazi/releases) 下載 `yazi-x86_64-unknown-linux-gnu.zip`, 將 `yazi`, `ya` 放到 `~/.local/bin` |
+| Glow 2.1.0+ | `winget install --id charmbracelet.glow -e` | 從 [Glow releases](https://github.com/charmbracelet/glow/releases) 下載對應架構的 Linux binary, 將 `glow` 放到 `~/.local/bin` |
 | SSHFS | `winget install --id WinFsp.WinFsp -e` 與 `winget install --id SSHFS-Win.SSHFS-Win -e` | 安裝 `sshfs` |
 | 掛載 helper | [sshfs-mount.ps1](src/sshfs-mount.ps1) -> `%APPDATA%\herdr\sshfs-mount.ps1` | [sshfs-mount.sh](src/sshfs-mount.sh) -> `~/.local/bin/sshfs-mount` |
 | Yazi 設定 | [yazi.toml](config/yazi.toml) -> `%APPDATA%\yazi\config\yazi.toml` | 選用, -> `~/.config/yazi/yazi.toml` |
+| Yazi 快捷鍵 | [keymap.toml](config/keymap.toml) -> `%APPDATA%\yazi\config\keymap.toml` | -> `~/.config/yazi/keymap.toml` |
+| Yazi Markdown renderer | [render-markdown.yazi](config/yazi-plugins/render-markdown.yazi/) -> `%APPDATA%\yazi\config\plugins\render-markdown.yazi` | -> `~/.config/yazi/plugins/render-markdown.yazi` |
 | Popup helper | [herdr-sshfs.ps1](src/herdr-sshfs.ps1) -> `%APPDATA%\herdr\herdr-sshfs.ps1` (UTF-8 with BOM) | [herdr-sshfs.py](src/herdr-sshfs.py) -> `~/.config/herdr/herdr-sshfs.py` (LF) |
+
+若已自訂 `yazi.toml` 或 `keymap.toml`, 請合併對應的 opener、規則與鍵位. 設定 `YAZI_CONFIG_HOME` 時, `yazi.toml`、`keymap.toml` 與 `plugins/` 都放在該目錄. WSL 有設定 `XDG_CONFIG_HOME` 時, 預設目錄是 `$XDG_CONFIG_HOME/yazi`. 從啟動 Yazi 的 shell 執行 `glow --version` 確認 `PATH` 上能使用既有的 Glow, 然後重開 Yazi. Windows 的 Herdr server 若仍繼承舊的 `PATH`, 在方便時重開 Herdr.
 
 合併 repo config 的 `prefix+y`, `prefix+shift+y` 與 `prefix+shift+s` command; 預設為 Windows, WSL 依註解替換.
 

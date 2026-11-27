@@ -263,7 +263,7 @@ def open_browser(cli, sshfs_mount, pane, default_path):
 
 
 def open_yazi(cli, pane, root):
-    """在 active pane 右側 split(--tab 則為新 tab)開一個 shell, cd 到 root 後執行 yazi; 離開 yazi 後留下該 shell(cwd 為 root)."""
+    """在右側 split 或新 tab 執行 Yazi, 正常退出後關閉該 pane."""
     # 不用 --cwd root: 以 sshfs 路徑為 cwd 開 pane, shell 要約 3.5s 才出 prompt; 先在 home 開再 cd 只要約 0.3s
     home = os.path.expanduser("~")
     if OPEN_IN_TAB:
@@ -272,7 +272,7 @@ def open_yazi(cli, pane, root):
     else:
         new_pane = cli("pane", "split", "--pane", pane, "--direction", "right", "--cwd", home, "--focus")["pane"]["pane_id"]
     # pane run 的輸出不是 JSON, 只看 exit code
-    result = subprocess.run([os.environ["HERDR_BIN_PATH"], "pane", "run", new_pane, "cd -- " + shlex.quote(root) + " && yazi"],
+    result = subprocess.run([os.environ["HERDR_BIN_PATH"], "pane", "run", new_pane, "cd -- " + shlex.quote(root) + " && yazi && exit"],
                             capture_output=True, text=True)
     if result.returncode:
         raise RuntimeError(result.stderr.strip() or result.stdout.strip())
